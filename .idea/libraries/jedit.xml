@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="jedit">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/jedit.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

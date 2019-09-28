@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+
+<!DOCTYPE DOCKABLES SYSTEM "dockables.dtd">
+
+<DOCKABLES>
+    <DOCKABLE NAME="quicknotepad">
+        new com.articulate.sigma.jedit.QuickNotepad(view, position);
+    </DOCKABLE>
+</DOCKABLES>

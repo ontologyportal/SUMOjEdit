@@ -1,0 +1,46 @@
+<project name="QuickNotepad" default="all">
+    <description>
+        This is an ant build.xml file for building the QuickNotepad plugin for jEdit.
+    </description>
+
+    <target name="compile" description="Compile the project">
+        <mkdir dir="build"/>
+        <javac destdir="build" debug="on" optimize="on" deprecation="on" includeantruntime="false" classpathref="compile.classpath">
+            <src refid="core.sourcepath"/>
+        </javac>
+        <copy todir="build/lib">
+            <fileset dir="lib" />
+        </copy>
+        <copy todir="build" file="config/QuickNotePad.props" />
+        <copy todir="build" file="config/dockables.xml" />
+        <copy todir="build" file="config/actions.xml" />
+    </target>
+
+    <target name="dist" depends="compile" description="Create the *.war file and place in build.">
+        <jar destfile="quick.jar">
+            <fileset dir="build"/>
+        </jar>
+    </target>
+
+    <target name="deploy" depends="dist">
+        <copy todir="/home/apease/.jedit/jars" file="quick.jar" />
+        <echo>deploying quick.jar</echo>
+    </target>
+
+    <target name="all" depends="deploy">
+        <tstamp>
+            <format property="TODAY_US" pattern="yyyy-MM-dd HH:mm:ss:sss zzz" locale="en,US"/>
+        </tstamp>
+        <echo>the system date/time is ${TODAY_US}</echo>
+    </target>
+
+    <path id="core.sourcepath">
+        <pathelement path="src"/>
+    </path>
+
+    <path id="compile.classpath">
+        <fileset dir="lib">
+            <include name="*.jar"/>
+        </fileset>
+    </path>
+</project>

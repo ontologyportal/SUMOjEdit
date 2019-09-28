@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="sigmakee">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/sigmakee.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/lib/sigmakee.jar!/test/corpus/java" />
+      <root url="jar://$PROJECT_DIR$/lib/sigmakee.jar!/test/integration/java" />
+      <root url="jar://$PROJECT_DIR$/lib/sigmakee.jar!/test/unit/java" />
+    </SOURCES>
+  </library>
+</component>
