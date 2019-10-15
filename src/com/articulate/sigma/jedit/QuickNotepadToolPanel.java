@@ -60,6 +60,16 @@ public class QuickNotepadToolPanel extends JPanel {
 
 		add(Box.createGlue());
 
+		add(makeCustomButton("quicknotepad.add-header", new ActionListener() {
+			public void actionPerformed(ActionEvent evt) {
+				QuickNotepadToolPanel.this.pad.addHeader();
+			}
+		}));
+		add(makeCustomButton("quicknotepad.check-errors", new ActionListener() {
+			public void actionPerformed(ActionEvent evt) {
+				QuickNotepadToolPanel.this.pad.checkErrors();
+			}
+		}));
 		add(makeCustomButton("quicknotepad.choose-file", new ActionListener() {
 			public void actionPerformed(ActionEvent evt) {
 				QuickNotepadToolPanel.this.pad.chooseFile();

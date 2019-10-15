@@ -3,7 +3,12 @@
         This is an ant build.xml file for building the QuickNotepad plugin for jEdit.
     </description>
 
-    <target name="compile" description="Compile the project">
+    <target name="init">
+        <ant antfile="../sigmakee/build.xml" inheritAll="false" target="all" />
+        <copy todir="${basedir}/lib" file="../sigmakee/build/sigmakee.jar" />
+    </target>
+
+    <target name="compile" depends="init" description="Compile the project">
         <mkdir dir="build"/>
         <javac destdir="build" debug="on" optimize="on" deprecation="on" includeantruntime="false" classpathref="compile.classpath">
             <src refid="core.sourcepath"/>
@@ -19,6 +24,7 @@
     <target name="dist" depends="compile" description="Create the *.war file and place in build.">
         <jar destfile="quick.jar">
             <fileset dir="build"/>
+            <fileset dir="build/lib"/>
         </jar>
     </target>
 

@@ -9,6 +9,9 @@ plugin.com.articulate.sigma.jedit.QuickNotepadPlugin.usePluginHome=true
 plugin.com.articulate.sigma.jedit.QuickNotepadPlugin.name=QuickNotepad
 plugin.com.articulate.sigma.jedit.QuickNotepadPlugin.author=John Gellene
 
+# jars
+plugin.com.articulate.sigma.jedit.QuickNotepadPlugin.jars=guava-19.0.jar sigmakee.jar
+
 # version number == jEdit version number
 plugin.com.articulate.sigma.jedit.QuickNotepadPlugin.version=4.5
 
@@ -23,6 +26,8 @@ plugin.com.articulate.sigma.jedit.QuickNotepadPlugin.depend.0=jedit 04.05.99.00
 plugin.com.articulate.sigma.jedit.QuickNotepadPlugin.menu=quicknotepad \
   - \
   quicknotepad.choose-file \
+  quicknotepad.add-header \
+  quicknotepad.check-errors \
   quicknotepad.save-file \
   quicknotepad.copy-to-buffer
 
@@ -31,6 +36,8 @@ quicknotepad.label=QuickNotepad
 
 # action labels for actions supplied by actions.xml
 quicknotepad.choose-file.label=Choose notepad file
+quicknotepad.add-header.label=Add a header to file
+quicknotepad.check-errors.label=Check for KIF syntax errors
 quicknotepad.save-file.label=Save notepad file
 quicknotepad.copy-to-buffer.label=Copy notepad to buffer
 
@@ -64,3 +71,7 @@ options.quicknotepad.fontsize=14
 
 # Setting not defined but supplied for completeness
 options.quicknotepad.filepath=
+
+#dependencies
+plugin.quicknotepad.depend.0=jedit 04.02.02.00
+plugin.quicknotepad.depend.2=plugin errorlist.ErrorListPlugin 1.3

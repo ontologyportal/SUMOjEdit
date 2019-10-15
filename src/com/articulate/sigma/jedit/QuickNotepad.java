@@ -27,17 +27,17 @@ package com.articulate.sigma.jedit;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Font;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
+import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.swing.JFileChooser;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 
+import com.articulate.sigma.KBmanager;
+import com.articulate.sigma.KIF;
 import org.gjt.sp.jedit.EBComponent;
 import org.gjt.sp.jedit.EBMessage;
 import org.gjt.sp.jedit.EditBus;
@@ -49,12 +49,10 @@ import org.gjt.sp.jedit.gui.DockableWindowManager;
 import org.gjt.sp.jedit.msg.PropertiesChanged;
 import org.gjt.sp.util.Log;
 import org.gjt.sp.util.StandardUtilities;
-// }}}
 
-// {{{ QuickNotePad class
-/**
- * 
- * QuickNotePad - a dockable JPanel, a demonstration of a jEdit plugin.
+import errorlist.*;
+
+/** ***************************************************************
  *
  */
 public class QuickNotepad extends JPanel
@@ -74,18 +72,17 @@ public class QuickNotepad extends JPanel
 	private QuickNotepadTextArea textArea;
 
 	private QuickNotepadToolPanel toolPanel;
-    // }}}
 
-    // {{{ Constructor
-	/**
-	 * 
+	/** ***************************************************************
 	 * @param view the current jedit window
 	 * @param position a variable passed in from the script in actions.xml,
 	 * 	which can be DockableWindowManager.FLOATING, TOP, BOTTOM, LEFT, RIGHT, etc.
 	 * 	see @ref DockableWindowManager for possible values.
 	 */
 	public QuickNotepad(View view, String position) {
+
 		super(new BorderLayout());
+		KBmanager.getMgr().initializeOnce();
 		this.view = view;
 		this.floating = position.equals(DockableWindowManager.FLOATING);
 
@@ -116,34 +113,32 @@ public class QuickNotepad extends JPanel
 
 		readFile();
 	}
-    // }}}
 
-    // {{{ Member Functions
-    
-    // {{{ focusOnDefaultComponent
+	/** ***************************************************************
+	 */
 	public void focusOnDefaultComponent() {
 		textArea.requestFocus();
 	}
-    // }}}
 
-    // {{{ getFileName
+	/** ***************************************************************
+	 */
 	public String getFilename() {
 		return filename;
 	}
-    // }}}
 
-	// EBComponent implementation
-	
-    // {{{ handleMessage
+	/** ***************************************************************
+	 */
 	public void handleMessage(EBMessage message) {
+
 		if (message instanceof PropertiesChanged) {
 			propertiesChanged();
 		}
 	}
-    // }}}
-    
-    // {{{ propertiesChanged
+
+	/** ***************************************************************
+	 */
 	private void propertiesChanged() {
+
 		String propertyFilename = jEdit
 				.getProperty(QuickNotepadPlugin.OPTION_PREFIX + "filepath");
 		if (!StandardUtilities.objectsEqual(defaultFilename, propertyFilename)) {
@@ -158,45 +153,44 @@ public class QuickNotepad extends JPanel
 			textArea.setFont(newFont);
 		}
 	}
-    // }}}
 
-	// These JComponent methods provide the appropriate points
-	// to subscribe and unsubscribe this object to the EditBus.
-
-    // {{{ addNotify
+	/** ***************************************************************
+	 */
 	public void addNotify() {
 		super.addNotify();
 		EditBus.addToBus(this);
 	}
-     // }}}
-     
-    // {{{ removeNotify
+
+	/** ***************************************************************
+	 */
 	public void removeNotify() {
+
 		saveFile();
 		super.removeNotify();
 		EditBus.removeFromBus(this);
 	}
-    // }}}
-    
-	// QuickNotepadActions implementation
 
-    // {{{
+	/** ***************************************************************
+	 */
 	public void saveFile() {
+
 		if (filename == null || filename.length() == 0)
 			return;
 		try {
 			FileWriter out = new FileWriter(filename);
 			out.write(textArea.getText());
 			out.close();
-		} catch (IOException ioe) {
+		}
+		catch (IOException ioe) {
 			Log.log(Log.ERROR, QuickNotepad.class,
 					"Could not write notepad text to " + filename);
 		}
 	}
-    // }}}
-    
-    // {{{ chooseFile
+
+	/** ***************************************************************
+	 */
 	public void chooseFile() {
+
 		String[] paths = GUIUtilities.showVFSFileDialog(view, null,
 				JFileChooser.OPEN_DIALOG, false);
 		if (paths != null && !paths[0].equals(filename)) {
@@ -206,19 +200,90 @@ public class QuickNotepad extends JPanel
 			readFile();
 		}
 	}
-    // }}}
 
-    // {{{ copyToBuffer
+	/** ***************************************************************
+	 */
+	public void addHeader() {
+
+		view.getEditPane().getTextArea().setText(";; Header for file\n" +
+				view.getEditPane().getTextArea().getText());
+	}
+
+	/** ***************************************************************
+	 */
+	public int getLineNum(String line) {
+
+		int result = 0;
+		Pattern p = Pattern.compile("line: (\\d+)");
+		Matcher m = p.matcher(line);
+		if (m.find()) {
+			try { result = Integer.parseInt(m.group(1)); }
+			catch (NumberFormatException nfe) {}
+		}
+		return result;
+	}
+
+	/** ***************************************************************
+	 */
+	public void checkErrors() {
+
+		errorlist.DefaultErrorSource errsrc;
+		errsrc = new errorlist.DefaultErrorSource("sigmakee",view);
+		errorlist.ErrorSource.registerErrorSource(errsrc);
+		jEdit.getAction("error-list-clear").invoke(null);
+
+		//errsrc.addError(ErrorSource.ERROR, "C:\\my_projects\\hw_if\\control\\ctrlapi.c",944,0,0,"LNT787: (Info -- enum constant 'DTV_PL_ASIG_AV_IP1_AUDIO' not used within switch)");
+
+		String contents = view.getEditPane().getTextArea().getText();
+
+		/*
+		KIF kif = new KIF();
+		kif.filename = filename;
+
+		System.out.println("checkErrors(): about to read kif file");
+		try {
+			kif.readFile("/home/apease/workspace/sumo/Merge.kif");
+			System.out.println("checkErrors(): done reading kif file");
+		}
+		catch (Exception e) {
+			System.out.println("checkErrors(): error loading kif file");
+			errsrc.addError(ErrorSource.WARNING,e.getMessage(),1,0,0,
+				"start of file with " + contents.length() + " characters "); }
+		*/
+
+		System.out.println("checkErrors(): success loading kif file with " + contents.length() + " characters ");
+		String path = view.getBuffer().getPath();
+		errsrc.addError(ErrorSource.WARNING,path,1,0,0,
+				"start of file with " + contents.length() + " characters ");
+				//"start of file with " + warnings.size() + " warnings and " + kif.errorSet.size() + " errors");
+		/*
+		for (String warn : warnings) {
+			int line = getLineNum(warn);
+			errsrc.addError(ErrorSource.WARNING,path,line,0,0,
+					warn);
+			textArea.setText(textArea.getText() + "\n" + warn);
+		}
+		for (String err : kif.errorSet) {
+			int line = getLineNum(err);
+			errsrc.addError(ErrorSource.ERROR,path,line,0,0,
+					err);
+			textArea.setText(textArea.getText() + "\n" + err);
+		}
+		 */
+	}
+
+	/** ***************************************************************
+	 */
 	public void copyToBuffer() {
+
 		jEdit.newFile(view);
 		view.getEditPane().getTextArea().setText(textArea.getText());
 	}
-    // }}}
-    // {{{ readFile()
-	/**
-	 * Helper method
+
+	/** ***************************************************************
 	 */
 	private void readFile() {
+
 		if (filename == null || filename.length() == 0)
 			return;
 
@@ -232,15 +297,14 @@ public class QuickNotepad extends JPanel
 			}
 			bf.close();
 			textArea.setText(sb.toString());
-		} catch (FileNotFoundException fnf) {
+		}
+		catch (FileNotFoundException fnf) {
 			Log.log(Log.ERROR, QuickNotepad.class, "notepad file " + filename
 					+ " does not exist");
-		} catch (IOException ioe) {
+		}
+		catch (IOException ioe) {
 			Log.log(Log.ERROR, QuickNotepad.class,
 					"could not read notepad file " + filename);
 		}
 	}
-    // }}}
-    // }}}
 }
-// }}}

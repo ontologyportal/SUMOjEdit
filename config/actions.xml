@@ -14,6 +14,20 @@
         </CODE>
     </ACTION>
 
+    <ACTION NAME="quicknotepad.check-errors">
+        <CODE>
+            wm.addDockableWindow(com.articulate.sigma.jedit.QuickNotepadPlugin.NAME);
+            wm.getDockableWindow(com.articulate.sigma.jedit.QuickNotepadPlugin.NAME).checkErrors();
+        </CODE>
+    </ACTION>
+
+    <ACTION NAME="quicknotepad.add-header">
+        <CODE>
+            wm.addDockableWindow(com.articulate.sigma.jedit.QuickNotepadPlugin.NAME);
+            wm.getDockableWindow(com.articulate.sigma.jedit.QuickNotepadPlugin.NAME).addHeader();
+        </CODE>
+    </ACTION>
+
     <ACTION NAME="quicknotepad.copy-to-buffer">
         <CODE>
             wm.addDockableWindow(com.articulate.sigma.jedit.QuickNotepadPlugin.NAME);

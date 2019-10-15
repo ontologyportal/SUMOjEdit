@@ -26,6 +26,10 @@ package com.articulate.sigma.jedit;
 interface QuickNotepadActions {
 	void chooseFile();
 
+	void addHeader();
+
+	void checkErrors();
+
 	void saveFile();
 
 	void copyToBuffer();
