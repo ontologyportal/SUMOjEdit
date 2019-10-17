@@ -1,10 +1,9 @@
 package com.articulate.sigma.jedit;
 
 /*
- * QuickNotepadPlugin.java
- * part of the QuickNotepad plugin for the jEdit text editor
- * Copyright (C) 2001 John Gellene
- * jgellene@nyc.rr.com
+ * SUMOjEditActions.java
+ * part of the SUMOjEdit plugin for the jEdit text editor
+ * Copyright (C) 2019 Infosys
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -19,18 +18,16 @@ package com.articulate.sigma.jedit;
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
- *
- * $Id$
  */
 
-import org.gjt.sp.jedit.EditPlugin;
+interface SUMOjEditActions {
+	//void chooseFile();
 
-/**
- * The QuickNotepad plugin
- * 
- * @author John Gellene
- */
-public class QuickNotepadPlugin extends EditPlugin {
-	public static final String NAME = "quicknotepad";
-	public static final String OPTION_PREFIX = "options.quicknotepad.";
+	//void addHeader();
+
+	void checkErrors();
+
+	//void saveFile();
+
+	//void copyToBuffer();
 }

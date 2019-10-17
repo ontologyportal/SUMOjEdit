@@ -1,0 +1,66 @@
+# jEdit only needs to load the plugin the first time the user accesses it
+# the presence of this property also tells jEdit the plugin is using the new API
+plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.activate=startup
+
+# Even if you don't store additional files, this is a good idea to set:
+plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.usePluginHome=true
+
+# Required for all plugins:
+plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.name=SUMOjEditPlugin
+plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.author=Adam Pease
+
+# jars
+plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.jars=guava-19.0.jar sigmakee.jar
+
+# version number == jEdit version number
+plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.version=4.5
+
+# online help
+plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.docs=index.html
+
+# we only have one dependency, jEdit 4.5
+# See jEdit.getBuild() to understand version numbering scheme.
+plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.depend.0=jedit 04.05.99.00
+
+# plugin menu - a list of actions or separators
+plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.menu=SUMOjEditPlugin \
+  - \
+  SUMOjEditPlugin.check-errors
+
+# action labels for actions supplied by dockables.xml
+SUMOjEditPlugin.label=SUMOjEditPlugin
+
+# action labels for actions supplied by actions.xml
+SUMOjEditPlugin.check-errors.label=Check for KIF syntax errors
+
+# plugin option pane
+plugin.SUMOjEditPlugin.option-pane=SUMOjEditPlugin
+
+# Option pane activation BeanShell snippet
+#options.SUMOjEditPlugin.code=new SUMOjEditOptionPane();
+
+# Option pane labels
+#options.SUMOjEditPlugin.label=SUMOjEditPlugin
+#options.SUMOjEditPlugin.file=File:
+#options.SUMOjEditPlugin.choose-file=Choose
+#options.SUMOjEditPlugin.choose-file.title=Choose a file
+#options.SUMOjEditPlugin.choose-font=Font:
+#options.SUMOjEditPlugin.show-filepath.title=Display file path
+
+# window title
+SUMOjEditPlugin.title=SUMOjEditPlugin
+
+# window toolbar buttons
+
+# default settings
+options.SUMOjEditPlugin.show-filepath=true
+options.SUMOjEditPlugin.font=Monospaced
+options.SUMOjEditPlugin.fontstyle=0
+options.SUMOjEditPlugin.fontsize=14
+
+# Setting not defined but supplied for completeness
+options.SUMOjEditPlugin.filepath=
+
+#dependencies
+plugin.SUMOjEditPlugin.depend.0=jedit 04.02.02.00
+plugin.SUMOjEditPlugin.depend.2=plugin errorlist.ErrorListPlugin 1.3

@@ -3,10 +3,16 @@
         This is an ant build.xml file for building the QuickNotepad plugin for jEdit.
     </description>
 
-    <target name="init">
-        <ant antfile="../sigmakee/build.xml" inheritAll="false" target="all" />
-        <copy todir="${basedir}/lib" file="../sigmakee/build/sigmakee.jar" />
+    <target name="clean">
+        <delete includeemptydirs="true" failonerror="false">
+            <fileset dir="build"/>
+        </delete>
     </target>
+
+    <target name="init" depends="clean">
+        <ant antfile="../sigmakee/build.xml" inheritAll="false" target="all" />
+    </target>
+
 
     <target name="compile" depends="init" description="Compile the project">
         <mkdir dir="build"/>
@@ -16,21 +22,24 @@
         <copy todir="build/lib">
             <fileset dir="lib" />
         </copy>
-        <copy todir="build" file="config/QuickNotePad.props" />
-        <copy todir="build" file="config/dockables.xml" />
+        <copy todir="build" file="config/SUMOjEdit.props" />
+        <!-- copy todir="build" file="config/dockables.xml" /-->
         <copy todir="build" file="config/actions.xml" />
     </target>
 
     <target name="dist" depends="compile" description="Create the *.war file and place in build.">
-        <jar destfile="quick.jar">
+        <jar destfile="SUMOjEdit.jar">
             <fileset dir="build"/>
             <fileset dir="build/lib"/>
         </jar>
     </target>
 
     <target name="deploy" depends="dist">
-        <copy todir="/home/apease/.jedit/jars" file="quick.jar" />
-        <echo>deploying quick.jar</echo>
+        <copy todir="/home/apease/.jedit/jars" file="SUMOjEdit.jar" />
+        <copy todir="/home/apease/.jedit/jars">
+            <fileset dir="lib" />
+        </copy>
+        <echo>deploying SUMOjEdit.jar and supporting jars</echo>
     </target>
 
     <target name="all" depends="deploy">
