@@ -2,6 +2,7 @@
   <library name="jedit">
     <CLASSES>
       <root url="jar://$PROJECT_DIR$/lib/jedit.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/ErrorList.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />
