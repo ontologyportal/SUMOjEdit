@@ -20,30 +20,17 @@ package com.articulate.sigma.jedit;
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-// {{{ imports
-import java.awt.BorderLayout;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.io.*;
+import java.util.HashSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import javax.swing.JFileChooser;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
 
 import com.articulate.sigma.*;
 import org.gjt.sp.jedit.EBComponent;
 import org.gjt.sp.jedit.EBMessage;
-import org.gjt.sp.jedit.EditBus;
-import org.gjt.sp.jedit.GUIUtilities;
 import org.gjt.sp.jedit.View;
 import org.gjt.sp.jedit.jEdit;
-import org.gjt.sp.jedit.gui.DefaultFocusComponent;
-import org.gjt.sp.jedit.gui.DockableWindowManager;
 import org.gjt.sp.jedit.msg.PropertiesChanged;
 import org.gjt.sp.util.Log;
-import org.gjt.sp.util.StandardUtilities;
 
 import errorlist.*;
 
@@ -54,23 +41,13 @@ public class SUMOjEdit
     implements
 		EBComponent,
 		SUMOjEditActions
-		//,DefaultFocusComponent
  	{
 
-    // {{{ Instance Variables
 	private static final long serialVersionUID = 6412255692894321789L;
 
-	//private String filename;
-
-	//private String defaultFilename;
-
-	public View view;
-
-	//private boolean floating;
-
-	//private SUMOjEditTextArea textArea;
-
-	//private SUMOjEditToolPanel toolPanel;
+	public View view = null;
+	public KB kb = null;
+	public FormulaPreprocessor fp = null;
 
 	/** ***************************************************************
 	 * @param view the current jedit window
@@ -80,51 +57,11 @@ public class SUMOjEdit
 		//super(new BorderLayout());
 		Log.log(Log.WARNING,this,"SUMOjEdit(): initializing");
 		KBmanager.getMgr().initializeOnce();
+		kb = KBmanager.getMgr().getKB("SUMO");
+		fp = new FormulaPreprocessor();
 		this.view = view;
-
-		//this.floating = position.equals(DockableWindowManager.FLOATING);
-		/*
-		if (jEdit.getSettingsDirectory() != null) {
-			this.filename = jEdit.getProperty(SUMOjEditPlugin.OPTION_PREFIX
-					+ "filepath");
-			if (this.filename == null || this.filename.length() == 0) {
-				this.filename = new String(jEdit.getSettingsDirectory()
-						+ File.separator + "qn.txt");
-				jEdit.setProperty(
-						SUMOjEditPlugin.OPTION_PREFIX + "filepath",
-						this.filename);
-			}
-			this.defaultFilename = this.filename;
-		}
-
-		//this.toolPanel = new SUMOjEditToolPanel(this);
-		//add(BorderLayout.NORTH, this.toolPanel);
-
-		if (floating)
-			this.setPreferredSize(new Dimension(500, 250));
-
-		//textArea = new SUMOjEditTextArea();
-		//textArea.setFont(SUMOjEditOptionPane.makeFont());
-
-		//JScrollPane pane = new JScrollPane(textArea);
-		//add(BorderLayout.CENTER, pane);
-
-		//readFile();
-		 */
 	}
 
-	/** ***************************************************************
-	 */
-	//public void focusOnDefaultComponent() {
-	//	textArea.requestFocus();
-	//}
-
-	/** ***************************************************************
-
-	public String getFilename() {
-		return filename;
-	}
-*/
 	/** ***************************************************************
 	 */
 	public void handleMessage(EBMessage message) {
@@ -138,60 +75,8 @@ public class SUMOjEdit
 	 */
 	private void propertiesChanged() {
 
-		//String propertyFilename = jEdit
-		//		.getProperty(SUMOjEditPlugin.OPTION_PREFIX + "filepath");
-		//if (!StandardUtilities.objectsEqual(defaultFilename, propertyFilename)) {
-			//saveFile();
-			//toolPanel.propertiesChanged();
-			//defaultFilename = propertyFilename;
-			//filename = defaultFilename;
-			//readFile();
-		//}
-		//Font newFont = SUMOjEditOptionPane.makeFont();
-		//if (!newFont.equals(textArea.getFont())) {
-		//	textArea.setFont(newFont);
-		//}
 	}
 
-	/** ***************************************************************
-
-	public void saveFile() {
-
-		if (filename == null || filename.length() == 0)
-			return;
-		try {
-			FileWriter out = new FileWriter(filename);
-			//out.write(textArea.getText());
-			out.close();
-		}
-		catch (IOException ioe) {
-			Log.log(Log.ERROR, SUMOjEdit.class,
-					"Could not write notepad text to " + filename);
-		}
-	}
-*/
-	/** ***************************************************************
-
-	public void chooseFile() {
-
-		String[] paths = GUIUtilities.showVFSFileDialog(view, null,
-				JFileChooser.OPEN_DIALOG, false);
-		if (paths != null && !paths[0].equals(filename)) {
-			saveFile();
-			filename = paths[0];
-			//toolPanel.propertiesChanged();
-			readFile();
-		}
-	}
-*/
-	/** ***************************************************************
-
-	public void addHeader() {
-
-		view.getEditPane().getTextArea().setText(";; Header for file\n" +
-				view.getEditPane().getTextArea().getText());
-	}
-*/
 	/** ***************************************************************
 	 */
 	public int getLineNum(String line) {
@@ -200,8 +85,21 @@ public class SUMOjEdit
 		Pattern p = Pattern.compile("line: (\\d+)");
 		Matcher m = p.matcher(line);
 		if (m.find()) {
+			Log.log(Log.WARNING,this,"getLineNum(): found line number: " + m.group(1));
 			try { result = Integer.parseInt(m.group(1)); }
 			catch (NumberFormatException nfe) {}
+		}
+		if (result == 0) {
+			p = Pattern.compile("line&58; (\\d+)");
+			m = p.matcher(line);
+			if (m.find()) {
+				Log.log(Log.WARNING,this,"getLineNum(): found line number: " + m.group(1));
+				try {
+					result = Integer.parseInt(m.group(1));
+				}
+				catch (NumberFormatException nfe) {
+				}
+			}
 		}
 		return result;
 	}
@@ -238,51 +136,30 @@ public class SUMOjEdit
 
 		for (String warn : kif.warningSet) {
 			int line = getLineNum(warn);
-			errsrc.addError(ErrorSource.WARNING,path,line,0,0,
-					warn);
+			errsrc.addError(ErrorSource.WARNING,path,line,0,0,warn);
 			Log.log(Log.WARNING,this,line);
 		}
 		for (String err : kif.errorSet) {
 			int line = getLineNum(err);
-			errsrc.addError(ErrorSource.ERROR,path,line,0,0,
-					err);
+			errsrc.addError(ErrorSource.ERROR,path,line,0,0,err);
 			Log.log(Log.WARNING,this,line);
 		}
-	}
-
-	/** ***************************************************************
-
-	public void copyToBuffer() {
-
-		jEdit.newFile(view);
-		view.getEditPane().getTextArea().setText(textArea.getText());
-	}
-*/
-	/** ***************************************************************
-
-	private void readFile() {
-
-		if (filename == null || filename.length() == 0)
-			return;
-
-		BufferedReader bf = null;
-		try {
-			bf = new BufferedReader(new FileReader(filename));
-			StringBuffer sb = new StringBuffer(2048);
-			String str;
-			while ((str = bf.readLine()) != null) {
-				sb.append(str).append('\n');
+		for (Formula f : kif.formulaMap.values()) {
+			if (Diagnostics.quantifierNotInStatement(f))
+				errsrc.addError(ErrorSource.ERROR,path,f.startLine,0,0,
+						"Quantifier not in statement");
+			HashSet<String> result = Diagnostics.singleUseVariables(f);
+			if (result != null && result.size() > 0)
+				errsrc.addError(ErrorSource.WARNING,path,f.startLine,0,0,
+						"Variable(s) only used once: " + result.toString());
+			fp.preProcess(f,false,kb);
+			if (f.errors != null && f.errors.size() > 0) {
+				for (String err : f.errors)
+					errsrc.addError(ErrorSource.ERROR,path,f.startLine,0,0,err);
+				for (String w : f.warnings)
+					errsrc.addError(ErrorSource.WARNING,path,f.startLine,0,0,w);
 			}
-			bf.close();
-			textArea.setText(sb.toString());
 		}
-		catch (FileNotFoundException fnf) {
-			Log.log(Log.ERROR, SUMOjEdit.class, "notepad file " + filename
-					+ " does not exist");
-		}
-		catch (IOException ioe) {
-			Log.log(Log.ERROR, SUMOjEdit.class,
-					"could not read notepad file " + filename);
-		}
-	} */
+		Log.log(Log.WARNING,this,"checkErrors(): check completed: ");
+	}
 }
