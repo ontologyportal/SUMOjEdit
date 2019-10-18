@@ -20,11 +20,13 @@ package com.articulate.sigma.jedit;
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.articulate.sigma.*;
+import com.articulate.sigma.trans.SUMOtoTFAform;
 import org.gjt.sp.jedit.EBComponent;
 import org.gjt.sp.jedit.EBMessage;
 import org.gjt.sp.jedit.View;
@@ -59,6 +61,7 @@ public class SUMOjEdit
 		KBmanager.getMgr().initializeOnce();
 		kb = KBmanager.getMgr().getKB("SUMO");
 		fp = new FormulaPreprocessor();
+		SUMOtoTFAform.initOnce();
 		this.view = view;
 	}
 
@@ -145,6 +148,7 @@ public class SUMOjEdit
 			Log.log(Log.WARNING,this,line);
 		}
 		for (Formula f : kif.formulaMap.values()) {
+			//Log.log(Log.WARNING,this,"checking formula " + f.toString());
 			if (Diagnostics.quantifierNotInStatement(f))
 				errsrc.addError(ErrorSource.ERROR,path,f.startLine,0,0,
 						"Quantifier not in statement");
@@ -158,6 +162,24 @@ public class SUMOjEdit
 					errsrc.addError(ErrorSource.ERROR,path,f.startLine,0,0,err);
 				for (String w : f.warnings)
 					errsrc.addError(ErrorSource.WARNING,path,f.startLine,0,0,w);
+			}
+			//Log.log(Log.WARNING,this,"checking variables in formula ");
+			HashMap<String,HashSet<String>> varmap = fp.findAllTypeRestrictions(f,kb);
+			//Log.log(Log.WARNING,this,"varmap " + varmap);
+			SUMOtoTFAform.varmap = varmap;
+			SUMOtoTFAform.inconsistentVarTypes();
+			//Log.log(Log.WARNING,this,"done checking var types ");
+			if (SUMOtoTFAform.errors != null && f.errors.size() > 0) {
+				for (String err : SUMOtoTFAform.errors) {
+					errsrc.addError(ErrorSource.ERROR, path, f.startLine, 0, 0, err);
+					Log.log(Log.WARNING, this, err);
+				}
+			}
+			String term = PredVarInst.hasCorrectArity(f, kb);
+			if (!StringUtil.emptyString(term)) {
+				String msg = ("Arity error of predicate " + term);
+				errsrc.addError(ErrorSource.ERROR, path, f.startLine, 0, 0, msg);
+				Log.log(Log.WARNING, this, msg);
 			}
 		}
 		Log.log(Log.WARNING,this,"checkErrors(): check completed: ");
