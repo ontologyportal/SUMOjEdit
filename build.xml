@@ -11,8 +11,8 @@
 
     <target name="init" depends="clean">
         <ant antfile="../sigmakee/build.xml" inheritAll="false" target="all" />
+        <copy todir="lib" file="../sigmakee/build/sigmakee.jar" />
     </target>
-
 
     <target name="compile" depends="init" description="Compile the project">
         <mkdir dir="build"/>
