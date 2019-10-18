@@ -20,6 +20,7 @@ package com.articulate.sigma.jedit;
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
+import java.io.StringReader;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.regex.Matcher;
@@ -126,7 +127,7 @@ public class SUMOjEdit
 		KIF kif = new KIF();
 		//kif.filename = "/home/apease/workspace/sumo/Merge.kif";
 		try {
-			kif.readFile(path);
+			kif.parse(new StringReader(contents));
 			Log.log(Log.WARNING,this,"checkErrors(): done reading kif file");
 		}
 		catch (Exception e) {
