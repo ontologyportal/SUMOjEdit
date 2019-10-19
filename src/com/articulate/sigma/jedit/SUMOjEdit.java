@@ -139,30 +139,30 @@ public class SUMOjEdit
 		Log.log(Log.WARNING,this,"checkErrors(): filename: " + path);
 
 		for (String warn : kif.warningSet) {
-			int line = getLineNum(warn);
+			int line = getLineNum(warn) - 1 ;
 			errsrc.addError(ErrorSource.WARNING,path,line,0,0,warn);
 			Log.log(Log.WARNING,this,line);
 		}
 		for (String err : kif.errorSet) {
-			int line = getLineNum(err);
+			int line = getLineNum(err) - 1;
 			errsrc.addError(ErrorSource.ERROR,path,line,0,0,err);
 			Log.log(Log.WARNING,this,line);
 		}
 		for (Formula f : kif.formulaMap.values()) {
 			//Log.log(Log.WARNING,this,"checking formula " + f.toString());
 			if (Diagnostics.quantifierNotInStatement(f))
-				errsrc.addError(ErrorSource.ERROR,path,f.startLine,0,0,
+				errsrc.addError(ErrorSource.ERROR,path,f.startLine-1,f.endLine-1,0,
 						"Quantifier not in statement");
 			HashSet<String> result = Diagnostics.singleUseVariables(f);
 			if (result != null && result.size() > 0)
-				errsrc.addError(ErrorSource.WARNING,path,f.startLine,0,0,
+				errsrc.addError(ErrorSource.WARNING,path,f.startLine-1,f.endLine-1,0,
 						"Variable(s) only used once: " + result.toString());
 			fp.preProcess(f,false,kb);
 			if (f.errors != null && f.errors.size() > 0) {
 				for (String err : f.errors)
-					errsrc.addError(ErrorSource.ERROR,path,f.startLine,0,0,err);
+					errsrc.addError(ErrorSource.ERROR,path,f.startLine-1,f.endLine-1,0,err);
 				for (String w : f.warnings)
-					errsrc.addError(ErrorSource.WARNING,path,f.startLine,0,0,w);
+					errsrc.addError(ErrorSource.WARNING,path,f.startLine-1,f.endLine-1,0,w);
 			}
 			//Log.log(Log.WARNING,this,"checking variables in formula ");
 			HashMap<String,HashSet<String>> varmap = fp.findAllTypeRestrictions(f,kb);
@@ -172,14 +172,14 @@ public class SUMOjEdit
 			//Log.log(Log.WARNING,this,"done checking var types ");
 			if (SUMOtoTFAform.errors != null && f.errors.size() > 0) {
 				for (String err : SUMOtoTFAform.errors) {
-					errsrc.addError(ErrorSource.ERROR, path, f.startLine, 0, 0, err);
+					errsrc.addError(ErrorSource.ERROR, path, f.startLine-1, f.endLine-1, 0, err);
 					Log.log(Log.WARNING, this, err);
 				}
 			}
 			String term = PredVarInst.hasCorrectArity(f, kb);
 			if (!StringUtil.emptyString(term)) {
 				String msg = ("Arity error of predicate " + term);
-				errsrc.addError(ErrorSource.ERROR, path, f.startLine, 0, 0, msg);
+				errsrc.addError(ErrorSource.ERROR, path, f.startLine-1, f.endLine-1, 0, msg);
 				Log.log(Log.WARNING, this, msg);
 			}
 		}
