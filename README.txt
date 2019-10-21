@@ -20,4 +20,4 @@ Execution
 
 Known Bugs
 ==============================
-Adding the plugs causes all the jEdit menus and labels to become corrupted
+Adding the plugins causes all the jEdit menus and labels to become corrupted
