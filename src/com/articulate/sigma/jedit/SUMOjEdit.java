@@ -21,13 +21,16 @@ package com.articulate.sigma.jedit;
  */
 
 import java.io.StringReader;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.articulate.sigma.*;
 import com.articulate.sigma.trans.SUMOtoTFAform;
+import com.articulate.sigma.utils.FileUtil;
 import org.gjt.sp.jedit.EBComponent;
 import org.gjt.sp.jedit.EBMessage;
 import org.gjt.sp.jedit.View;
@@ -51,6 +54,7 @@ public class SUMOjEdit
 	public View view = null;
 	public KB kb = null;
 	public FormulaPreprocessor fp = null;
+	public static boolean log = true;
 
 	/** ***************************************************************
 	 * @param view the current jedit window
@@ -114,15 +118,21 @@ public class SUMOjEdit
 
 		if (view == null)
 			view = jEdit.getActiveView();
-		Log.log(Log.WARNING,this,"checkErrors(): starting");
+		Log.log(Log.WARNING, this, "checkErrors(): starting");
 		errorlist.DefaultErrorSource errsrc;
-		errsrc = new errorlist.DefaultErrorSource("sigmakee",view);
+		errsrc = new errorlist.DefaultErrorSource("sigmakee", view);
 		errorlist.ErrorSource.registerErrorSource(errsrc);
 		jEdit.getAction("error-list-clear").invoke(null);
 		//errsrc.addError(ErrorSource.ERROR, "C:\\my_projects\\hw_if\\control\\ctrlapi.c",944,0,0,"LNT787: (Info -- enum constant 'DTV_PL_ASIG_AV_IP1_AUDIO' not used within switch)");
 
 		String contents = view.getEditPane().getTextArea().getText();
 		String path = view.getBuffer().getPath();
+		checkErrorsBody(contents, path, errsrc);
+	}
+
+	/** ***************************************************************
+	 */
+	public void checkErrorsBody(String contents, String path, errorlist.DefaultErrorSource errsrc) {
 
 		KIF kif = new KIF();
 		//kif.filename = "/home/apease/workspace/sumo/Merge.kif";
@@ -132,7 +142,7 @@ public class SUMOjEdit
 		}
 		catch (Exception e) {
 			Log.log(Log.WARNING,this,"checkErrors(): error loading kif file");
-			errsrc.addError(ErrorSource.WARNING,e.getMessage(),1,0,0,
+			if (log) errsrc.addError(ErrorSource.WARNING,e.getMessage(),1,0,0,
 				"error loading kif file with " + contents.length() + " characters "); }
 
 		Log.log(Log.WARNING,this,"checkErrors(): success loading kif file with " + contents.length() + " characters ");
@@ -140,29 +150,35 @@ public class SUMOjEdit
 
 		for (String warn : kif.warningSet) {
 			int line = getLineNum(warn) - 1 ;
-			errsrc.addError(ErrorSource.WARNING,path,line,0,0,warn);
+			if (log) errsrc.addError(ErrorSource.WARNING,path,line,0,0,warn);
 			Log.log(Log.WARNING,this,line);
 		}
 		for (String err : kif.errorSet) {
 			int line = getLineNum(err) - 1;
-			errsrc.addError(ErrorSource.ERROR,path,line,0,0,err);
+			if (log) errsrc.addError(ErrorSource.ERROR,path,line,0,0,err);
 			Log.log(Log.WARNING,this,line);
 		}
+		int counter = 0;
 		for (Formula f : kif.formulaMap.values()) {
+			counter++;
+			if (counter > 1000) {
+				Log.log(Log.WARNING,this,".");
+				counter = 0;
+			}
 			//Log.log(Log.WARNING,this,"checking formula " + f.toString());
 			if (Diagnostics.quantifierNotInStatement(f))
-				errsrc.addError(ErrorSource.ERROR,path,f.startLine-1,f.endLine-1,0,
+				if (log) errsrc.addError(ErrorSource.ERROR,path,f.startLine-1,f.endLine-1,0,
 						"Quantifier not in statement");
 			HashSet<String> result = Diagnostics.singleUseVariables(f);
 			if (result != null && result.size() > 0)
-				errsrc.addError(ErrorSource.WARNING,path,f.startLine-1,f.endLine-1,0,
+				if (log) errsrc.addError(ErrorSource.WARNING,path,f.startLine-1,f.endLine-1,0,
 						"Variable(s) only used once: " + result.toString());
-			fp.preProcess(f,false,kb);
+			Set<Formula> processed = fp.preProcess(f,false,kb);
 			if (f.errors != null && f.errors.size() > 0) {
 				for (String err : f.errors)
-					errsrc.addError(ErrorSource.ERROR,path,f.startLine-1,f.endLine-1,0,err);
+					if (log) errsrc.addError(ErrorSource.ERROR,path,f.startLine-1,f.endLine-1,0,err);
 				for (String w : f.warnings)
-					errsrc.addError(ErrorSource.WARNING,path,f.startLine-1,f.endLine-1,0,w);
+					if (log) errsrc.addError(ErrorSource.WARNING,path,f.startLine-1,f.endLine-1,0,w);
 			}
 			//Log.log(Log.WARNING,this,"checking variables in formula ");
 			HashMap<String,HashSet<String>> varmap = fp.findAllTypeRestrictions(f,kb);
@@ -170,19 +186,83 @@ public class SUMOjEdit
 			SUMOtoTFAform.varmap = varmap;
 			SUMOtoTFAform.inconsistentVarTypes();
 			//Log.log(Log.WARNING,this,"done checking var types ");
-			if (SUMOtoTFAform.errors != null && f.errors.size() > 0) {
+
+            // note that predicate variables can result in many relations being tried that don't
+            // fit because of type inconsistencies, which then are rejected and not a formalization error
+            // so ignore those cases (of size()>1)
+			if (SUMOtoTFAform.errors != null && f.errors.size() > 0 && processed.size() == 1) {
 				for (String err : SUMOtoTFAform.errors) {
-					errsrc.addError(ErrorSource.ERROR, path, f.startLine-1, f.endLine-1, 0, err);
+					if (log) errsrc.addError(ErrorSource.ERROR, path, f.startLine-1, f.endLine-1, 0, err);
 					Log.log(Log.WARNING, this, err);
 				}
 			}
 			String term = PredVarInst.hasCorrectArity(f, kb);
 			if (!StringUtil.emptyString(term)) {
 				String msg = ("Arity error of predicate " + term);
-				errsrc.addError(ErrorSource.ERROR, path, f.startLine-1, f.endLine-1, 0, msg);
+				if (log) errsrc.addError(ErrorSource.ERROR, path, f.startLine-1, f.endLine-1, 0, msg);
 				Log.log(Log.WARNING, this, msg);
+			}
+			Set<String> terms = f.termCache;
+			for (String t : terms) {
+				if (Diagnostics.LOG_OPS.contains(t) || t.equals("Entity") ||
+						Formula.isVariable(t) || StringUtil.isNumeric(t) || StringUtil.isQuotedString(t))
+					continue;
+				else {
+					ArrayList<Formula> forms = kb.askWithRestriction(0,"instance",1,t);
+					if (forms == null || forms.size() == 0) {
+						forms = kb.askWithRestriction(0,"subclass",1,t);
+						if (forms == null || forms.size() == 0) {
+							forms = kb.askWithRestriction(0, "subAttribute", 1, t);
+							if (forms == null || forms.size() == 0) {
+								if (log) errsrc.addError(ErrorSource.ERROR, path, f.startLine - 1, f.endLine - 1, 0,
+										"unknown term: " + t);
+								Log.log(Log.WARNING, this, "unknown term: " + t);
+							}
+						}
+					}
+					/*
+					if (!kb.kbCache.subclassOf(t,"Entity") && !kb.kbCache.transInstOf(t,"Entity")) {
+						if (log) errsrc.addError(ErrorSource.ERROR, path, f.startLine-1, f.endLine-1, 0,
+                                "unknown term: " + t);
+						Log.log(Log.WARNING, this, "unknown term: " + t);
+					} */
+				}
 			}
 		}
 		Log.log(Log.WARNING,this,"checkErrors(): check completed: ");
+	}
+
+	/** ***************************************************************
+	 */
+	public static void showHelp() {
+
+		System.out.println("Diagnostics");
+		System.out.println("  options:");
+		System.out.println("  -h - show this help screen");
+		System.out.println("  -d - <fname> - test diagnostics");
+	}
+
+	/** ***************************************************************
+	 * Test method for this class.
+	 */
+	public static void main(String args[]) {
+
+		log = false;
+		KBmanager.getMgr().initializeOnce();
+		//resultLimit = 0; // don't limit number of results on command line
+		KB kb = KBmanager.getMgr().getKB(KBmanager.getMgr().getPref("sumokbname"));
+		if (args != null && args.length > 1 && args[0].equals("-d")) {
+			errorlist.DefaultErrorSource errsrc;
+			errsrc = new errorlist.DefaultErrorSource("sigmakee");
+			errorlist.ErrorSource.registerErrorSource(errsrc);
+			SUMOjEdit sje = new SUMOjEdit(null);
+			String contents = String.join("\n",FileUtil.readLines(args[1],false));
+			sje.checkErrorsBody(contents,args[1],errsrc);
+		}
+		else if (args != null && args.length > 0 && args[0].equals("-h")) {
+			showHelp();
+		}
+		else
+			showHelp();
 	}
 }
