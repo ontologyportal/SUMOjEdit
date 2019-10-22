@@ -37,7 +37,10 @@
     <target name="deploy" depends="dist">
         <copy todir="/home/apease/.jedit/jars" file="SUMOjEdit.jar" />
         <copy todir="/home/apease/.jedit/jars">
-            <fileset dir="lib" />
+            <fileset dir="lib">
+                <exclude name="jedit.jar" />
+                <!-- # including the jedit.jar in .jedit/jars causes strange problems -->
+            </fileset>
         </copy>
         <echo>deploying SUMOjEdit.jar and supporting jars</echo>
     </target>
