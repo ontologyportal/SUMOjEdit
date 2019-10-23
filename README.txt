@@ -17,7 +17,3 @@ Execution
   all of WordNet, VerbNet etc)
 - load a .kif file
 - go to Plugins->SUMOjEdit Plugin->check KIF syntax errors
-
-Known Bugs
-==============================
-Adding the plugins causes all the jEdit menus and labels to become corrupted
