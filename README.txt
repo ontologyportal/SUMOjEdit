@@ -7,6 +7,7 @@ This depends on SigmaKEE https://github.com/ontologyportal/sigmakee and also the
 
 Installation
 =============================
+- edit build.xml to conform to your paths
 - Install SigmaKEE as per the README at https://github.com/ontologyportal/sigmakee
 - install jEdit.  On Ubuntu this is "sumo apt-get install jedit"
 - clone SUMOjEdit, then execute "ant" from the top SUMOjEdit directory
