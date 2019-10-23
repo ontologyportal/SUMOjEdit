@@ -42,6 +42,8 @@
                 <!-- # including the jedit.jar in .jedit/jars causes strange problems -->
             </fileset>
         </copy>
+        <copy todir="/home/apease/.jedit/modes" file="kif.xml" />
+        <copy todir="/home/apease/.jedit/modes" file="catalog" />
         <echo>deploying SUMOjEdit.jar and supporting jars</echo>
     </target>
 
