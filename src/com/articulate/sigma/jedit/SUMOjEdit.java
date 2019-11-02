@@ -114,6 +114,45 @@ public class SUMOjEdit
 
 	/** ***************************************************************
 	 */
+	private String formatSelectBody(String contents) {
+
+		KIF kif = new KIF();
+		//kif.filename = "/home/apease/workspace/sumo/Merge.kif";
+		try {
+			kif.parse(new StringReader(contents));
+			Log.log(Log.WARNING,this,"checkErrors(): done reading kif file");
+		}
+		catch (Exception e) {
+			Log.log(Log.WARNING,this,"checkErrors(): error loading kif file" +
+					e.getMessage() + "\n" + e.getStackTrace());
+			return null;
+		}
+		StringBuffer result = new StringBuffer();
+		for (Formula f : kif.formulaMap.values()) {
+			result.append(f.textFormat(f.theFormula));
+		}
+		return result.toString();
+	}
+
+	/** ***************************************************************
+	 * Reformat a selection of SUO-KIF axioms in a buffer.  In case
+	 * of error, such as a selection that only spans part of an axiom,
+	 * do nothing.
+	 */
+	public void formatSelect() {
+
+		if (view == null)
+			view = jEdit.getActiveView();
+		String contents = view.getEditPane().getTextArea().getSelectedText();
+		String result = formatSelectBody(contents);
+		if (!StringUtil.emptyString(result))
+			view.getEditPane().getTextArea().setSelectedText(result);
+	}
+
+	/** ***************************************************************
+	 * Check for a variety of syntactic and semantic errors and warnings
+	 * in a given buffer
+	 */
 	public void checkErrors() {
 
 		if (view == null)

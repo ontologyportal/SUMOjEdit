@@ -27,6 +27,8 @@ interface SUMOjEditActions {
 
 	void checkErrors();
 
+	void formatSelect();
+
 	//void saveFile();
 
 	//void copyToBuffer();

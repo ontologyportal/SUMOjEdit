@@ -5,4 +5,9 @@
             jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.checkErrors();
         </CODE>
     </ACTION>
+    <ACTION NAME="SUMOjEditPlugin.format-select">
+        <CODE>
+            jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.formatSelect();
+        </CODE>
+    </ACTION>
 </ACTIONS>
