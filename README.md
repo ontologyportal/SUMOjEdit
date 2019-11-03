@@ -41,3 +41,11 @@ Execution
   all of WordNet, VerbNet etc)
 - load a .kif file
 - go to Plugins->SUMOjEdit Plugin->check KIF syntax errors
+
+Customization
+=============================
+- you may wish to right click in the editor and "customize this menu" select the "Context Menu"
+ten the '+' symbol.  Select "Plugin: SUMOjEdit Plugin" from the dialog menu and add 
+"format axioms" and "go to definition", which are handy to have on the context menu as well
+as the main plugin menu.  In later versions I may learn how to do this as part of the configuration
+but for now you'll need to add the menu items manually.
