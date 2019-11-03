@@ -23,8 +23,7 @@ plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.docs=index.html
 plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.depend.0=jedit 04.05.99.00
 
 # plugin menu - a list of actions or separators
-plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.menu=SUMOjEditPlugin \
-  SUMOjEditPlugin.check-errors \
+plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.menu=SUMOjEditPlugin.check-errors \
   SUMOjEditPlugin.format-select \
   SUMOjEditPlugin.goto-defn
 
@@ -68,4 +67,5 @@ options.SUMOjEditPlugin.filepath=
 plugin.SUMOjEditPlugin.depend.0=jedit 04.02.02.00
 plugin.SUMOjEditPlugin.depend.2=plugin errorlist.ErrorListPlugin 1.3
 plugin.SUMOjEditPlugin.depend.3=plugin net.jakubholy.jedit.autocomplete.TextAutocompletePlugin 1.0.0
+plugin.SUMOjEditPlugin.depend.3=plugin net.jakubholy.jedit.autocomplete.ContextMenu 0.4
 
