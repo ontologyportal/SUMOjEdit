@@ -112,6 +112,95 @@ public class SUMOjEdit
 		return result;
 	}
 
+    /** ***************************************************************
+     */
+	public class FileSpec {
+	    public String filepath = "";
+	    public int line = -1;
+    }
+
+    /** ***************************************************************
+     */
+    private FileSpec filespecFromForms(ArrayList<Formula> forms, String currentFName) {
+
+        FileSpec fs = new FileSpec();
+        for (Formula f : forms) {
+            if (StringUtil.noPath(f.getSourceFile()).equals(currentFName) && !f.getSourceFile().endsWith("_Cache.kif")) {
+                fs.filepath = f.sourceFile;
+                fs.line = f.startLine-1; // jedit starts from 0, SUMO starts from 1
+                return fs;
+            }
+        }
+		for (Formula f : forms) {
+			if (!f.getSourceFile().endsWith("_Cache.kif")) {
+				fs.filepath = f.sourceFile;
+				fs.line = f.startLine-1; // jedit starts from 0, SUMO starts from 1
+				return fs;
+			}
+		}
+		return null;
+    }
+
+    /** ***************************************************************
+     * Note that the "definition" of a term is collection of axioms
+     * so look for, in order, instance, subclass, subAttribute, domain, documentation
+     */
+    private FileSpec findDefn(String term) {
+
+        String currentPath = view.getBuffer().getPath();
+        String currentFName = StringUtil.noPath(currentPath);
+        FileSpec fs = new FileSpec();
+        ArrayList<Formula> forms = kb.askWithRestriction(0,"instance",1,term);
+        if (forms != null && forms.size() > 0)
+            return(filespecFromForms(forms,currentFName));
+        forms = kb.askWithRestriction(0,"subclass",1,term);
+        if (forms != null && forms.size() > 0)
+            return(filespecFromForms(forms,currentFName));
+        forms = kb.askWithRestriction(0,"subAttribute",1,term);
+        if (forms != null && forms.size() > 0)
+            return(filespecFromForms(forms,currentFName));
+        forms = kb.askWithRestriction(0,"subrelation",1,term);
+        if (forms != null && forms.size() > 0)
+            return(filespecFromForms(forms,currentFName));
+        forms = kb.askWithRestriction(0,"domain",1,term);
+        if (forms != null && forms.size() > 0)
+            return(filespecFromForms(forms,currentFName));
+        forms = kb.askWithRestriction(0,"documentation",1,term);
+        if (forms != null && forms.size() > 0)
+            return(filespecFromForms(forms,currentFName));
+        return fs;
+    }
+
+    /** ***************************************************************
+     * Go to the "definition" of a selected term.  If no term is selected
+     * do nothing other than print an error to the console.  If definition
+     * is in another file, load that file.
+     */
+    public void gotoDefn() {
+
+        if (view == null)
+            view = jEdit.getActiveView();
+        String currentPath = view.getBuffer().getPath();
+        String currentFName = StringUtil.noPath(currentPath);
+        String contents = view.getEditPane().getTextArea().getSelectedText();
+        if (!StringUtil.emptyString(contents) && Formula.atom(contents) &&
+                kb.terms.contains(contents)) {
+            FileSpec result = findDefn(contents);
+			Log.log(Log.WARNING,this,"gotoDefn(): file:" +
+					result.filepath + "\n" + result.line);
+            if (result != null) {
+            	int offset = -1;
+                if (!StringUtil.noPath(result.filepath).equals(currentFName)) {
+                    jEdit.openFile(view,result.filepath);
+                    try { wait(1000); } catch(Exception e) {}
+                }
+                offset = view.getBuffer().getLineStartOffset(result.line);
+				Log.log(Log.WARNING,this,"gotoDefn(): offset:" + offset);
+                view.getEditPane().getTextArea().moveCaretPosition(offset);
+            }
+        }
+    }
+
 	/** ***************************************************************
 	 */
 	private String formatSelectBody(String contents) {

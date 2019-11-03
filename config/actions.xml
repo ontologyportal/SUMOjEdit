@@ -10,4 +10,9 @@
             jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.formatSelect();
         </CODE>
     </ACTION>
+    <ACTION NAME="SUMOjEditPlugin.goto-defn">
+        <CODE>
+            jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.gotoDefn();
+        </CODE>
+    </ACTION>
 </ACTIONS>

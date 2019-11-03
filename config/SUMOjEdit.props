@@ -25,7 +25,8 @@ plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.depend.0=jedit 04.05.99.00
 # plugin menu - a list of actions or separators
 plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.menu=SUMOjEditPlugin \
   SUMOjEditPlugin.check-errors \
-  SUMOjEditPlugin.format-select
+  SUMOjEditPlugin.format-select \
+  SUMOjEditPlugin.goto-defn
 
 # action labels for actions supplied by dockables.xml
 SUMOjEditPlugin.label=SUMOjEditPlugin
@@ -33,6 +34,7 @@ SUMOjEditPlugin.label=SUMOjEditPlugin
 # action labels for actions supplied by actions.xml
 SUMOjEditPlugin.check-errors.label=Check for KIF syntax errors
 SUMOjEditPlugin.format-select.label=format axioms
+SUMOjEditPlugin.goto-defn.label=go to definition
 
 # plugin option pane
 plugin.SUMOjEditPlugin.option-pane=SUMOjEditPlugin

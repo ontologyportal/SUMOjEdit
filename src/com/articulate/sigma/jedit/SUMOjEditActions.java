@@ -29,6 +29,8 @@ interface SUMOjEditActions {
 
 	void formatSelect();
 
+	void gotoDefn();
+
 	//void saveFile();
 
 	//void copyToBuffer();
