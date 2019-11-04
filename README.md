@@ -49,3 +49,7 @@ ten the '+' symbol.  Select "Plugin: SUMOjEdit Plugin" from the dialog menu and 
 "format axioms" and "go to definition", which are handy to have on the context menu as well
 as the main plugin menu.  In later versions I may learn how to do this as part of the configuration
 but for now you'll need to add the menu items manually.
+- install the EditorScheme plugin with Plugins->PluginManager->Install-EditorScheme then 
+Plugins-EditorScheme->SchemeSelector .  I like the Neon theme as the best "Dark mode" option
+- If you have a small screen or imperfect eyes you may wish to adjust the font size with 
+Utilities->GlobalOptions->jEdit->TextArea->TextFont

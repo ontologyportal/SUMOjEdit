@@ -20,6 +20,7 @@ package com.articulate.sigma.jedit;
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
+import java.awt.*;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -36,6 +37,7 @@ import org.gjt.sp.jedit.EBMessage;
 import org.gjt.sp.jedit.View;
 import org.gjt.sp.jedit.jEdit;
 import org.gjt.sp.jedit.msg.PropertiesChanged;
+import org.gjt.sp.jedit.textarea.TextArea;
 import org.gjt.sp.util.Log;
 
 import errorlist.*;
@@ -55,6 +57,7 @@ public class SUMOjEdit
 	public KB kb = null;
 	public FormulaPreprocessor fp = null;
 	public static boolean log = true;
+	public static boolean darkMode = true;
 
 	/** ***************************************************************
 	 * @param view the current jedit window

@@ -67,5 +67,7 @@ options.SUMOjEditPlugin.filepath=
 plugin.SUMOjEditPlugin.depend.0=jedit 04.02.02.00
 plugin.SUMOjEditPlugin.depend.2=plugin errorlist.ErrorListPlugin 1.3
 plugin.SUMOjEditPlugin.depend.3=plugin net.jakubholy.jedit.autocomplete.TextAutocompletePlugin 1.0.0
-plugin.SUMOjEditPlugin.depend.3=plugin net.jakubholy.jedit.autocomplete.ContextMenu 0.4
+plugin.SUMOjEditPlugin.depend.4=plugin net.jakubholy.jedit.autocomplete.ContextMenu 0.4
+plugin.SUMOjEditPlugin.depend.5=plugin editorscheme.EditorScheme 1.8
+plugin.SUMOjEditPlugin.depend.5=plugin CommonControlsPlugin 1.7.4
 
