@@ -51,8 +51,6 @@ public class SUMOjEdit
 		SUMOjEditActions
  	{
 
-	private static final long serialVersionUID = 6412255692894321789L;
-
 	public View view = null;
 	public KB kb = null;
 	public FormulaPreprocessor fp = null;
@@ -86,6 +84,29 @@ public class SUMOjEdit
 	 */
 	private void propertiesChanged() {
 
+	}
+
+	/** ***************************************************************
+	 * Open up a browser on the public Sigma for the highlighted term.
+	 * If it's not a term, or not in the KB, don't open
+	 */
+	public void browseTerm() {
+
+		if (view == null)
+			view = jEdit.getActiveView();
+		String contents = view.getEditPane().getTextArea().getSelectedText();
+		if (!StringUtil.emptyString(contents) && Formula.atom(contents) &&
+				kb.terms.contains(contents)) {
+			String urlString = "http://sigma.ontologyportal.org:8080/sigma/Browse.jsp?kb=SUMO&lang=EnglishLanguage&flang=SUO-KIF&term=" +
+					contents;
+			if (Desktop.isDesktopSupported()) {
+				try {
+					Desktop.getDesktop().browse(java.net.URI.create(urlString));
+				} catch (Exception e) {
+					Log.log(Log.WARNING,this,"browseTerm(): error " + e.getMessage() + "\n" + e.getStackTrace());
+				}
+			}
+		}
 	}
 
 	/** ***************************************************************

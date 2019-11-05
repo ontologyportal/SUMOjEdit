@@ -31,6 +31,8 @@ interface SUMOjEditActions {
 
 	void gotoDefn();
 
+	void browseTerm();
+
 	//void saveFile();
 
 	//void copyToBuffer();

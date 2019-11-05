@@ -15,4 +15,9 @@
             jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.gotoDefn();
         </CODE>
     </ACTION>
+    <ACTION NAME="SUMOjEditPlugin.browse-term">
+        <CODE>
+            jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.browseTerm();
+        </CODE>
+    </ACTION>
 </ACTIONS>
