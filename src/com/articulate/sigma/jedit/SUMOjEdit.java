@@ -21,6 +21,7 @@ package com.articulate.sigma.jedit;
  */
 
 import java.awt.*;
+import java.io.File;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,12 +31,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.articulate.sigma.*;
+import com.articulate.sigma.tp.*;
+import com.articulate.sigma.tp.Vampire;
 import com.articulate.sigma.trans.SUMOtoTFAform;
 import com.articulate.sigma.utils.FileUtil;
-import org.gjt.sp.jedit.EBComponent;
-import org.gjt.sp.jedit.EBMessage;
-import org.gjt.sp.jedit.View;
-import org.gjt.sp.jedit.jEdit;
+import org.gjt.sp.jedit.*;
 import org.gjt.sp.jedit.msg.PropertiesChanged;
 import org.gjt.sp.jedit.textarea.TextArea;
 import org.gjt.sp.util.Log;
@@ -84,6 +84,27 @@ public class SUMOjEdit
 	 */
 	private void propertiesChanged() {
 
+	}
+
+	/** ***************************************************************
+	 * Send a highlighted expression as a query to a theorem prover.
+	 * return results in a new tab
+	 */
+	public void queryExp() {
+
+		if (view == null)
+			view = jEdit.getActiveView();
+		String contents = view.getEditPane().getTextArea().getSelectedText();
+		Log.log(Log.WARNING,this,"queryExp(): query Vampire with: " + contents);
+		System.out.println("queryExp(): query Vampire with: " + contents);
+		String dir = KBmanager.getMgr().getPref("kbDir") + File.separator;
+		String type = "tptp";
+		String outfile = dir + "temp-comb." + type;
+		System.out.println("queryExp(): query Vampire on file: " + outfile);
+		Log.log(Log.WARNING,this,"queryExp(): query Vampire on file: " + outfile);
+		Vampire vamp = kb.askVampire(contents,30,1);
+		jEdit.newFile(view);
+		view.getTextArea().setText(StringUtil.arrayListToCRLFString(vamp.output));
 	}
 
 	/** ***************************************************************
@@ -149,7 +170,7 @@ public class SUMOjEdit
 
         FileSpec fs = new FileSpec();
         for (Formula f : forms) {
-            if (StringUtil.noPath(f.getSourceFile()).equals(currentFName) && !f.getSourceFile().endsWith("_Cache.kif")) {
+            if (FileUtil.noPath(f.getSourceFile()).equals(currentFName) && !f.getSourceFile().endsWith("_Cache.kif")) {
                 fs.filepath = f.sourceFile;
                 fs.line = f.startLine-1; // jedit starts from 0, SUMO starts from 1
                 return fs;
@@ -172,7 +193,7 @@ public class SUMOjEdit
     private FileSpec findDefn(String term) {
 
         String currentPath = view.getBuffer().getPath();
-        String currentFName = StringUtil.noPath(currentPath);
+        String currentFName = FileUtil.noPath(currentPath);
         FileSpec fs = new FileSpec();
         ArrayList<Formula> forms = kb.askWithRestriction(0,"instance",1,term);
         if (forms != null && forms.size() > 0)
@@ -205,7 +226,7 @@ public class SUMOjEdit
         if (view == null)
             view = jEdit.getActiveView();
         String currentPath = view.getBuffer().getPath();
-        String currentFName = StringUtil.noPath(currentPath);
+        String currentFName = FileUtil.noPath(currentPath);
         String contents = view.getEditPane().getTextArea().getSelectedText();
         if (!StringUtil.emptyString(contents) && Formula.atom(contents) &&
                 kb.terms.contains(contents)) {
@@ -214,7 +235,7 @@ public class SUMOjEdit
 					result.filepath + "\n" + result.line);
             if (result != null) {
             	int offset = -1;
-                if (!StringUtil.noPath(result.filepath).equals(currentFName)) {
+                if (!FileUtil.noPath(result.filepath).equals(currentFName)) {
                     jEdit.openFile(view,result.filepath);
                     try { wait(1000); } catch(Exception e) {}
                 }
@@ -242,7 +263,7 @@ public class SUMOjEdit
 		}
 		StringBuffer result = new StringBuffer();
 		for (Formula f : kif.formulaMap.values()) {
-			result.append(f.textFormat(f.theFormula));
+			result.append(f.textFormat(f.getFormula()));
 		}
 		return result.toString();
 	}
@@ -280,6 +301,7 @@ public class SUMOjEdit
 		String contents = view.getEditPane().getTextArea().getText();
 		String path = view.getBuffer().getPath();
 		checkErrorsBody(contents, path, errsrc);
+		Log.log(Log.WARNING, this, "checkErrors(): complete");
 	}
 
 	/** ***************************************************************

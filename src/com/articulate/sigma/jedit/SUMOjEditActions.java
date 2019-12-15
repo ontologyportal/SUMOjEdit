@@ -33,6 +33,8 @@ interface SUMOjEditActions {
 
 	void browseTerm();
 
+	void queryExp();
+
 	//void saveFile();
 
 	//void copyToBuffer();
