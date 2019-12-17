@@ -20,4 +20,9 @@
             jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.browseTerm();
         </CODE>
     </ACTION>
+    <ACTION NAME="SUMOjEditPlugin.query-exp">
+        <CODE>
+            jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.queryExp();
+        </CODE>
+    </ACTION>
 </ACTIONS>
