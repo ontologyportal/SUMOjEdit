@@ -34,6 +34,7 @@ import com.articulate.sigma.*;
 import com.articulate.sigma.tp.*;
 import com.articulate.sigma.tp.Vampire;
 import com.articulate.sigma.trans.SUMOtoTFAform;
+import com.articulate.sigma.trans.TPTP3ProofProcessor;
 import com.articulate.sigma.utils.FileUtil;
 import org.gjt.sp.jedit.*;
 import org.gjt.sp.jedit.msg.PropertiesChanged;
@@ -103,8 +104,19 @@ public class SUMOjEdit
 		System.out.println("queryExp(): query Vampire on file: " + outfile);
 		Log.log(Log.WARNING,this,"queryExp(): query Vampire on file: " + outfile);
 		Vampire vamp = kb.askVampire(contents,30,1);
+		System.out.println("queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(vamp.output));
+		Log.log(Log.WARNING,this,"queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(vamp.output));
+		TPTP3ProofProcessor tpp = TPTP3ProofProcessor.parseProofOutput(vamp.output,kb);
+		System.out.println("queryExp(): bindings: " + tpp.bindings);
+		Log.log(Log.WARNING,this,"queryExp(): bindings: " + tpp.bindings);
+		System.out.println("queryExp(): proof: " + tpp.proof);
+		Log.log(Log.WARNING,this,"queryExp(): proof: " + tpp.proof);
+		ArrayList<String> proofStepsStr = new ArrayList<>();
+		for (ProofStep ps : tpp.proof)
+			proofStepsStr.add(ps.toString());
 		jEdit.newFile(view);
-		view.getTextArea().setText(StringUtil.arrayListToCRLFString(vamp.output));
+		view.getTextArea().setText(StringUtil.arrayListToCRLFString(tpp.bindings) +
+				StringUtil.arrayListToCRLFString(proofStepsStr));
 	}
 
 	/** ***************************************************************
