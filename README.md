@@ -41,6 +41,13 @@ Execution
   all of WordNet, VerbNet etc)
 - load a .kif file
 - go to Plugins->SUMOjEdit Plugin->check KIF syntax errors
+- you can also highlight a SUO-KIF expression and Plugins->SUMOjEdit Plugin->query on highlighted expression
+  If you have Vampire installed and it finds a proof, a new buffer will be opened to display the proof.  It 
+  should work with Eprover too but I need to test
+- other functions are "format axioms" which will reformat a highlighted axiom with standard SUMO indentation.
+  "go to definition" will make a guess at where the definition for a selected term starts and put the cursor at that
+  point in the file. "Browse term in Sigma" will open the public Sigma site in your browser, open on the
+  selected term.
 
 Customization
 =============================
