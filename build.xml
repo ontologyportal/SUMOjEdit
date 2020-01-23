@@ -1,6 +1,6 @@
 <project name="QuickNotepad" default="all">
     <description>
-        This is an ant build.xml file for building the QuickNotepad plugin for jEdit.
+        This is an ant build.xml file for building the SUMOjEdit plugin for jEdit.
     </description>
 
     <target name="clean">
@@ -12,6 +12,9 @@
     <target name="init" depends="clean">
         <ant antfile="../sigmakee/build.xml" inheritAll="false" target="all" />
         <copy todir="lib" file="../sigmakee/build/sigmakee.jar" />
+        <property environment="env"/>
+        <property name="jedit.home" value="${env.JEDIT_HOME}"/>
+        <echo message="JEDIT_HOME is set to = ${env.JEDIT_HOME}"/>
     </target>
 
     <target name="compile" depends="init" description="Compile the project">
@@ -35,15 +38,15 @@
     </target>
 
     <target name="deploy" depends="dist">
-        <copy todir="/home/apease/.jedit/jars" file="SUMOjEdit.jar" />
-        <copy todir="/home/apease/.jedit/jars">
+        <copy todir="${jedit.home}/jars" file="SUMOjEdit.jar" />
+        <copy todir="${jedit.home}/jars">
             <fileset dir="lib">
                 <exclude name="jedit.jar" />
                 <!-- # including the jedit.jar in .jedit/jars causes strange problems -->
             </fileset>
         </copy>
-        <copy todir="/home/apease/.jedit/modes" file="kif.xml" />
-        <copy todir="/home/apease/.jedit/modes" file="catalog" />
+        <copy todir="${jedit.home}/modes" file="kif.xml" />
+        <copy todir="${jedit.home}/modes" file="catalog" />
         <echo>deploying SUMOjEdit.jar and supporting jars</echo>
     </target>
 
