@@ -1,7 +1,7 @@
 SUMOjEdit PLUGIN
 
 ![screenshot](https://github.com/ontologyportal/SUMOjEdit/raw/master/screenshot.jpeg)
-
+![screenshot](https://github.com/ontologyportal/SUMOjEdit/raw/master/screenshot-tp.jpeg)
 Started with the QuickNotepad tutorial and adapting bit by bit as a syntax checker for SUMO
 www.ontologyportal.org
 
