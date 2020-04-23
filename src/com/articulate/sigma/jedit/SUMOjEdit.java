@@ -114,9 +114,13 @@ public class SUMOjEdit
 		ArrayList<String> proofStepsStr = new ArrayList<>();
 		for (ProofStep ps : tpp.proof)
 			proofStepsStr.add(ps.toString());
+			//proofStepsStr.add(HTMLformatter.proofTextFormat(contents,ps,kb.name,""));
 		jEdit.newFile(view);
-		view.getTextArea().setText(StringUtil.arrayListToCRLFString(tpp.bindings) +
-				StringUtil.arrayListToCRLFString(proofStepsStr));
+		StringBuffer result = new StringBuffer();
+		if (tpp.bindings != null && tpp.bindings.size() > 0)
+		    result.append("Bindings: " + tpp.bindings);
+		result.append("\n\n" + StringUtil.arrayListToCRLFString(proofStepsStr));
+		view.getTextArea().setText(result.toString());
 	}
 
 	/** ***************************************************************
