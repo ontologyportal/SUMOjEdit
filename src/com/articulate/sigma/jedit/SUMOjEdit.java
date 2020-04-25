@@ -107,6 +107,7 @@ public class SUMOjEdit
 		System.out.println("queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(vamp.output));
 		Log.log(Log.WARNING,this,"queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(vamp.output));
 		TPTP3ProofProcessor tpp = TPTP3ProofProcessor.parseProofOutput(vamp.output,kb);
+		tpp.processAnswersFromProof(contents);
 		System.out.println("queryExp(): bindings: " + tpp.bindings);
 		Log.log(Log.WARNING,this,"queryExp(): bindings: " + tpp.bindings);
 		System.out.println("queryExp(): proof: " + tpp.proof);
@@ -117,9 +118,15 @@ public class SUMOjEdit
 			//proofStepsStr.add(HTMLformatter.proofTextFormat(contents,ps,kb.name,""));
 		jEdit.newFile(view);
 		StringBuffer result = new StringBuffer();
-		if (tpp.bindings != null && tpp.bindings.size() > 0)
+		if (tpp.bindingMap != null && tpp.bindingMap.size() > 0) {
+			result.append("Bindings: " + tpp.bindingMap);
+		}
+		else if (tpp.bindings != null && tpp.bindings.size() > 0)
 		    result.append("Bindings: " + tpp.bindings);
-		result.append("\n\n" + StringUtil.arrayListToCRLFString(proofStepsStr));
+		if (tpp.proof == null || tpp.proof.size() == 0)
+			result.append(tpp.status);
+		else
+			result.append("\n\n" + StringUtil.arrayListToCRLFString(proofStepsStr));
 		view.getTextArea().setText(result.toString());
 	}
 
