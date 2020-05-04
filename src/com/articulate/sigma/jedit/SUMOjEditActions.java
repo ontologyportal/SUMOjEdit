@@ -35,6 +35,10 @@ interface SUMOjEditActions {
 
 	void queryExp();
 
+	void chooseVamp();
+
+	void chooseE();
+
 	//void saveFile();
 
 	//void copyToBuffer();
