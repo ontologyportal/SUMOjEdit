@@ -32,6 +32,7 @@ import java.util.regex.Pattern;
 
 import com.articulate.sigma.*;
 import com.articulate.sigma.tp.*;
+import com.articulate.sigma.tp.EProver;
 import com.articulate.sigma.tp.Vampire;
 import com.articulate.sigma.trans.SUMOtoTFAform;
 import com.articulate.sigma.trans.TPTP3ProofProcessor;
@@ -88,6 +89,26 @@ public class SUMOjEdit
 	}
 
 	/** ***************************************************************
+	 * Set theorem proving to use Vampire
+	 */
+	public void chooseVamp() {
+
+		System.out.println("chooseVamp(): prover set to Vampire");
+		Log.log(Log.WARNING,this,"chooseVamp(): prover set to Vampire");
+		KBmanager.getMgr().prover = KBmanager.Prover.VAMPIRE;
+	}
+
+	/** ***************************************************************
+	 * Set theorem proving to use E
+	 */
+	public void chooseE() {
+
+		System.out.println("chooseE(): prover set to E");
+		Log.log(Log.WARNING,this,"chooseE(): prover set to E");
+		KBmanager.getMgr().prover = KBmanager.Prover.EPROVER;
+	}
+
+	/** ***************************************************************
 	 * Send a highlighted expression as a query to a theorem prover.
 	 * return results in a new tab
 	 */
@@ -96,17 +117,30 @@ public class SUMOjEdit
 		if (view == null)
 			view = jEdit.getActiveView();
 		String contents = view.getEditPane().getTextArea().getSelectedText();
-		Log.log(Log.WARNING,this,"queryExp(): query Vampire with: " + contents);
-		System.out.println("queryExp(): query Vampire with: " + contents);
+		Log.log(Log.WARNING,this,"queryExp(): query with: " + contents);
+		System.out.println("queryExp(): query with: " + contents);
 		String dir = KBmanager.getMgr().getPref("kbDir") + File.separator;
 		String type = "tptp";
 		String outfile = dir + "temp-comb." + type;
-		System.out.println("queryExp(): query Vampire on file: " + outfile);
-		Log.log(Log.WARNING,this,"queryExp(): query Vampire on file: " + outfile);
-		Vampire vamp = kb.askVampire(contents,30,1);
-		System.out.println("queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(vamp.output));
-		Log.log(Log.WARNING,this,"queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(vamp.output));
-		TPTP3ProofProcessor tpp = TPTP3ProofProcessor.parseProofOutput(vamp.output,kb);
+		System.out.println("queryExp(): query on file: " + outfile);
+		Log.log(Log.WARNING,this,"queryExp(): query on file: " + outfile);
+		Vampire vamp = null;
+		EProver eprover = null;
+		TPTP3ProofProcessor tpp = null;
+		System.out.println("queryExp(): prover: " + KBmanager.getMgr().prover);
+		Log.log(Log.WARNING,this,"queryExp(): prover: " + KBmanager.getMgr().prover);
+		if (KBmanager.getMgr().prover == KBmanager.Prover.VAMPIRE) {
+			vamp = kb.askVampire(contents, 30, 1);
+			tpp = TPTP3ProofProcessor.parseProofOutput(vamp.output,kb);
+			System.out.println("queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(vamp.output));
+			Log.log(Log.WARNING,this,"queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(vamp.output));
+		}
+		if (KBmanager.getMgr().prover == KBmanager.Prover.EPROVER) {
+			eprover = kb.askEProver(contents, 30, 1);
+			tpp = TPTP3ProofProcessor.parseProofOutput(eprover.output,kb);
+			System.out.println("queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(eprover.output));
+			Log.log(Log.WARNING,this,"queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(eprover.output));
+		}
 		tpp.processAnswersFromProof(contents);
 		System.out.println("queryExp(): bindings: " + tpp.bindings);
 		Log.log(Log.WARNING,this,"queryExp(): bindings: " + tpp.bindings);
