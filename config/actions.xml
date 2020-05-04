@@ -20,6 +20,16 @@
             jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.browseTerm();
         </CODE>
     </ACTION>
+    <ACTION NAME="SUMOjEditPlugin.chooseE">
+        <CODE>
+            jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.chooseE();
+        </CODE>
+    </ACTION>
+    <ACTION NAME="SUMOjEditPlugin.chooseVamp">
+        <CODE>
+            jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.chooseVamp();
+        </CODE>
+    </ACTION>
     <ACTION NAME="SUMOjEditPlugin.query-exp">
         <CODE>
             jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.queryExp();
