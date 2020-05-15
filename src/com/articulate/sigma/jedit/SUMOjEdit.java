@@ -131,19 +131,21 @@ public class SUMOjEdit
 		Log.log(Log.WARNING,this,"queryExp(): prover: " + KBmanager.getMgr().prover);
 		if (KBmanager.getMgr().prover == KBmanager.Prover.VAMPIRE) {
 			vamp = kb.askVampire(contents, 30, 1);
-			tpp = TPTP3ProofProcessor.parseProofOutput(vamp.output,kb);
+			tpp = TPTP3ProofProcessor.parseProofOutput(vamp.output,contents,kb);
 			System.out.println("queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(vamp.output));
 			Log.log(Log.WARNING,this,"queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(vamp.output));
 		}
 		if (KBmanager.getMgr().prover == KBmanager.Prover.EPROVER) {
 			eprover = kb.askEProver(contents, 30, 1);
-			tpp = TPTP3ProofProcessor.parseProofOutput(eprover.output,kb);
+			tpp = TPTP3ProofProcessor.parseProofOutput(eprover.output,contents,kb);
 			System.out.println("queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(eprover.output));
 			Log.log(Log.WARNING,this,"queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(eprover.output));
 		}
 		tpp.processAnswersFromProof(contents);
 		System.out.println("queryExp(): bindings: " + tpp.bindings);
 		Log.log(Log.WARNING,this,"queryExp(): bindings: " + tpp.bindings);
+		System.out.println("queryExp(): bindingMap: " + tpp.bindingMap);
+		Log.log(Log.WARNING,this,"queryExp(): bindingMap: " + tpp.bindingMap);
 		System.out.println("queryExp(): proof: " + tpp.proof);
 		Log.log(Log.WARNING,this,"queryExp(): proof: " + tpp.proof);
 		ArrayList<String> proofStepsStr = new ArrayList<>();
