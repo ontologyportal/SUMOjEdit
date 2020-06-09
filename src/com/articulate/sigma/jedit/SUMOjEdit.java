@@ -126,18 +126,18 @@ public class SUMOjEdit
 		Log.log(Log.WARNING,this,"queryExp(): query on file: " + outfile);
 		Vampire vamp = null;
 		EProver eprover = null;
-		TPTP3ProofProcessor tpp = null;
+		TPTP3ProofProcessor tpp = new TPTP3ProofProcessor();
 		System.out.println("queryExp(): prover: " + KBmanager.getMgr().prover);
 		Log.log(Log.WARNING,this,"queryExp(): prover: " + KBmanager.getMgr().prover);
 		if (KBmanager.getMgr().prover == KBmanager.Prover.VAMPIRE) {
 			vamp = kb.askVampire(contents, 30, 1);
-			tpp = TPTP3ProofProcessor.parseProofOutput(vamp.output,contents,kb);
+			tpp.parseProofOutput(vamp.output,contents,kb);
 			System.out.println("queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(vamp.output));
 			Log.log(Log.WARNING,this,"queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(vamp.output));
 		}
 		if (KBmanager.getMgr().prover == KBmanager.Prover.EPROVER) {
 			eprover = kb.askEProver(contents, 30, 1);
-			tpp = TPTP3ProofProcessor.parseProofOutput(eprover.output,contents,kb);
+			tpp.parseProofOutput(eprover.output,contents,kb);
 			System.out.println("queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(eprover.output));
 			Log.log(Log.WARNING,this,"queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(eprover.output));
 		}
