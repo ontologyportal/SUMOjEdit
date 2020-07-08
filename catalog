@@ -9,5 +9,6 @@
 
 <MODE NAME="kif"		FILE="kif.xml"
         FILE_NAME_GLOB="*.kif" />
-
+<MODE NAME="tptp"		FILE="TPTP.xml"
+        FILE_NAME_GLOB="*.tptp" />
 </MODES>
