@@ -35,4 +35,14 @@
             jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.queryExp();
         </CODE>
     </ACTION>
+    <ACTION NAME="SUMOjEditPlugin.to-tptp">
+        <CODE>
+            jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.toTPTP();
+        </CODE>
+    </ACTION>
+    <ACTION NAME="SUMOjEditPlugin.from-tptp">
+        <CODE>
+            jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.fromTPTP();
+        </CODE>
+    </ACTION>
 </ACTIONS>

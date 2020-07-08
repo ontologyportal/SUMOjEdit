@@ -21,20 +21,21 @@ package com.articulate.sigma.jedit;
  */
 
 import java.awt.*;
-import java.io.File;
-import java.io.StringReader;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
+import java.io.*;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import TPTPWorld.Binding;
+import TPTPWorld.TPTPFormula;
+import TPTPWorld.TPTPParser;
 import com.articulate.sigma.*;
 import com.articulate.sigma.tp.*;
 import com.articulate.sigma.tp.EProver;
 import com.articulate.sigma.tp.Vampire;
+import com.articulate.sigma.trans.SUMOformulaToTPTPformula;
 import com.articulate.sigma.trans.SUMOtoTFAform;
+import com.articulate.sigma.trans.TPTP2SUMO;
 import com.articulate.sigma.trans.TPTP3ProofProcessor;
 import com.articulate.sigma.utils.FileUtil;
 import org.gjt.sp.jedit.*;
@@ -43,6 +44,7 @@ import org.gjt.sp.jedit.textarea.TextArea;
 import org.gjt.sp.util.Log;
 
 import errorlist.*;
+import tptp_parser.SimpleTptpParserOutput;
 
 /** ***************************************************************
  *
@@ -67,7 +69,8 @@ public class SUMOjEdit
 		//super(new BorderLayout());
 		Log.log(Log.WARNING,this,"SUMOjEdit(): initializing");
 		KBmanager.getMgr().initializeOnce();
-		kb = KBmanager.getMgr().getKB("SUMO");
+		kb = KBmanager.getMgr().getKB(KBmanager.getMgr().getPref("sumokbname"));
+		Log.log(Log.WARNING,this,"SUMOjEdit(): kb: " + kb);
 		fp = new FormulaPreprocessor();
 		SUMOtoTFAform.initOnce();
 		this.view = view;
@@ -463,6 +466,101 @@ public class SUMOjEdit
 			}
 		}
 		Log.log(Log.WARNING,this,"checkErrors(): check completed: ");
+	}
+
+	/** ***************************************************************
+	 * convert a buffer or selection from SUO-KIF to TPTP.  Note that this
+	 * does not do full pre-processing, just a syntax translation
+	 */
+	public void toTPTP() {
+
+		if (view == null)
+			view = jEdit.getActiveView();
+		Log.log(Log.WARNING, this, "toTPTP(): starting");
+		//Log.log(Log.WARNING,this,"toTPTP Formula.isHigherOrder(): kb: " + kb);
+
+		String contents = view.getEditPane().getTextArea().getText();
+		String selected = view.getEditPane().getTextArea().getSelectedText();
+		StringBuffer sb = new StringBuffer();
+		errorlist.DefaultErrorSource errsrc;
+		errsrc = new errorlist.DefaultErrorSource("sigmakee");
+		errorlist.ErrorSource.registerErrorSource(errsrc);
+		KIF kif = new KIF();
+		//kif.filename = "/home/apease/workspace/sumo/Merge.kif";
+		try {
+			kif.parse(new StringReader(contents));
+			//Log.log(Log.WARNING,this,"toTPTP(): done reading kif file");
+			ArrayList<Formula> ordered = kif.lexicalOrder();
+			for (Formula f : ordered) {
+				//Log.log(Log.WARNING,this,"toTPTP(): SUO-KIF: " + f.getFormula());
+				String pred = f.car();
+				//Log.log(Log.WARNING,this,"toTPTP pred: " + pred);
+				//Log.log(Log.WARNING,this,"toTPTP kb: " + kb);
+				//Log.log(Log.WARNING,this,"toTPTP kb cache: " + kb.kbCache);
+				//Log.log(Log.WARNING,this,"toTPTP gather pred vars: " + PredVarInst.gatherPredVars(kb,f));
+				//if (f.predVarCache != null && f.predVarCache.size() > 0)
+				//	Log.log(Log.WARNING,this,"toTPTP Formula.isHigherOrder(): pred var cache: " + f.predVarCache);
+				if (f.isHigherOrder(kb) || (f.predVarCache != null && f.predVarCache.size() > 0))
+					continue;
+				String tptpStr = "fof(kb_" + f.getSourceFile() + "_" + f.startLine + ",axiom," + SUMOformulaToTPTPformula.process(f, false) + ").";
+				//Log.log(Log.WARNING,this,"toTPTP(): formatted as TPTP: " + tptpStr);
+				BufferedReader reader = new BufferedReader(new StringReader(tptpStr));
+				TPTPParser parser = TPTPParser.parse(reader);
+				Hashtable<String, TPTPFormula> ftable = parser.ftable;
+				Vector<SimpleTptpParserOutput.TopLevelItem> Items = parser.Items;
+				StringBuffer result = new StringBuffer();
+				for (SimpleTptpParserOutput.TopLevelItem item : Items) {
+					sb.append(item.toString() + "\n\n");
+				}
+			}
+			jEdit.newFile(view);
+			view.getTextArea().setText(sb.toString());
+		}
+		catch (Exception e) {
+			Log.log(Log.WARNING,this,"toTPTP(): error loading kif file");
+			StringWriter errors = new StringWriter();
+			e.printStackTrace(new PrintWriter(errors));
+			Log.log(Log.WARNING, this, "toTPTP(): error " + errors.toString());
+			if (log) errsrc.addError(ErrorSource.WARNING,e.getMessage(),1,0,0,
+					"error loading kif file with " + contents.length() + " characters ");
+		}
+	}
+
+	/** ***************************************************************
+	 * convert a buffer or selection from TPTP to SUO-KIF.  Note that this
+	 * does not do full pre-processing, just a syntax translation
+	 */
+	public void fromTPTP() {
+
+		if (view == null)
+			view = jEdit.getActiveView();
+		Log.log(Log.WARNING, this, "toTPTP(): starting");
+
+		String contents = view.getEditPane().getTextArea().getText();
+		String selected = view.getEditPane().getTextArea().getSelectedText();
+		errorlist.DefaultErrorSource errsrc;
+		errsrc = new errorlist.DefaultErrorSource("sigmakee");
+		errorlist.ErrorSource.registerErrorSource(errsrc);
+		if (!StringUtil.emptyString(selected))
+			contents = selected;
+		String path = view.getBuffer().getPath();
+		try {
+			String result = TPTP2SUMO.convertBare(new StringReader(contents),false);
+			jEdit.newFile(view);
+			view.getTextArea().setText(result);
+			if (StringUtil.emptyString(result))
+				Log.log(Log.WARNING, this, "toTPTP(): empty result");
+			else
+				Log.log(Log.WARNING, this, "toTPTP(): result.length: " + result.length());
+		}
+		catch (Exception e) {
+			//e.printStackTrace();
+			//Log.log(Log.WARNING, this, "toTPTP(): error " + Arrays.asList(e.getStackTrace()).toString().replaceAll(",","\n"));
+			StringWriter errors = new StringWriter();
+			e.printStackTrace(new PrintWriter(errors));
+			Log.log(Log.WARNING, this, "toTPTP(): error " +errors.toString());
+		}
+		Log.log(Log.WARNING, this, "toTPTP(): complete");
 	}
 
 	/** ***************************************************************

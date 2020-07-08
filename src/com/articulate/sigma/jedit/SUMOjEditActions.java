@@ -39,6 +39,10 @@ interface SUMOjEditActions {
 
 	void chooseE();
 
+	void toTPTP();
+
+	void fromTPTP();
+
 	//void saveFile();
 
 	//void copyToBuffer();

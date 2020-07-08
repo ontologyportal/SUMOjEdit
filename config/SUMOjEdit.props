@@ -29,7 +29,9 @@ plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.menu=SUMOjEditPlugin.check-err
   SUMOjEditPlugin.browse-term \
   SUMOjEditPlugin.chooseVamp \
   SUMOjEditPlugin.chooseE \
-  SUMOjEditPlugin.query-exp
+  SUMOjEditPlugin.query-exp \
+  SUMOjEditPlugin.to-tptp \
+  SUMOjEditPlugin.from-tptp
 
 # action labels for actions supplied by dockables.xml
 SUMOjEditPlugin.label=SUMOjEditPlugin
@@ -42,6 +44,8 @@ SUMOjEditPlugin.browse-term.label=browse term in Sigma
 SUMOjEditPlugin.chooseVamp.label=select Vampire
 SUMOjEditPlugin.chooseE.label=select EProver
 SUMOjEditPlugin.query-exp.label=query on highlighted expression
+SUMOjEditPlugin.to-tptp.label=SUO-KIF to TPTP
+SUMOjEditPlugin.from-tptp.label=SUO-KIF from TPTP
 
 # plugin option pane
 plugin.SUMOjEditPlugin.option-pane=SUMOjEditPlugin
