@@ -31,8 +31,6 @@ import TPTPWorld.TPTPFormula;
 import TPTPWorld.TPTPParser;
 import com.articulate.sigma.*;
 import com.articulate.sigma.tp.*;
-import com.articulate.sigma.tp.EProver;
-import com.articulate.sigma.tp.Vampire;
 import com.articulate.sigma.trans.SUMOformulaToTPTPformula;
 import com.articulate.sigma.trans.SUMOtoTFAform;
 import com.articulate.sigma.trans.TPTP2SUMO;
@@ -130,8 +128,6 @@ public class SUMOjEdit
 		Vampire vamp = null;
 		EProver eprover = null;
 		TPTP3ProofProcessor tpp = new TPTP3ProofProcessor();
-		System.out.println("queryExp(): prover: " + KBmanager.getMgr().prover);
-		Log.log(Log.WARNING,this,"queryExp(): prover: " + KBmanager.getMgr().prover);
 		if (KBmanager.getMgr().prover == KBmanager.Prover.VAMPIRE) {
 			vamp = kb.askVampire(contents, 30, 1);
 			tpp.parseProofOutput(vamp.output,contents,kb);
@@ -548,10 +544,12 @@ public class SUMOjEdit
 			String result = TPTP2SUMO.convertBare(new StringReader(contents),false);
 			jEdit.newFile(view);
 			view.getTextArea().setText(result);
-			if (StringUtil.emptyString(result))
+			if (StringUtil.emptyString(result)) {
 				Log.log(Log.WARNING, this, "toTPTP(): empty result");
-			else
+			}
+			else {
 				Log.log(Log.WARNING, this, "toTPTP(): result.length: " + result.length());
+			}
 		}
 		catch (Exception e) {
 			//e.printStackTrace();
@@ -578,7 +576,7 @@ public class SUMOjEdit
 	 */
 	public static void main(String args[]) {
 
-		log = false;
+		log = true;
 		KBmanager.getMgr().initializeOnce();
 		//resultLimit = 0; // don't limit number of results on command line
 		KB kb = KBmanager.getMgr().getKB(KBmanager.getMgr().getPref("sumokbname"));
