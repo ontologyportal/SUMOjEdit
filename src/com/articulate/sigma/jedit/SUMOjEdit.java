@@ -131,14 +131,19 @@ public class SUMOjEdit
 		if (KBmanager.getMgr().prover == KBmanager.Prover.VAMPIRE) {
 			vamp = kb.askVampire(contents, 30, 1);
 			tpp.parseProofOutput(vamp.output,contents,kb);
-			System.out.println("queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(vamp.output));
-			Log.log(Log.WARNING,this,"queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(vamp.output));
+			//System.out.println("queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(vamp.output));
+			//Log.log(Log.WARNING,this,"queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(vamp.output));
 		}
 		if (KBmanager.getMgr().prover == KBmanager.Prover.EPROVER) {
 			eprover = kb.askEProver(contents, 30, 1);
-			tpp.parseProofOutput(eprover.output,contents,kb);
-			System.out.println("queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(eprover.output));
-			Log.log(Log.WARNING,this,"queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(eprover.output));
+			try {
+				//System.out.println("queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(eprover.output));
+				//Log.log(Log.WARNING,this,"queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(eprover.output));
+				tpp.parseProofOutput(eprover.output, contents, kb);
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 		tpp.processAnswersFromProof(contents);
 		System.out.println("queryExp(): bindings: " + tpp.bindings);
@@ -590,6 +595,26 @@ public class SUMOjEdit
 		}
 		else if (args != null && args.length > 0 && args[0].equals("-h")) {
 			showHelp();
+		}
+		else  if (args != null && args.length > 0 && args[0].equals("-q")) {
+			String contents = "(routeBetween ?X MenloParkCA MountainViewCA)";
+			EProver eprover = kb.askEProver(contents, 30, 1);
+			TPTP3ProofProcessor tpp = new TPTP3ProofProcessor();
+			tpp.parseProofOutput(eprover.output,contents,kb);
+			//tpp.processAnswersFromProof(contents);
+			ArrayList<String> proofStepsStr = new ArrayList<>();
+			for (ProofStep ps : tpp.proof)
+				proofStepsStr.add(ps.toString());
+			StringBuffer result = new StringBuffer();
+			if (tpp.bindingMap != null && tpp.bindingMap.size() > 0) {
+				result.append("Bindings: " + tpp.bindingMap);
+			}
+			else if (tpp.bindings != null && tpp.bindings.size() > 0)
+				result.append("Bindings: " + tpp.bindings);
+			if (tpp.proof == null || tpp.proof.size() == 0)
+				result.append(tpp.status);
+			else
+				result.append("\n\n" + StringUtil.arrayListToCRLFString(proofStepsStr));
 		}
 		else
 			showHelp();
