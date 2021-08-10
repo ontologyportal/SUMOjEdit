@@ -127,10 +127,12 @@ public class SUMOjEdit
 		Log.log(Log.WARNING,this,"queryExp(): query on file: " + outfile);
 		Vampire vamp = null;
 		EProver eprover = null;
+		StringBuffer qlist = null;
 		TPTP3ProofProcessor tpp = new TPTP3ProofProcessor();
 		if (KBmanager.getMgr().prover == KBmanager.Prover.VAMPIRE) {
 			vamp = kb.askVampire(contents, 30, 1);
-			tpp.parseProofOutput(vamp.output,contents,kb);
+			tpp.parseProofOutput(vamp.output,contents,kb,vamp.qlist);
+			qlist = vamp.qlist;
 			//System.out.println("queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(vamp.output));
 			//Log.log(Log.WARNING,this,"queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(vamp.output));
 		}
@@ -139,13 +141,14 @@ public class SUMOjEdit
 			try {
 				//System.out.println("queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(eprover.output));
 				//Log.log(Log.WARNING,this,"queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(eprover.output));
-				tpp.parseProofOutput(eprover.output, contents, kb);
+				tpp.parseProofOutput(eprover.output, contents, kb,eprover.qlist);
+				qlist = eprover.qlist;
 			}
 			catch (Exception e) {
 				e.printStackTrace();
 			}
 		}
-		tpp.processAnswersFromProof(contents);
+		tpp.processAnswersFromProof(qlist,contents);
 		System.out.println("queryExp(): bindings: " + tpp.bindings);
 		Log.log(Log.WARNING,this,"queryExp(): bindings: " + tpp.bindings);
 		System.out.println("queryExp(): bindingMap: " + tpp.bindingMap);
@@ -600,7 +603,7 @@ public class SUMOjEdit
 			String contents = "(routeBetween ?X MenloParkCA MountainViewCA)";
 			EProver eprover = kb.askEProver(contents, 30, 1);
 			TPTP3ProofProcessor tpp = new TPTP3ProofProcessor();
-			tpp.parseProofOutput(eprover.output,contents,kb);
+			tpp.parseProofOutput(eprover.output,contents,kb,eprover.qlist);
 			//tpp.processAnswersFromProof(contents);
 			ArrayList<String> proofStepsStr = new ArrayList<>();
 			for (ProofStep ps : tpp.proof)
