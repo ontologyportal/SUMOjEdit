@@ -110,6 +110,34 @@ public class SUMOjEdit
 	}
 
 	/** ***************************************************************
+	 */
+	private String queryResultString(TPTP3ProofProcessor tpp) {
+
+		System.out.println("queryExp(): bindings: " + tpp.bindings);
+		Log.log(Log.WARNING,this,"queryExp(): bindings: " + tpp.bindings);
+		System.out.println("queryExp(): bindingMap: " + tpp.bindingMap);
+		Log.log(Log.WARNING,this,"queryExp(): bindingMap: " + tpp.bindingMap);
+		System.out.println("queryExp(): proof: " + tpp.proof);
+		Log.log(Log.WARNING,this,"queryExp(): proof: " + tpp.proof);
+		ArrayList<String> proofStepsStr = new ArrayList<>();
+		for (ProofStep ps : tpp.proof)
+			proofStepsStr.add(ps.toString());
+		//proofStepsStr.add(HTMLformatter.proofTextFormat(contents,ps,kb.name,""));
+		jEdit.newFile(view);
+		StringBuffer result = new StringBuffer();
+		if (tpp.bindingMap != null && tpp.bindingMap.size() > 0) {
+			result.append("Bindings: " + tpp.bindingMap);
+		}
+		else if (tpp.bindings != null && tpp.bindings.size() > 0)
+			result.append("Bindings: " + tpp.bindings);
+		if (tpp.proof == null || tpp.proof.size() == 0)
+			result.append(tpp.status);
+		else
+			result.append("\n\n" + StringUtil.arrayListToCRLFString(proofStepsStr));
+		return result.toString();
+	}
+
+	/** ***************************************************************
 	 * Send a highlighted expression as a query to a theorem prover.
 	 * return results in a new tab
 	 */
@@ -149,28 +177,7 @@ public class SUMOjEdit
 			}
 		}
 		tpp.processAnswersFromProof(qlist,contents);
-		System.out.println("queryExp(): bindings: " + tpp.bindings);
-		Log.log(Log.WARNING,this,"queryExp(): bindings: " + tpp.bindings);
-		System.out.println("queryExp(): bindingMap: " + tpp.bindingMap);
-		Log.log(Log.WARNING,this,"queryExp(): bindingMap: " + tpp.bindingMap);
-		System.out.println("queryExp(): proof: " + tpp.proof);
-		Log.log(Log.WARNING,this,"queryExp(): proof: " + tpp.proof);
-		ArrayList<String> proofStepsStr = new ArrayList<>();
-		for (ProofStep ps : tpp.proof)
-			proofStepsStr.add(ps.toString());
-			//proofStepsStr.add(HTMLformatter.proofTextFormat(contents,ps,kb.name,""));
-		jEdit.newFile(view);
-		StringBuffer result = new StringBuffer();
-		if (tpp.bindingMap != null && tpp.bindingMap.size() > 0) {
-			result.append("Bindings: " + tpp.bindingMap);
-		}
-		else if (tpp.bindings != null && tpp.bindings.size() > 0)
-		    result.append("Bindings: " + tpp.bindings);
-		if (tpp.proof == null || tpp.proof.size() == 0)
-			result.append(tpp.status);
-		else
-			result.append("\n\n" + StringUtil.arrayListToCRLFString(proofStepsStr));
-		view.getTextArea().setText(result.toString());
+		view.getTextArea().setText(queryResultString(tpp));
 	}
 
 	/** ***************************************************************
@@ -350,6 +357,51 @@ public class SUMOjEdit
 	}
 
 	/** ***************************************************************
+	 * Show statistics for a given buffer
+	 */
+	public void showStats() {
+
+		if (view == null)
+			view = jEdit.getActiveView();
+		Log.log(Log.WARNING, this, "showStats(): starting");
+		errorlist.DefaultErrorSource errsrc;
+		errsrc = new errorlist.DefaultErrorSource("sigmakee", view);
+		String contents = view.getEditPane().getTextArea().getText();
+		String path = view.getBuffer().getPath();
+		String filename = FileUtil.noPath(path);
+		Log.log(Log.WARNING, this, "showStats(): path: " + path);
+		KIF kif = new KIF();
+		try {
+			kif.parse(new StringReader(contents));
+			int termCount = 0;
+			int otherTermCount = 0;
+			for (String t : kif.terms) {
+				String thisNoPath = FileUtil.noPath(findDefn(t).filepath);
+				//Log.log(Log.WARNING, this, "showStats(): term path: " + thisNoPath);
+				if (thisNoPath.equals(filename))
+					termCount++;
+				else
+					otherTermCount++;
+			}
+			Log.log(Log.WARNING,this,"showStats(): # terms: " + termCount);
+			Log.log(Log.WARNING,this,"showStats(): # terms used from other files: " + otherTermCount);
+			Log.log(Log.WARNING,this,"showStats(): # axioms: " + kif.formulaMap.keySet().size());
+			int ruleCount = 0;
+			for (Formula f : kif.formulaMap.values())
+				if (f.isRule())
+					ruleCount++;
+			Log.log(Log.WARNING,this,"showStats(): # rules: " + ruleCount);
+			Log.log(Log.WARNING,this,"showStats(): done reading kif file");
+		}
+		catch (Exception e) {
+			Log.log(Log.WARNING,this,"showStats(): error loading kif file");
+			if (log) errsrc.addError(ErrorSource.WARNING,e.getMessage(),1,0,0,
+					"error loading kif file with " + contents.length() + " characters ");
+		}
+		Log.log(Log.WARNING, this, "showStats(): complete");
+	}
+
+	/** ***************************************************************
 	 * Check for a variety of syntactic and semantic errors and warnings
 	 * in a given buffer
 	 */
@@ -383,7 +435,8 @@ public class SUMOjEdit
 		catch (Exception e) {
 			Log.log(Log.WARNING,this,"checkErrors(): error loading kif file");
 			if (log) errsrc.addError(ErrorSource.WARNING,e.getMessage(),1,0,0,
-				"error loading kif file with " + contents.length() + " characters "); }
+				"error loading kif file with " + contents.length() + " characters ");
+		}
 
 		Log.log(Log.WARNING,this,"checkErrors(): success loading kif file with " + contents.length() + " characters ");
 		Log.log(Log.WARNING,this,"checkErrors(): filename: " + path);

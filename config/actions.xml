@@ -1,5 +1,10 @@
 <!DOCTYPE ACTIONS SYSTEM "actions.dtd">
 <ACTIONS>
+    <ACTION NAME="SUMOjEditPlugin.show-stats">
+        <CODE>
+            jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.showStats();
+        </CODE>
+    </ACTION>
     <ACTION NAME="SUMOjEditPlugin.check-errors">
         <CODE>
             jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.checkErrors();

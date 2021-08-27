@@ -25,6 +25,8 @@ interface SUMOjEditActions {
 
 	//void addHeader();
 
+	void showStats();
+
 	void checkErrors();
 
 	void formatSelect();
