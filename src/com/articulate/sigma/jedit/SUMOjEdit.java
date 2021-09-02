@@ -377,11 +377,19 @@ public class SUMOjEdit
 			int otherTermCount = 0;
 			for (String t : kif.terms) {
 				String thisNoPath = FileUtil.noPath(findDefn(t).filepath);
-				//Log.log(Log.WARNING, this, "showStats(): term path: " + thisNoPath);
-				if (thisNoPath.equals(filename))
+				//Log.log(Log.WARNING, this, " ");
+				//Log.log(Log.WARNING, this, "showStats(): filename: " + filename);
+				//Log.log(Log.WARNING, this, "showStats(): this no path: " + thisNoPath);
+				if (thisNoPath.equals(filename) || StringUtil.emptyString(thisNoPath)) {
+					//Log.log(Log.WARNING, this, "showStats(): ******* in this file: " + t);
 					termCount++;
-				else
-					otherTermCount++;
+				}
+				else {
+					if (!Formula.isLogicalOperator(t)) {
+						//Log.log(Log.WARNING, this, "showStats(): not in this: " + t);
+						otherTermCount++;
+					}
+				}
 			}
 			Log.log(Log.WARNING,this,"showStats(): # terms: " + termCount);
 			Log.log(Log.WARNING,this,"showStats(): # terms used from other files: " + otherTermCount);
