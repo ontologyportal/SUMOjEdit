@@ -376,7 +376,16 @@ public class SUMOjEdit
 			int termCount = 0;
 			int otherTermCount = 0;
 			for (String t : kif.terms) {
-				String thisNoPath = FileUtil.noPath(findDefn(t).filepath);
+				if (t == null) {
+					Log.log(Log.WARNING,this,"showStats(): null term ");
+					continue;
+				}
+				FileSpec defn = findDefn(t);
+				if (defn == null) {
+					Log.log(Log.WARNING,this,"showStats(): no definition found for: " + t);
+					continue;
+				}
+				String thisNoPath = FileUtil.noPath(defn.filepath);
 				//Log.log(Log.WARNING, this, " ");
 				//Log.log(Log.WARNING, this, "showStats(): filename: " + filename);
 				//Log.log(Log.WARNING, this, "showStats(): this no path: " + thisNoPath);
@@ -402,7 +411,10 @@ public class SUMOjEdit
 			Log.log(Log.WARNING,this,"showStats(): done reading kif file");
 		}
 		catch (Exception e) {
-			Log.log(Log.WARNING,this,"showStats(): error loading kif file");
+			StringWriter sw = new StringWriter();
+			PrintWriter pw = new PrintWriter(sw);
+			e.printStackTrace(pw);
+			Log.log(Log.WARNING,this,"showStats(): error loading kif file: " + e.getMessage() + "\n" + sw.toString() );
 			if (log) errsrc.addError(ErrorSource.WARNING,e.getMessage(),1,0,0,
 					"error loading kif file with " + contents.length() + " characters ");
 		}
