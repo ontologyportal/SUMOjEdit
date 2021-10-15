@@ -390,7 +390,7 @@ public class SUMOjEdit
 				//Log.log(Log.WARNING, this, "showStats(): filename: " + filename);
 				//Log.log(Log.WARNING, this, "showStats(): this no path: " + thisNoPath);
 				if (thisNoPath.equals(filename) || StringUtil.emptyString(thisNoPath)) {
-					//Log.log(Log.WARNING, this, "showStats(): ******* in this file: " + t);
+					Log.log(Log.WARNING, this, "showStats(): ******* in this file: " + t);
 					termCount++;
 				}
 				else {
