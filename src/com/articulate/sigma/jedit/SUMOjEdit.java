@@ -494,10 +494,12 @@ public class SUMOjEdit
 					if (log) errsrc.addError(ErrorSource.WARNING,path,f.startLine-1,f.endLine-1,0,w);
 			}
 			//Log.log(Log.WARNING,this,"checking variables in formula ");
-			HashMap<String,HashSet<String>> varmap = fp.findAllTypeRestrictions(f,kb);
-			//Log.log(Log.WARNING,this,"varmap " + varmap);
-			SUMOtoTFAform.varmap = varmap;
-			SUMOtoTFAform.inconsistentVarTypes();
+			if (!KButilities.isValidFormula(kb,f.toString())) {
+				for (String e : KButilities.errors) {
+					if (log) errsrc.addError(ErrorSource.ERROR, path, f.startLine - 1, f.endLine - 1, 0, e);
+					Log.log(Log.WARNING, this, e);
+				}
+			}
 			//Log.log(Log.WARNING,this,"done checking var types ");
 
             // note that predicate variables can result in many relations being tried that don't
