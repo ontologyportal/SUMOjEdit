@@ -427,6 +427,7 @@ public class SUMOjEdit
 	 */
 	public void checkErrors() {
 
+		KButilities.clearErrors();
 		if (view == null)
 			view = jEdit.getActiveView();
 		Log.log(Log.WARNING, this, "checkErrors(): starting");
@@ -501,6 +502,13 @@ public class SUMOjEdit
 				}
 			}
 			//Log.log(Log.WARNING,this,"done checking var types ");
+
+			Set<String> unquant = Diagnostics.unquantInConsequent(f);
+			if (!unquant.isEmpty()) {
+				String err = "Unquantified var(s) " + unquant + " in consequent";
+				if (log) errsrc.addError(ErrorSource.ERROR, path, f.startLine-1, f.endLine-1, 0, err);
+				Log.log(Log.WARNING, this, err);
+			}
 
             // note that predicate variables can result in many relations being tried that don't
             // fit because of type inconsistencies, which then are rejected and not a formalization error
