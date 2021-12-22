@@ -28,6 +28,8 @@ plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.menu=SUMOjEditPlugin.show-stat
   SUMOjEditPlugin.format-select \
   SUMOjEditPlugin.goto-defn \
   SUMOjEditPlugin.browse-term \
+  SUMOjEditPlugin.setFOF \
+  SUMOjEditPlugin.setTFF \
   SUMOjEditPlugin.chooseVamp \
   SUMOjEditPlugin.chooseE \
   SUMOjEditPlugin.query-exp \
@@ -43,6 +45,8 @@ SUMOjEditPlugin.check-errors.label=Check for SUO-KIF errors
 SUMOjEditPlugin.format-select.label=format axioms
 SUMOjEditPlugin.goto-defn.label=go to definition
 SUMOjEditPlugin.browse-term.label=browse term in Sigma
+SUMOjEditPlugin.setFOF.label=select TFF language
+SUMOjEditPlugin.setTFF.label=select FOF language
 SUMOjEditPlugin.chooseVamp.label=select Vampire
 SUMOjEditPlugin.chooseE.label=select EProver
 SUMOjEditPlugin.query-exp.label=query on highlighted expression

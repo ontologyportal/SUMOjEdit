@@ -41,6 +41,10 @@ interface SUMOjEditActions {
 
 	void chooseE();
 
+	void setFOF();
+
+	void setTFF();
+
 	void toTPTP();
 
 	void fromTPTP();

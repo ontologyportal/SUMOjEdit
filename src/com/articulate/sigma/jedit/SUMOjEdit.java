@@ -26,23 +26,17 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import TPTPWorld.Binding;
-import TPTPWorld.TPTPFormula;
-import TPTPWorld.TPTPParser;
+import tptp_parser.*;
+
 import com.articulate.sigma.*;
 import com.articulate.sigma.tp.*;
-import com.articulate.sigma.trans.SUMOformulaToTPTPformula;
-import com.articulate.sigma.trans.SUMOtoTFAform;
-import com.articulate.sigma.trans.TPTP2SUMO;
-import com.articulate.sigma.trans.TPTP3ProofProcessor;
+import com.articulate.sigma.trans.*;
 import com.articulate.sigma.utils.*;
 import org.gjt.sp.jedit.*;
 import org.gjt.sp.jedit.msg.PropertiesChanged;
-import org.gjt.sp.jedit.textarea.TextArea;
 import org.gjt.sp.util.Log;
 
 import errorlist.*;
-import tptp_parser.SimpleTptpParserOutput;
 
 /** ***************************************************************
  *
@@ -87,6 +81,28 @@ public class SUMOjEdit
 	 */
 	private void propertiesChanged() {
 
+	}
+
+	/** ***************************************************************
+	 * Set theorem proving to use FOF translation of SUMO
+	 */
+	public void setFOF() {
+
+		System.out.println("setFOF(): translation set to TPTP");
+		Log.log(Log.WARNING,this,"setFOF(): translation set to TPTP");
+		SUMOformulaToTPTPformula.lang = "fof";
+		SUMOKBtoTPTPKB.lang = "fof";
+	}
+
+	/** ***************************************************************
+	 * Set theorem proving to use TFF translation of SUMO
+	 */
+	public void setTFF() {
+
+		System.out.println("setTFF(): translation set to TFF");
+		Log.log(Log.WARNING,this,"setTFF(): translation set to TFF");
+		SUMOformulaToTPTPformula.lang = "tff";
+		SUMOKBtoTPTPKB.lang = "tff";
 	}
 
 	/** ***************************************************************
@@ -591,14 +607,11 @@ public class SUMOjEdit
 					continue;
 				String tptpStr = "fof(kb_" + f.getSourceFile() + "_" + f.startLine + ",axiom," + SUMOformulaToTPTPformula.process(f, false) + ").";
 				//Log.log(Log.WARNING,this,"toTPTP(): formatted as TPTP: " + tptpStr);
-				BufferedReader reader = new BufferedReader(new StringReader(tptpStr));
-				TPTPParser parser = TPTPParser.parse(reader);
-				Hashtable<String, TPTPFormula> ftable = parser.ftable;
-				Vector<SimpleTptpParserOutput.TopLevelItem> Items = parser.Items;
-				StringBuffer result = new StringBuffer();
-				for (SimpleTptpParserOutput.TopLevelItem item : Items) {
-					sb.append(item.toString() + "\n\n");
-				}
+				TPTPVisitor sv = new TPTPVisitor();
+				sv.parseString(tptpStr);
+				HashMap<String,TPTPFormula> hm = TPTPVisitor.result;
+				for (String s : hm.keySet())
+					sb.append(hm.get(s).formula + "\n\n");
 			}
 			jEdit.newFile(view);
 			view.getTextArea().setText(sb.toString());
@@ -632,9 +645,14 @@ public class SUMOjEdit
 			contents = selected;
 		String path = view.getBuffer().getPath();
 		try {
-			String result = TPTP2SUMO.convertBare(new StringReader(contents),false);
+			TPTPVisitor sv = new TPTPVisitor();
+			sv.parseFile(path);
+			HashMap<String,TPTPFormula> hm = TPTPVisitor.result;
 			jEdit.newFile(view);
-			view.getTextArea().setText(result);
+			StringBuffer result = new StringBuffer();
+			for (String s : hm.keySet())
+				result.append(hm.get(s).formula + "\n\n");
+			view.getTextArea().setText(result.toString());
 			if (StringUtil.emptyString(result)) {
 				Log.log(Log.WARNING, this, "toTPTP(): empty result");
 			}
