@@ -14,10 +14,19 @@
         <copy todir="lib" file="../sigmakee/build/sigmakee.jar" />
         <property environment="env"/>
         <property name="jedit.home" value="${env.JEDIT_HOME}"/>
+        <property name="git.home" value="${env.ONTOLOGYPORTAL_GIT}"/>
+        <property name="tptp.home" value="${git.home}/TPTP-ANTLR4-Grammar"/>
         <echo message="JEDIT_HOME is set to = ${env.JEDIT_HOME}"/>
     </target>
 
-    <target name="compile" depends="init" description="Compile the project">
+    <target name="TPTP" depends="init">
+        <echo message="SIGMA_HOME is set to = ${env.SIGMA_HOME}"/>
+        <echo message="TPTP is set to = ${tptp.home}"/>
+        <ant antfile="${tptp.home}/build.xml" inheritAll="false" target="all" />
+        <copy todir="${basedir}/lib" file="${tptp.home}/tptp.jar" />
+    </target>
+
+    <target name="compile" depends="TPTP" description="Compile the project">
         <mkdir dir="build"/>
         <javac destdir="build" debug="on" optimize="on" deprecation="on" includeantruntime="false" classpathref="compile.classpath">
             <src refid="core.sourcepath"/>
