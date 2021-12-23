@@ -103,6 +103,7 @@ public class SUMOjEdit
 		Log.log(Log.WARNING,this,"setTFF(): translation set to TFF");
 		SUMOformulaToTPTPformula.lang = "tff";
 		SUMOKBtoTPTPKB.lang = "tff";
+		SUMOtoTFAform.initOnce();
 	}
 
 	/** ***************************************************************

@@ -35,6 +35,16 @@
             jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.chooseVamp();
         </CODE>
     </ACTION>
+    <ACTION NAME="SUMOjEditPlugin.setFOF">
+        <CODE>
+            jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.setFOF();
+        </CODE>
+    </ACTION>
+    <ACTION NAME="SUMOjEditPlugin.setTFF">
+        <CODE>
+            jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.setTFF();
+        </CODE>
+    </ACTION>
     <ACTION NAME="SUMOjEditPlugin.query-exp">
         <CODE>
             jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.queryExp();
