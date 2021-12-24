@@ -137,7 +137,7 @@ public class SUMOjEdit
 		System.out.println("queryExp(): proof: " + tpp.proof);
 		Log.log(Log.WARNING,this,"queryExp(): proof: " + tpp.proof);
 		ArrayList<String> proofStepsStr = new ArrayList<>();
-		for (ProofStep ps : tpp.proof)
+		for (TPTPFormula ps : tpp.proof)
 			proofStepsStr.add(ps.toString());
 		//proofStepsStr.add(HTMLformatter.proofTextFormat(contents,ps,kb.name,""));
 		jEdit.newFile(view);
@@ -610,7 +610,7 @@ public class SUMOjEdit
 				//Log.log(Log.WARNING,this,"toTPTP(): formatted as TPTP: " + tptpStr);
 				TPTPVisitor sv = new TPTPVisitor();
 				sv.parseString(tptpStr);
-				HashMap<String,TPTPFormula> hm = TPTPVisitor.result;
+				HashMap<String,TPTPFormula> hm = sv.result;
 				for (String s : hm.keySet())
 					sb.append(hm.get(s).formula + "\n\n");
 			}
@@ -648,7 +648,7 @@ public class SUMOjEdit
 		try {
 			TPTPVisitor sv = new TPTPVisitor();
 			sv.parseFile(path);
-			HashMap<String,TPTPFormula> hm = TPTPVisitor.result;
+			HashMap<String,TPTPFormula> hm = sv.result;
 			jEdit.newFile(view);
 			StringBuffer result = new StringBuffer();
 			for (String s : hm.keySet())
@@ -708,7 +708,7 @@ public class SUMOjEdit
 			tpp.parseProofOutput(eprover.output,contents,kb,eprover.qlist);
 			//tpp.processAnswersFromProof(contents);
 			ArrayList<String> proofStepsStr = new ArrayList<>();
-			for (ProofStep ps : tpp.proof)
+			for (TPTPFormula ps : tpp.proof)
 				proofStepsStr.add(ps.toString());
 			StringBuffer result = new StringBuffer();
 			if (tpp.bindingMap != null && tpp.bindingMap.size() > 0) {

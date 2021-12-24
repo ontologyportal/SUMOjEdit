@@ -24,6 +24,8 @@
         <echo message="TPTP is set to = ${tptp.home}"/>
         <ant antfile="${tptp.home}/build.xml" inheritAll="false" target="all" />
         <copy todir="${basedir}/lib" file="${tptp.home}/tptp.jar" />
+        <ant antfile="../SigmaUtils/build.xml" inheritAll="false" target="all" />
+        <copy todir="${basedir}/lib" file="../SigmaUtils/sigmaUtils.jar" />
     </target>
 
     <target name="compile" depends="TPTP" description="Compile the project">
