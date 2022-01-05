@@ -15,7 +15,7 @@
         <property environment="env"/>
         <property name="jedit.home" value="${env.JEDIT_HOME}"/>
         <property name="git.home" value="${env.ONTOLOGYPORTAL_GIT}"/>
-        <property name="tptp.home" value="${git.home}/TPTP-ANTLR4-Grammar"/>
+        <property name="tptp.home" value="${git.home}/TPTP-ANTLR"/>
         <echo message="JEDIT_HOME is set to = ${env.JEDIT_HOME}"/>
     </target>
 
