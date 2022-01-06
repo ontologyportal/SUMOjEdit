@@ -149,8 +149,12 @@ public class SUMOjEdit
 			result.append("Bindings: " + tpp.bindings);
 		if (tpp.proof == null || tpp.proof.size() == 0)
 			result.append(tpp.status);
-		else
-			result.append("\n\n" + StringUtil.arrayListToCRLFString(proofStepsStr));
+		else {
+			if (tpp.containsFalse)
+				result.append("\n\n" + StringUtil.arrayListToCRLFString(proofStepsStr));
+			else
+				result.append(tpp.status);
+		}
 		return result.toString();
 	}
 
