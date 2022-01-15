@@ -547,6 +547,7 @@ public class SUMOjEdit
 				Log.log(Log.WARNING, this, msg);
 			}
 			Set<String> terms = f.termCache;
+			Log.log(Log.WARNING,this,"checkErrors(): # terms in file: " + terms.size());
 			for (String t : terms) {
 				if (Diagnostics.LOG_OPS.contains(t) || t.equals("Entity") ||
 						Formula.isVariable(t) || StringUtil.isNumeric(t) || StringUtil.isQuotedString(t))
@@ -572,6 +573,9 @@ public class SUMOjEdit
 					} */
 				}
 			}
+			ArrayList<String> unrooted = Diagnostics.termsNotBelowEntity(kb);
+			Log.log(Log.WARNING,this,"checkErrors(): terms with no root at Entity: " + unrooted);
+			if (log) errsrc.addError(ErrorSource.ERROR,path,0,0,0,"unknown terms: " + unrooted);
 		}
 		Log.log(Log.WARNING,this,"checkErrors(): check completed: ");
 	}
