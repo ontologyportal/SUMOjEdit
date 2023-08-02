@@ -9,7 +9,7 @@ This depends on SigmaKEE https://github.com/ontologyportal/sigmakee and also the
 
 Installation-*nix
 =============================
-- install jEdit.  On Ubuntu this is "sumo apt-get install jedit"
+- install jEdit.  On Ubuntu this is "sudo apt-get install jedit"
 - add to your .bashrc 
   export JEDIT_HOME=/home/myname/.jedit editing the path to conform to your installation
 - Install SigmaKEE as per the README at https://github.com/ontologyportal/sigmakee
@@ -38,6 +38,21 @@ Installation-Mac
 - then execute "ant" from the top SUMOjEdit directory
 - you may have to start jEdit from the command line to get it to use the correct java with
   java -jar /Applications/jedit/Contents/Java/jedit.jar
+
+Installation Issues
+=============================
+If you don't get syntax highlighting and the SUMO plugin menu, the following
+may help.
+
+To get the syntax highlighting, add the mode through the gui Global Options->Editing and the Edit Modes tab
+
+Use the Add mode tab to
+
+- Name a mode SUMO
+- With Select Mode file to be /home/&lt;user&gt;/workspace/SUMOjEdit/kif.xml
+- And File Name Glob *.kif
+
+The plugins then should show up on the menu, but you may also need to launch jedit from the SUMOjEdit directory.
 
 Execution
 =============================
