@@ -355,9 +355,14 @@ public class SUMOjEdit
 					e.getMessage() + "\n" + e.getStackTrace());
 			return null;
 		}
+		if (kif.errorSet != null && kif.errorSet.size() > 0) {
+			Log.log(Log.WARNING,this,"checkErrors(): error loading kif file" +
+					kif.errorSet);
+			return null;
+		}
 		StringBuffer result = new StringBuffer();
-		for (Formula f : kif.formulaMap.values()) {
-			result.append(f.textFormat(f.getFormula()));
+		for (Formula f : kif.formulasOrdered.values()) {
+			result.append(f.textFormat(f.getFormula()) + "\n");
 		}
 		return result.toString();
 	}
