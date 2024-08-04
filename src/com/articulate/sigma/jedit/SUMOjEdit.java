@@ -499,7 +499,10 @@ public class SUMOjEdit
 			Log.log(Log.WARNING,this,line);
 		}
 		int counter = 0;
+		HashSet<String> nbeTerms = new HashSet<>();
+		HashSet<String> unkTerms = new HashSet<>();
 		for (Formula f : kif.formulaMap.values()) {
+			Log.log(Log.WARNING,this,"checkErrors(): check formula: " + f);
 			counter++;
 			if (counter > 1000) {
 				Log.log(Log.WARNING,this,".");
@@ -551,8 +554,8 @@ public class SUMOjEdit
 				if (log) errsrc.addError(ErrorSource.ERROR, path, f.startLine-1, f.endLine-1, 0, msg);
 				Log.log(Log.WARNING, this, msg);
 			}
-			Set<String> terms = f.termCache;
-			Log.log(Log.WARNING,this,"checkErrors(): # terms in file: " + terms.size());
+			Set<String> terms = f.collectTerms();
+			Log.log(Log.WARNING,this,"checkErrors(): # terms in formula: " + terms.size());
 			for (String t : terms) {
 				if (Diagnostics.LOG_OPS.contains(t) || t.equals("Entity") ||
 						Formula.isVariable(t) || StringUtil.isNumeric(t) || StringUtil.isQuotedString(t))
@@ -564,23 +567,19 @@ public class SUMOjEdit
 						if (forms == null || forms.size() == 0) {
 							forms = kb.askWithRestriction(0, "subAttribute", 1, t);
 							if (forms == null || forms.size() == 0) {
-								if (log) errsrc.addError(ErrorSource.ERROR, path, f.startLine - 1, f.endLine - 1, 0,
+								if (log && !unkTerms.contains(t)) errsrc.addError(ErrorSource.ERROR, path, f.startLine - 1, f.endLine - 1, 0,
 										"unknown term: " + t);
+								unkTerms.add(t);
 								Log.log(Log.WARNING, this, "unknown term: " + t);
 							}
 						}
 					}
-					/*
-					if (!kb.kbCache.subclassOf(t,"Entity") && !kb.kbCache.transInstOf(t,"Entity")) {
-						if (log) errsrc.addError(ErrorSource.ERROR, path, f.startLine-1, f.endLine-1, 0,
-                                "unknown term: " + t);
-						Log.log(Log.WARNING, this, "unknown term: " + t);
-					} */
+				}
+				if (log && Diagnostics.termNotBelowEntity(t,kb) && !nbeTerms.contains(t)) {
+					errsrc.addError(ErrorSource.ERROR, path, f.startLine - 1, f.endLine - 1, 0, "term not below entity: " + t);
+					nbeTerms.add(t);
 				}
 			}
-			ArrayList<String> unrooted = Diagnostics.termsNotBelowEntity(kb);
-			Log.log(Log.WARNING,this,"checkErrors(): terms with no root at Entity: " + unrooted);
-			if (log) errsrc.addError(ErrorSource.ERROR,path,0,0,0,"unknown terms: " + unrooted);
 		}
 		Log.log(Log.WARNING,this,"checkErrors(): check completed: ");
 	}
