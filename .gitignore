@@ -1,2 +1,6 @@
 /build/
 /.idea/
+/SUMOjEdit.jar
+/lib/tptp.jar
+/lib/sigmaUtils.jar
+/lib/sigmakee.jar
