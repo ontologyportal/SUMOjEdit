@@ -30,6 +30,9 @@
     <path id="tcp">
         <path path="${run.test.classpath}"/>
     </path>
+    <path id="jecp">
+        <path location="${jedit.home}/jars/*"/>
+    </path>
 
     <!--
     ============
@@ -90,6 +93,17 @@
             <arg line="${run.args}"/>
         </java>
     </target>
+    <target name="run.jedit" depends="init">
+        <java jar="${jedit.jar}"
+              fork="true">
+            <jvmarg line="${run.jvmargs}"/>
+            <env key="SIGMA_HOME" value="${sigma_home}"/>
+            <env key="ONTOLOGYPORTAL_GIT" value="${ontologyportal.git}"/>
+            <env key="SIGMA_SRC" value="${sigma_src}"/>
+            <env key="CATALINA_HOME" value="${catalina.base}"/>
+            <arg line="${run.args}"/>
+        </java>
+    </target>
 
     <!--
     =============
@@ -132,10 +146,9 @@
     </target>
     <target name="debug.jedit" depends="init">
         <nbjpdastart addressproperty="jpda.address" name="${impl.title}" transport="${debug.transport}">
-            <classpath refid="dcp"/>
+            <classpath refid="jecp"/>
         </nbjpdastart>
         <java jar="${jedit.jar}"
-              classpathref="dcp"
               fork="true">
             <jvmarg value="-agentlib:jdwp=transport=${debug.transport},address=${jpda.address}"/>
             <jvmarg line="${run.jvmargs}"/>
@@ -145,13 +158,6 @@
             <env key="CATALINA_HOME" value="${catalina.base}"/>
             <arg line="${run.args}"/>
         </java>
-    </target>
-
-    <available file="${activity.log}" property="activity.log.present"/>
-    <target name="monitor.activity.log" if="activity.log.present">
-        <exec executable="tail" dir="${jedit.home}">
-            <arg line="-f '${activity.log}'"/>
-        </exec>
     </target>
 
     <!--
@@ -278,5 +284,12 @@
     </target>
     <target name="all" depends="clean,deploy">
         <echo message="System date/time is: ${TODAY_US}"/>
+    </target>
+
+    <available file="${activity.log}" property="activity.log.present"/>
+    <target name="monitor.activity.log" if="activity.log.present">
+        <exec executable="tail" dir="${jedit.home}">
+            <arg line="-f '${activity.log}'"/>
+        </exec>
     </target>
 </project>
