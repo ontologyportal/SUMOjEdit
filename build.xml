@@ -3,6 +3,8 @@
         This is an ant build.xml file for building the SUMOjEdit plugin for jEdit.
     </description>
 
+    <property name="javac.release" value="11"/>
+
     <target name="clean">
         <delete includeemptydirs="true" failonerror="false">
             <fileset dir="build"/>
@@ -23,29 +25,28 @@
     <target name="TPTP" depends="init">
         <echo message="SIGMA_HOME is set to = ${env.SIGMA_HOME}"/>
         <echo message="TPTP is set to = ${tptp.home}"/>
-        <!--<ant antfile="${tptp.home}/build.xml" inheritAll="false" target="all" />-->
         <copy todir="${basedir}/lib" file="${tptp.home}/tptp.jar" />
-        <!--<ant antfile="../SigmaUtils/build.xml" inheritAll="false" target="all" />-->
         <copy todir="${basedir}/lib" file="../SigmaUtils/sigmaUtils.jar" />
     </target>
 
     <target name="compile" depends="TPTP" description="Compile the project">
-        <mkdir dir="build"/>
-        <javac destdir="build" debug="on" optimize="on" deprecation="on" includeantruntime="false" classpathref="compile.classpath">
+        <mkdir dir="build/classes"/>
+        <javac destdir="build/classes"
+               debug="on"
+               optimize="on"
+               deprecation="on"
+               includeantruntime="false"
+               classpathref="compile.classpath"
+               release="${javac.release}">
             <src refid="core.sourcepath"/>
         </javac>
-<!--        <copy todir="build/lib">
-            <fileset dir="lib" />
-        </copy>-->
-        <copy todir="build" file="config/SUMOjEdit.props" />
-        <!-- copy todir="build" file="config/dockables.xml" /-->
-        <copy todir="build" file="config/actions.xml" />
+        <copy todir="build/classes" file="config/SUMOjEdit.props" />
+        <copy todir="build/classes" file="config/actions.xml" />
     </target>
 
     <target name="dist" depends="compile" description="Create the *.war file and place in build.">
         <jar destfile="SUMOjEdit.jar">
-            <fileset dir="build"/>
-            <!--<fileset dir="build/lib"/>-->
+            <fileset dir="build/classes"/>
         </jar>
     </target>
 
@@ -60,7 +61,7 @@
         </copy>
         <copy todir="${jedit.home}/modes" file="kif.xml" />
         <copy todir="${jedit.home}/modes" file="catalog" />
-        <echo>deploying SUMOjEdit.jar and supporting jars</echo>
+        <echo>deploying SUMOjEdit.jar, supporting files and supporting jars</echo>
     </target>
 
     <target name="all" depends="deploy">
