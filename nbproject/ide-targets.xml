@@ -31,7 +31,9 @@
         <path path="${run.test.classpath}"/>
     </path>
     <path id="jecp">
-        <path location="${jedit.home}/jars/*"/>
+        <fileset dir="${jedit.home}/jars">
+            <include name="*.jar"/>
+        </fileset>
     </path>
 
     <!--
