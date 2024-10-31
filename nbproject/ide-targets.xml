@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project basedir=".." name="SUMOjEdit-IDE">
+
+    <!--
+    ========
+    TASKDEFs
+    ========
+    -->
+
+    <property file="nbproject/private/private.properties"/>
+    <import file="../build.xml"/>
+    <property file="nbproject/build.properties"/>
+    <condition property="isUnixNotMac">
+        <and>
+            <os family="unix"/>
+
+            <not>
+                <os family="mac"/>
+            </not>
+
+        </and>
+    </condition>
+
+    <path id="rcp">
+        <path path="${run.classpath}"/>
+    </path>
+    <path id="dcp">
+        <path path="${debug.classpath}"/>
+    </path>
+    <path id="tcp">
+        <path path="${run.test.classpath}"/>
+    </path>
+
+    <!--
+    ============
+    INIT SECTION
+    ============
+    -->
+
+    <target name="init">
+        <mkdir dir="${build.classes.dir}"/>
+        <mkdir dir="${reports.dir}"/>
+        <ant antfile="../sigmakee/nbproject/ide-targets.xml" inheritAll="false" target="all" />
+        <copy todir="lib" file="../sigmakee/build/sigmakee.jar" />
+        <property name="tptp.home" value="${workspace}/TPTP-ANTLR"/>
+        <echo message="JEDIT_HOME is set to: ${jedit.home}"/>
+
+        <tstamp>
+            <format property="TODAY_US" pattern="EEE, d MMM yyyy HHmm Z" locale="en,US"/>
+        </tstamp>
+    </target>
+
+    <target name="TPTP" depends="init">
+        <echo message="TPTP is set to: ${tptp.home}"/>
+        <copy todir="${basedir}/lib" file="${tptp.home}/tptp.jar" />
+        <copy todir="${basedir}/lib" file="../SigmaUtils/sigmaUtils.jar" />
+    </target>
+
+    <target name="test.compile" depends="compile">
+        <mkdir dir="${build.test.classes.dir}"/>
+        <javac destdir="${build.test.classes.dir}" includeantruntime="false">
+            <src refid="test.sourcepath"/>
+            <classpath refid="tcp"/>
+        </javac>
+    </target>
+
+    <!--
+    ===========
+    RUN SECTION
+    ===========
+    -->
+
+    <target name="run" depends="compile" description="Performs a test run of SigmaUtils">
+        <java classname="${main.class}"
+              classpathref="rcp"
+              fork="true">
+            <jvmarg line="${run.jvmargs}"/>
+        </java>
+    </target>
+    <target name="run-selected-file-in-java" depends="compile">
+        <fail unless="run.class">Must set property 'run.class'</fail>
+        <java classname="${run.class}"
+              classpathref="rcp"
+              fork="true">
+            <jvmarg line="${run.jvmargs}"/>
+            <env key="SIGMA_HOME" value="${sigma_home}"/>
+            <env key="ONTOLOGYPORTAL_GIT" value="${ontologyportal.git}"/>
+            <env key="SIGMA_SRC" value="${sigma_src}"/>
+            <arg line="${run.args}"/>
+        </java>
+    </target>
+
+    <!--
+    =============
+    DEBUG SECTION
+    =============
+    -->
+
+    <target name="debug-nb">
+        <nbjpdastart addressproperty="jpda.address" name="${impl.title}" transport="dt_socket">
+            <classpath refid="dcp"/>
+        </nbjpdastart>
+        <!-- TODO configure the main class for your project here: -->
+        <java classname="${main.class}"
+              classpathref="dcp"
+              fork="true">
+            <jvmarg value="-agentlib:jdwp=transport=dt_socket,address=${jpda.address}"/>
+            <jvmarg line="${run.jvmargs}"/>
+            <env key="SIGMA_HOME" value="${sigma_home}"/>
+            <env key="ONTOLOGYPORTAL_GIT" value="${ontologyportal.git}"/>
+            <env key="SIGMA_SRC" value="${sigma_src}"/>
+            <arg line="${run.args}"/>
+        </java>
+    </target>
+    <target name="debug-selected-file-in-java" depends="compile">
+        <fail unless="debug.class">Must set property 'debug.class'</fail>
+        <nbjpdastart addressproperty="jpda.address" name="${impl.title}" transport="${debug.transport}">
+            <classpath refid="dcp"/>
+        </nbjpdastart>
+        <java classname="${debug.class}"
+              classpathref="dcp"
+              fork="true">
+            <jvmarg value="-agentlib:jdwp=transport=${debug.transport},address=${jpda.address}"/>
+            <jvmarg line="${run.jvmargs}"/>
+            <env key="SIGMA_HOME" value="${sigma_home}"/>
+            <env key="ONTOLOGYPORTAL_GIT" value="${ontologyportal.git}"/>
+            <env key="SIGMA_SRC" value="${sigma_src}"/>
+            <arg line="${run.args}"/>
+        </java>
+    </target>
+
+    <!--
+    ===================
+    RUN TASKS FOR TESTS
+    ===================
+    -->
+
+    <target name="test.unit" depends="clean,test.compile" description="Runs the UnitTestSuite">
+        <junit printsummary="yes"
+               haltonfailure="yes"
+               showoutput="yes"
+               fork="yes">
+            <jvmarg line="${run.jvmargs}"/>
+            <formatter type="plain" usefile="false"/>
+            <classpath>
+                <path refid="tcp"/>
+            </classpath>
+            <test name="${unit.test.suite}" haltonfailure="no" todir="${reports.dir}">
+                <formatter type="xml"/>
+            </test>
+        </junit>
+        <antcall target="junit.report"/>
+    </target>
+    <target name="run-selected-test-in-unit" depends="clean,test.compile">
+        <fail unless="test.class">Must set property 'test.class'</fail>
+        <junit printsummary="yes"
+               haltonfailure="yes"
+               fork="yes"
+               showoutput="yes">
+            <jvmarg line="${run.jvmargs}"/>
+            <formatter type="plain" usefile="false"/>
+            <classpath>
+                <path refid="tcp"/>
+            </classpath>
+            <test name="${test.class}" haltonfailure="no">
+                <formatter type="xml"/>
+            </test>
+        </junit>
+    </target>
+    <target name="junit.report" >
+        <junitreport todir="${reports.dir}">
+            <fileset dir="${reports.dir}">
+                <include name="TEST-*.xml"/>
+            </fileset>
+            <report format="frames" todir="${reports.dir}/html"/>
+        </junitreport>
+        <antcall target="open.junit.report"/>
+    </target>
+    <target name="open.junit.report" depends="report.mac,report.unix"/>
+    <target name="report.mac">
+        <exec executable="sh" osfamily="mac">
+            <arg value="-c"/>
+            <arg value="open -u ${report.html}"/>
+        </exec>
+    </target>
+    <target name="report.unix" if="isUnixNotMac">
+        <exec executable="sh" osfamily="unix">
+            <arg value="xdg-open ${report.html}"/>
+        </exec>
+    </target>
+
+    <!--
+    =====
+    ADMIN
+    =====
+    -->
+
+    <target name="dist" depends="compile" description="Create the ${dist.jar} file and place in ${dist.dir}.">
+        <mkdir dir="${dist.dir}"/>
+        <manifest file="${manifest.mf}">
+            <attribute name="Built-By" value="${my.name} ${my.email}"/>
+            <attribute name="Specification-Title"
+                       value="${product.Name}"/>
+            <attribute name="Specification-Version"
+                       value="${product.version.major}.${product.version.minor}"/>
+            <attribute name="Specification-Vendor"
+                       value="${spec.vendor}"/>
+            <attribute name="Implementation-Title"
+                       value="${impl.title}"/>
+            <attribute name="Implementation-Version"
+                       value="${product.Version} built on ${TODAY_US}"/>
+            <attribute name="Implementation-Vendor"
+                       value="${nps}, ${cs.dept}"/>
+            <attribute name="Implementation-URL"
+                       value="${sumo.url}"/>
+            <attribute name="Implementation-Vendor-Id"
+                       value="${impl.vendor.id}"/>
+            <attribute name="Main-Class"
+                       value="${main.class}"/>
+        </manifest>
+        <jar destfile="${dist.jar}"
+             basedir="${build.classes.dir}"
+             manifest="${manifest.mf}">
+            <metainf file="${project.license}"/>
+        </jar>
+        <copy todir="${basedir}" file="${dist.jar}"/>
+    </target>
+    <target name="deploy" depends="dist">
+        <copy todir="${jedit.home}/jars" file="${app.name}.jar" />
+        <copy todir="${jedit.home}/jars">
+            <fileset dir="lib">
+                <exclude name="jedit.jar"/>
+                <exclude name="ErrorList.jar"/>
+                <!-- # including the jedit.jar in .jedit/jars causes strange problems -->
+            </fileset>
+        </copy>
+        <copy todir="${jedit.home}/modes" file="kif.xml" />
+        <copy todir="${jedit.home}/modes" file="TPTP.xml" />
+        <copy todir="${jedit.home}/modes" file="catalog" />
+        <echo>deploying ${app.name}.jar, supporting files and supporting jars</echo>
+    </target>
+    <target name="clean" description="Delete old build, lib">
+        <delete includeemptydirs="true" failonerror="false">
+            <fileset dir="${build.home}"/>  <!-- avoid problems with package name changes by deleting everything -->
+            <fileset dir="${dist.dir}"/>
+        </delete>
+<!--        <delete includeemptydirs="true" failonerror="false">  keep local ivy lib up to date
+            <fileset dir="${basedir}/lib">  keep ./lib
+                <include name="*.jar"/>
+            </fileset>
+        </delete>-->
+        <delete file="${app.name}.jar"/>
+    </target>
+    <target name="all" depends="clean,deploy">
+        <echo message="System date/time is: ${TODAY_US}"/>
+    </target>
+</project>
