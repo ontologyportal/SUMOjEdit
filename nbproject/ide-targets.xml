@@ -41,7 +41,7 @@
         <mkdir dir="${build.classes.dir}"/>
         <mkdir dir="${reports.dir}"/>
         <ant antfile="../sigmakee/nbproject/ide-targets.xml" inheritAll="false" target="all" />
-        <copy todir="lib" file="../sigmakee/build/sigmakee.jar" />
+        <copy todir="lib" file="../sigmakee/build/sigmakee.jar" overwrite="true"/>
         <property name="tptp.home" value="${workspace}/TPTP-ANTLR"/>
         <echo message="JEDIT_HOME is set to: ${jedit.home}"/>
 
@@ -52,8 +52,8 @@
 
     <target name="TPTP" depends="init">
         <echo message="TPTP is set to: ${tptp.home}"/>
-        <copy todir="${basedir}/lib" file="${tptp.home}/tptp.jar" />
-        <copy todir="${basedir}/lib" file="../SigmaUtils/sigmaUtils.jar" />
+        <copy todir="${basedir}/lib" file="${tptp.home}/tptp.jar" overwrite="true"/>
+        <copy todir="${basedir}/lib" file="../SigmaUtils/sigmaUtils.jar" overwrite="true"/>
     </target>
 
     <target name="test.compile" depends="compile">
@@ -101,7 +101,6 @@
         <nbjpdastart addressproperty="jpda.address" name="${impl.title}" transport="dt_socket">
             <classpath refid="dcp"/>
         </nbjpdastart>
-        <!-- TODO configure the main class for your project here: -->
         <java classname="${main.class}"
               classpathref="dcp"
               fork="true">
@@ -130,6 +129,29 @@
             <env key="CATALINA_HOME" value="${catalina.base}"/>
             <arg line="${run.args}"/>
         </java>
+    </target>
+    <target name="debug.jedit" depends="init">
+        <nbjpdastart addressproperty="jpda.address" name="${impl.title}" transport="${debug.transport}">
+            <classpath refid="dcp"/>
+        </nbjpdastart>
+        <java jar="${jedit.jar}"
+              classpathref="dcp"
+              fork="true">
+            <jvmarg value="-agentlib:jdwp=transport=${debug.transport},address=${jpda.address}"/>
+            <jvmarg line="${run.jvmargs}"/>
+            <env key="SIGMA_HOME" value="${sigma_home}"/>
+            <env key="ONTOLOGYPORTAL_GIT" value="${ontologyportal.git}"/>
+            <env key="SIGMA_SRC" value="${sigma_src}"/>
+            <env key="CATALINA_HOME" value="${catalina.base}"/>
+            <arg line="${run.args}"/>
+        </java>
+    </target>
+
+    <available file="${activity.log}" property="activity.log.present"/>
+    <target name="monitor.activity.log" if="activity.log.present">
+        <exec executable="tail" dir="${jedit.home}">
+            <arg line="-f '${activity.log}'"/>
+        </exec>
     </target>
 
     <!--
@@ -226,20 +248,20 @@
              manifest="${manifest.mf}">
             <metainf file="${project.license}"/>
         </jar>
-        <copy todir="${basedir}" file="${dist.jar}"/>
+        <copy todir="${basedir}" file="${dist.jar}" overwrite="true"/>
     </target>
     <target name="deploy" depends="dist">
-        <copy todir="${jedit.home}/jars" file="${app.name}.jar" />
-        <copy todir="${jedit.home}/jars">
+        <copy todir="${jedit.home}/jars" file="${app.name}.jar" overwrite="true"/>
+        <copy todir="${jedit.home}/jars" overwrite="true">
             <fileset dir="lib">
                 <exclude name="jedit.jar"/>
                 <exclude name="ErrorList.jar"/>
                 <!-- # including the jedit.jar in .jedit/jars causes strange problems -->
             </fileset>
         </copy>
-        <copy todir="${jedit.home}/modes" file="kif.xml" />
-        <copy todir="${jedit.home}/modes" file="TPTP.xml" />
-        <copy todir="${jedit.home}/modes" file="catalog" />
+        <copy todir="${jedit.home}/modes" file="kif.xml" overwrite="true"/>
+        <copy todir="${jedit.home}/modes" file="TPTP.xml" overwrite="true"/>
+        <copy todir="${jedit.home}/modes" file="catalog" overwrite="true"/>
         <echo>deploying ${app.name}.jar, supporting files and supporting jars</echo>
     </target>
     <target name="clean" description="Delete old build, lib">
