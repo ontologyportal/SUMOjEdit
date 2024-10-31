@@ -86,6 +86,7 @@
             <env key="SIGMA_HOME" value="${sigma_home}"/>
             <env key="ONTOLOGYPORTAL_GIT" value="${ontologyportal.git}"/>
             <env key="SIGMA_SRC" value="${sigma_src}"/>
+            <env key="CATALINA_HOME" value="${catalina.base}"/>
             <arg line="${run.args}"/>
         </java>
     </target>
@@ -109,6 +110,7 @@
             <env key="SIGMA_HOME" value="${sigma_home}"/>
             <env key="ONTOLOGYPORTAL_GIT" value="${ontologyportal.git}"/>
             <env key="SIGMA_SRC" value="${sigma_src}"/>
+            <env key="CATALINA_HOME" value="${catalina.base}"/>
             <arg line="${run.args}"/>
         </java>
     </target>
@@ -125,6 +127,7 @@
             <env key="SIGMA_HOME" value="${sigma_home}"/>
             <env key="ONTOLOGYPORTAL_GIT" value="${ontologyportal.git}"/>
             <env key="SIGMA_SRC" value="${sigma_src}"/>
+            <env key="CATALINA_HOME" value="${catalina.base}"/>
             <arg line="${run.args}"/>
         </java>
     </target>
