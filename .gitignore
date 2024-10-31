@@ -4,3 +4,6 @@
 /lib/tptp.jar
 /lib/sigmaUtils.jar
 /lib/sigmakee.jar
+/nbproject/private/
+/dist/
+/MANIFEST.MF
