@@ -17,7 +17,7 @@ Installation-*nix
 - clone SUMOjEdit into your workspace directory
 - edit build.xml to conform to your paths
 - make sure you don't already have a "catalog" file in your ~/.jedit/modes directory,
-or if you do, append the contents of ~/workspace/SUMOjEdit/catalog to it
+  or if you do, append the contents of ~/workspace/SUMOjEdit/catalog to it
 - then execute "ant" from the top SUMOjEdit directory
 
 Installation-Mac
@@ -39,7 +39,7 @@ Installation-Mac
   or if you do, append the contents of ~/workspace/SUMOjEdit/catalog to it
 - then execute "ant" from the top SUMOjEdit directory
 - you may have to start jEdit from the command line to get it to use the correct java with
-  java -jar /Applications/jEdit.app/Contents/Java/jedit.jar
+  java -Xmx10g -Xss1m -jar /Applications/jEdit.app/Contents/Java/jedit.jar
 
 Installation Issues
 =============================
