@@ -1,11 +1,67 @@
-<project name="QuickNotepad" default="all">
+<project xmlns:ivy="antlib:org.apache.ivy.ant"
+         name="QuickNotepad" default="all" basedir=".">
     <description>
         This is an ant build.xml file for building the SUMOjEdit plugin for jEdit.
     </description>
 
-    <target name="clean">
+    <property name="ivy.install.version" value="2.5.1"/>
+    <property name="ivy.home" value="${basedir}/.ivy"/>
+    <property name="ivy.jar.dir" value="${ivy.home}/lib"/>
+    <property name="ivy.jar.file" value="${ivy.jar.dir}/ivy.jar"/>
+
+    <property name="javac.release" value="11"/>
+
+    <target name="check.for.ivy.jar">
+        <available file="${ivy.jar.file}" property="ivy.present"/>
+    </target>
+
+    <target name="download-ivy" depends="check.for.ivy.jar" unless="ivy.present">
+        <mkdir dir="${ivy.jar.dir}"/>
+        <!-- download Ivy from web site so that it can be used even without any special installation -->
+        <get src="https://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/ivy-${ivy.install.version}.jar"
+             dest="${ivy.jar.file}" usetimestamp="true"/>
+    </target>
+
+    <target name="init-ivy" depends="download-ivy">
+        <!-- try to load Ivy here from Ivy home, in case the user has not already dropped
+                it into Ant's lib dir (note that the latter copy will always take precedence).
+                We will not fail as long as local lib dir exists (it may be empty) and
+                Ivy is in at least one of Ant's lib dir or the local lib dir. -->
+        <path id="ivy.lib.path">
+            <fileset dir="${ivy.jar.dir}" includes="*.jar"/>
+        </path>
+        <taskdef resource="org/apache/ivy/ant/antlib.xml"
+                 uri="antlib:org.apache.ivy.ant" classpathref="ivy.lib.path"/>
+        <ivy:retrieve/>
+
+        <path id="compile.classpath">
+            <fileset dir="lib">
+                <include name="*.jar"/>
+            </fileset>
+        </path>
+    </target>
+
+    <target name="clean" depends="init-ivy">
         <delete includeemptydirs="true" failonerror="false">
             <fileset dir="build"/>
+        </delete>
+        <delete file="SUMOjEdit.jar"/>
+
+        <!-- for dep updates, clean ${jedit.home}/jars -->
+        <delete>
+            <fileset dir="${jedit.home}/jars">
+                <include name="antlr4*"/>
+                <include name="guava*"/>
+                <include name="java-prolog*"/>
+                <include name="kryo*"/>
+                <include name="minlog*"/>
+                <include name="objenesis*"/>
+                <include name="reflectasm*"/>
+                <include name="sigmaUtils*"/>
+                <include name="sigmakee*"/>
+                <include name="SUMOjEdit*"/>
+                <include name="tptp*"/>
+            </fileset>
         </delete>
     </target>
 
@@ -16,35 +72,34 @@
         <property name="jedit.home" value="${env.JEDIT_HOME}"/>
         <property name="git.home" value="${env.ONTOLOGYPORTAL_GIT}"/>
         <property name="tptp.home" value="${git.home}/TPTP-ANTLR"/>
-        <echo message="JEDIT_HOME is set to = ${env.JEDIT_HOME}"/>
+        <echo message="JEDIT_HOME is set to = ${jedit.home}"/>
     </target>
 
     <target name="TPTP" depends="init">
         <echo message="SIGMA_HOME is set to = ${env.SIGMA_HOME}"/>
         <echo message="TPTP is set to = ${tptp.home}"/>
-        <ant antfile="${tptp.home}/build.xml" inheritAll="false" target="all" />
         <copy todir="${basedir}/lib" file="${tptp.home}/tptp.jar" />
-        <ant antfile="../SigmaUtils/build.xml" inheritAll="false" target="all" />
         <copy todir="${basedir}/lib" file="../SigmaUtils/sigmaUtils.jar" />
     </target>
 
     <target name="compile" depends="TPTP" description="Compile the project">
-        <mkdir dir="build"/>
-        <javac destdir="build" debug="on" optimize="on" deprecation="on" includeantruntime="false" classpathref="compile.classpath">
+        <mkdir dir="build/classes"/>
+        <javac destdir="build/classes"
+               debug="on"
+               optimize="on"
+               deprecation="on"
+               includeantruntime="false"
+               classpathref="compile.classpath"
+               release="${javac.release}">
             <src refid="core.sourcepath"/>
         </javac>
-        <copy todir="build/lib">
-            <fileset dir="lib" />
-        </copy>
-        <copy todir="build" file="config/SUMOjEdit.props" />
-        <!-- copy todir="build" file="config/dockables.xml" /-->
-        <copy todir="build" file="config/actions.xml" />
+        <copy todir="build/classes" file="config/SUMOjEdit.props" />
+        <copy todir="build/classes" file="config/actions.xml" />
     </target>
 
     <target name="dist" depends="compile" description="Create the *.war file and place in build.">
         <jar destfile="SUMOjEdit.jar">
-            <fileset dir="build"/>
-            <fileset dir="build/lib"/>
+            <fileset dir="build/classes"/>
         </jar>
     </target>
 
@@ -52,13 +107,14 @@
         <copy todir="${jedit.home}/jars" file="SUMOjEdit.jar" />
         <copy todir="${jedit.home}/jars">
             <fileset dir="lib">
-                <exclude name="jedit.jar" />
+                <exclude name="jedit.jar"/>
+                <exclude name="ErrorList.jar"/>
                 <!-- # including the jedit.jar in .jedit/jars causes strange problems -->
             </fileset>
         </copy>
         <copy todir="${jedit.home}/modes" file="kif.xml" />
         <copy todir="${jedit.home}/modes" file="catalog" />
-        <echo>deploying SUMOjEdit.jar and supporting jars</echo>
+        <echo>deploying SUMOjEdit.jar, supporting files and supporting jars</echo>
     </target>
 
     <target name="all" depends="deploy">
@@ -72,9 +128,4 @@
         <pathelement path="src"/>
     </path>
 
-    <path id="compile.classpath">
-        <fileset dir="lib">
-            <include name="*.jar"/>
-        </fileset>
-    </path>
 </project>
