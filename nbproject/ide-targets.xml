@@ -42,7 +42,7 @@
     ============
     -->
 
-    <target name="init">
+    <target name="init" depends="init-ivy">
         <mkdir dir="${build.classes.dir}"/>
         <mkdir dir="${reports.dir}"/>
         <ant antfile="../sigmakee/nbproject/ide-targets.xml" inheritAll="false" target="all" />
@@ -272,7 +272,7 @@
         <copy todir="${jedit.home}/modes" file="catalog" overwrite="true"/>
         <echo>deploying ${app.name}.jar, supporting files and supporting jars</echo>
     </target>
-    <target name="clean" description="Delete old build, lib">
+    <target name="clean" description="Delete old build, lib artifacts">
         <delete includeemptydirs="true" failonerror="false">
             <fileset dir="${build.home}"/>  <!-- avoid problems with package name changes by deleting everything -->
             <fileset dir="${dist.dir}"/>
