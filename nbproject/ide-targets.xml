@@ -272,17 +272,10 @@
         <copy todir="${jedit.home}/modes" file="catalog" overwrite="true"/>
         <echo>deploying ${app.name}.jar, supporting files and supporting jars</echo>
     </target>
-    <target name="clean" description="Delete old build, lib artifacts">
+    <target name="clean" depends="QuickNotepad.clean" description="Delete old build, lib artifacts">
         <delete includeemptydirs="true" failonerror="false">
-            <fileset dir="${build.home}"/>  <!-- avoid problems with package name changes by deleting everything -->
             <fileset dir="${dist.dir}"/>
         </delete>
-<!--        <delete includeemptydirs="true" failonerror="false">  keep local ivy lib up to date
-            <fileset dir="${basedir}/lib">  keep ./lib
-                <include name="*.jar"/>
-            </fileset>
-        </delete>-->
-        <delete file="${app.name}.jar"/>
     </target>
     <target name="all" depends="clean,deploy">
         <echo message="System date/time is: ${TODAY_US}"/>
