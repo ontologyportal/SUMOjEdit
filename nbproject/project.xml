@@ -105,7 +105,7 @@ auxiliary.show.customizer.message=<message>
         <java-data xmlns="http://www.netbeans.org/ns/freeform-project-java/5">
             <compilation-unit>
                 <package-root>src</package-root>
-                <classpath mode="compile">lib/antlr-4.9.3-complete.jar:lib/ErrorList.jar:lib/guava-19.0.jar:lib/java-prolog-parser-2.0.2.jar:lib/jedit.jar:lib/kryo-5.0.0-RC2.jar:lib/minlog-1.3.1.jar:lib/objenesis-3.3.jar:lib/reflectasm-1.11.9.jar:lib/sigmakee.jar:lib/sigmaUtils.jar:lib/tptp.jar</classpath>
+                <classpath mode="compile">lib/ErrorList.jar:lib/guava-19.0.jar:lib/java-prolog-parser-2.0.2.jar:lib/jedit.jar:lib/kryo-5.6.2.jar:lib/sigmakee.jar:lib/sigmaUtils.jar:lib/tptp.jar</classpath>
                 <built-to>${build.classes.dir}</built-to>
                 <source-level>11</source-level>
             </compilation-unit>
