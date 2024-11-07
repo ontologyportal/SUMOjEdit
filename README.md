@@ -41,6 +41,28 @@ Installation-Mac
 - you may have to start jEdit from the command line to get it to use the correct java with
   java -Xmx10g -Xss1m -jar /Applications/jEdit.app/Contents/Java/jedit.jar
 
+To build/run/debug/test on macOS using the NetBeans IDE
+=======================================================
+Define a nbproject/private/private.properties file with these keys:
+
+\# private properties\
+javaapis.dir=${user.home}/javaapis\
+workspace=${javaapis.dir}/INSAFE
+
+\# The default installation space is: ~/workspace. However, it can be anywhere on\
+\# your system as long as you define the "workspace" key above.
+
+catalina.home=${path.to.your.tomcat9}
+
+jedit.home=${user.home}/Library/jEdit\
+jedit.jar=/Applications/jEdit.app/Contents/Java/jedit.jar
+
+\# JavaMail properties\
+user=${your.email.user.name}\
+my.email=${user}@${your.email.domain}\
+my.name=${your.name}
+
+
 Installation Issues
 =============================
 If you don't get syntax highlighting and the SUMO plugin menu, the following
