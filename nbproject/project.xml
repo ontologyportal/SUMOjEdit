@@ -17,7 +17,7 @@ auxiliary.show.customizer.message=<message>
             </properties>
             <folders>
                 <source-folder>
-                    <label>src</label>
+                    <label>Source Packages</label>
                     <type>java</type>
                     <location>src</location>
                 </source-folder>
@@ -82,12 +82,13 @@ auxiliary.show.customizer.message=<message>
             <export>
                 <type>folder</type>
                 <location>${build.classes.dir}</location>
+                <script>${ant.script}</script>
                 <build-target>compile</build-target>
             </export>
             <view>
                 <items>
                     <source-folder style="packages">
-                        <label>src</label>
+                        <label>Source Packages</label>
                         <location>src</location>
                     </source-folder>
                     <source-file>
