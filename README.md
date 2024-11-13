@@ -32,11 +32,11 @@ Installation-Mac
 - edit build.xml to conform to your paths - note that your jEdit config directory on a
   mac is /Users/myname/Library/jEdit
 - make sure you don't already have a "catalog" file in your
-  /Users/myname/Library/jEdit/modes directory,
-  or if you do, append the contents of ~/workspace/SUMOjEdit/catalog to it
+  /Users/myname/Library/jEdit/modes directory, or if you do, append the contents
+  of ~/workspace/SUMOjEdit/catalog to it
 - then execute "ant" from the top SUMOjEdit directory
-- you may have to start jEdit from the command line to get it to use the correct java with
-  java -Xmx10g -Xss1m -jar /Applications/jEdit.app/Contents/Java/jedit.jar
+- you may have to start jEdit from the command line to get it to use the correct
+  java with: java -Xmx10g -Xss1m -jar /Applications/jEdit.app/Contents/Java/jedit.jar
 
 To build/run/debug/test on macOS using the NetBeans IDE
 =======================================================
