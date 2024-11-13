@@ -9,11 +9,11 @@ This depends on SigmaKEE https://github.com/ontologyportal/sigmakee and also the
 
 Installation-*nix
 =============================
+- You are free to use OpenJDK. Latest is JDK23
 - install jEdit.  On Ubuntu this is "sudo apt-get install jedit"
 - add to your .bashrc
   export JEDIT_HOME=/home/myname/.jedit editing the path to conform to your installation
 - Install SigmaKEE as per the README at https://github.com/ontologyportal/sigmakee
-- create the directory /home/myname/workspace where "myname" is the name of your home directory
 - clone SUMOjEdit into your workspace directory
 - edit build.xml to conform to your paths
 - make sure you don't already have a "catalog" file in your ~/.jedit/modes directory,
@@ -24,12 +24,9 @@ Installation-Mac
 =============================
 - You are free to use OpenJDK. Latest is JDK23
 - install jEdit from http://jedit.org/index.php?page=download&platform=mac
-- you may need to go to System->Security&Privacy->General and allow this app
-- For Linux, add to your .bash-profile
-  export JEDIT_HOME=/home/myname/.jedit editing the path to conform to your installation
-- For macOS, add to your ~/.zshrc
+  You may need to go to System->Security&Privacy->General and allow this app
+- add to your ~/.zshrc
   export JEDIT_HOME=~/Library/jEdit
-- create the directory /Users/myname/workspace where "myname" is the name of your home directory
 - Install SigmaKEE as per the README at https://github.com/ontologyportal/sigmakee
 - clone SUMOjEdit into your workspace directory
 - edit build.xml to conform to your paths - note that your jEdit config directory on a
