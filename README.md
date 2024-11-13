@@ -25,8 +25,8 @@ Installation-Mac
 - You are free to use OpenJDK. Latest is JDK23
 - install [jEdit](http://jedit.org/index.php?page=download&platform=mac)
   You may need to go to System->Security&Privacy->General and allow this app
-- add to your ~/.zshrc\
-  export JEDIT_HOME=~/Library/jEdit
+- add to your \~/.zshrc\
+  export JEDIT_HOME=\~/Library/jEdit
 - Install SigmaKEE as per the [README](https://github.com/ontologyportal/sigmakee/blob/master/README.md)
 - clone SUMOjEdit into your workspace directory
 - edit build.xml to conform to your paths - note that your jEdit config\
