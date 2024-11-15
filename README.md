@@ -19,6 +19,8 @@ Installation-*nix
   directory, or if you do, append the contents of ~/workspace/SUMOjEdit/catalog\
   to it
 - then execute "ant" from the top SUMOjEdit directory
+- You may have to start jEdit from the command line to get it to use the correct\
+  java with: java -Xmx10g -Xss1m -jar /usr/share/jedit/jedit.jar
 
 Installation-Mac
 =============================
