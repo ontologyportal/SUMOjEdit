@@ -45,9 +45,8 @@
     <target name="init" depends="init-ivy">
         <mkdir dir="${build.classes.dir}"/>
         <mkdir dir="${reports.dir}"/>
-        <ant antfile="../sigmakee/nbproject/ide-targets.xml" inheritAll="false" target="all" />
-        <copy todir="lib" file="../sigmakee/build/sigmakee.jar" overwrite="true"/>
-        <property name="tptp.home" value="${workspace}/TPTP-ANTLR"/>
+        <ant antfile="${sigma_src}/nbproject/ide-targets.xml" inheritAll="false" target="all" />
+        <copy todir="lib" file="${sigma_src}/build/sigmakee.jar" overwrite="true"/>
         <echo message="JEDIT_HOME is set to: ${jedit.home}"/>
 
         <tstamp>
@@ -56,8 +55,8 @@
     </target>
 
     <target name="TPTP" depends="init">
-        <echo message="TPTP is set to: ${tptp.home}"/>
-        <copy todir="${basedir}/lib" file="${tptp.home}/tptp.jar" overwrite="true"/>
+        <echo message="TPTP is set to: ${tptp_home}"/>
+        <copy todir="${basedir}/lib" file="${tptp_home}/tptp.jar" overwrite="true"/>
         <copy todir="${basedir}/lib" file="../SigmaUtils/sigmaUtils.jar" overwrite="true"/>
     </target>
 
