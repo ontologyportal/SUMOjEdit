@@ -94,7 +94,7 @@
             <arg line="${run.args}"/>
         </java>
     </target>
-    <target name="run.jedit" depends="init">
+    <target name="run.jedit" depends="compile">
         <java jar="${jedit.jar}"
               fork="true">
             <jvmarg line="${run.jvmargs}"/>
@@ -112,7 +112,7 @@
     =============
     -->
 
-    <target name="debug-nb">
+    <target name="debug-nb" depends="compile">
         <nbjpdastart addressproperty="jpda.address" name="${impl.title}" transport="dt_socket">
             <classpath refid="dcp"/>
         </nbjpdastart>
@@ -145,7 +145,7 @@
             <arg line="${run.args}"/>
         </java>
     </target>
-    <target name="debug.jedit" depends="init">
+    <target name="debug.jedit" depends="compile">
         <nbjpdastart addressproperty="jpda.address" name="${impl.title}" transport="${debug.transport}">
             <classpath refid="jecp"/>
         </nbjpdastart>
