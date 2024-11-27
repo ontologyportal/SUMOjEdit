@@ -74,7 +74,7 @@
     ===========
     -->
 
-    <target name="run" depends="compile" description="Performs a test run of SigmaUtils">
+    <target name="run" depends="compile" description="Performs a test run of SUMOjEdit">
         <java classname="${main.class}"
               classpathref="rcp"
               fork="true">
