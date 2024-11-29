@@ -238,7 +238,7 @@ public class SUMOjEdit
                 try {
                     Desktop.getDesktop().browse(java.net.URI.create(urlString));
                 } catch (IOException e) {
-                    Log.log(Log.WARNING, this, "browseTerm(): error " + e.getMessage() + "\n" + e.getStackTrace());
+                    Log.log(Log.WARNING, this, "browseTerm(): error " + e.getMessage() + "\n" + Arrays.toString(e.getStackTrace()));
                 }
             }
         }
@@ -522,7 +522,7 @@ public class SUMOjEdit
     public void checkErrorsBody(String contents, String path, errorlist.DefaultErrorSource errsrc) {
 
         KIF kif = new KIF();
-        //kif.filename = "/home/apease/workspace/sumo/Merge.kif";
+        kif.filename = path;
         try {
             kif.parse(new StringReader(contents));
             Log.log(Log.WARNING, this, "checkErrors(): done reading kif file");
@@ -705,7 +705,7 @@ public class SUMOjEdit
                 //Log.log(Log.WARNING,this,"toTPTP gather pred vars: " + PredVarInst.gatherPredVars(kb,f));
                 //if (f.predVarCache != null && f.predVarCache.size() > 0)
                 //	Log.log(Log.WARNING,this,"toTPTP Formula.isHigherOrder(): pred var cache: " + f.predVarCache);
-                if (f.isHigherOrder(kb) || (f.predVarCache != null && f.predVarCache.size() > 0)) {
+                if (f.isHigherOrder(kb) || (f.predVarCache != null && !f.predVarCache.isEmpty())) {
                     continue;
                 }
                 tptpStr = "fof(kb_" + f.getSourceFile() + "_" + f.startLine + ",axiom," + SUMOformulaToTPTPformula.process(f, false) + ").";
