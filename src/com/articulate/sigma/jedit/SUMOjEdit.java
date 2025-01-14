@@ -194,7 +194,7 @@ public class SUMOjEdit
         Log.log(Log.WARNING, this, "queryExp(): query on file: " + outfile);
         Vampire vamp;
         EProver eprover;
-        StringBuffer qlist = null;
+        StringBuilder qlist = null;
         TPTP3ProofProcessor tpp = new TPTP3ProofProcessor();
         if (KBmanager.getMgr().prover == KBmanager.Prover.VAMPIRE) {
             vamp = kb.askVampire(contents, 30, 1);
