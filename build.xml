@@ -6,6 +6,8 @@
 
     <property environment="env"/>
     <property name="jedit.home" value="${env.JEDIT_HOME}"/>
+    <property name="git.home" value="${env.ONTOLOGYPORTAL_GIT}"/>
+    <property name="tptp.home" value="${git.home}/TPTP-ANTLR"/>
     <property name="ivy.install.version" value="2.5.1"/>
     <property name="ivy.home" value="${basedir}/.ivy"/>
     <property name="ivy.jar.dir" value="${ivy.home}/lib"/>
@@ -70,10 +72,6 @@
     <target name="init" depends="clean">
         <ant antfile="../sigmakee/build.xml" inheritAll="false" target="all" />
         <copy todir="lib" file="../sigmakee/build/sigmakee.jar" />
-        <property environment="env"/>
-        <property name="jedit.home" value="${env.JEDIT_HOME}"/>
-        <property name="git.home" value="${env.ONTOLOGYPORTAL_GIT}"/>
-        <property name="tptp.home" value="${git.home}/TPTP-ANTLR"/>
         <echo message="JEDIT_HOME is set to = ${jedit.home}"/>
     </target>
 

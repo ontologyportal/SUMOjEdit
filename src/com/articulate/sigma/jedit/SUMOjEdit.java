@@ -60,10 +60,10 @@ public class SUMOjEdit
     public SUMOjEdit(View view) {
 
         //super(new BorderLayout());
-        Log.log(Log.WARNING, SUMOjEdit.this, "SUMOjEdit(): initializing");
+        Log.log(Log.MESSAGE, SUMOjEdit.this, "SUMOjEdit(): initializing");
         KBmanager.getMgr().initializeOnce();
         kb = KBmanager.getMgr().getKB(KBmanager.getMgr().getPref("sumokbname"));
-        Log.log(Log.WARNING, SUMOjEdit.this, "SUMOjEdit(): kb: " + kb);
+        Log.log(Log.MESSAGE, SUMOjEdit.this, "SUMOjEdit(): kb: " + kb);
         fp = new FormulaPreprocessor();
         SUMOtoTFAform.initOnce();
         this.view = view;
@@ -71,6 +71,7 @@ public class SUMOjEdit
 
     /**
      * ***************************************************************
+     * @param message the message to handle
      */
     @Override
     public void handleMessage(EBMessage message) {
@@ -95,7 +96,7 @@ public class SUMOjEdit
     public void setFOF() {
 
         System.out.println("setFOF(): translation set to TPTP");
-        Log.log(Log.WARNING, this, "setFOF(): translation set to TPTP");
+        Log.log(Log.MESSAGE, this, "setFOF(): translation set to TPTP");
         SUMOformulaToTPTPformula.lang = "fof";
         SUMOKBtoTPTPKB.lang = "fof";
     }
@@ -108,7 +109,7 @@ public class SUMOjEdit
     public void setTFF() {
 
         System.out.println("setTFF(): translation set to TFF");
-        Log.log(Log.WARNING, this, "setTFF(): translation set to TFF");
+        Log.log(Log.MESSAGE, this, "setTFF(): translation set to TFF");
         SUMOformulaToTPTPformula.lang = "tff";
         SUMOKBtoTPTPKB.lang = "tff";
         SUMOtoTFAform.initOnce();
@@ -122,7 +123,7 @@ public class SUMOjEdit
     public void chooseVamp() {
 
         System.out.println("chooseVamp(): prover set to Vampire");
-        Log.log(Log.WARNING, this, "chooseVamp(): prover set to Vampire");
+        Log.log(Log.MESSAGE, this, "chooseVamp(): prover set to Vampire");
         KBmanager.getMgr().prover = KBmanager.Prover.VAMPIRE;
     }
 
@@ -134,7 +135,7 @@ public class SUMOjEdit
     public void chooseE() {
 
         System.out.println("chooseE(): prover set to E");
-        Log.log(Log.WARNING, this, "chooseE(): prover set to E");
+        Log.log(Log.MESSAGE, this, "chooseE(): prover set to E");
         KBmanager.getMgr().prover = KBmanager.Prover.EPROVER;
     }
 
@@ -144,12 +145,12 @@ public class SUMOjEdit
     private String queryResultString(TPTP3ProofProcessor tpp) {
 
         System.out.println("queryExp(): bindings: " + tpp.bindings);
-        Log.log(Log.WARNING, this, "queryExp(): bindings: " + tpp.bindings);
+        Log.log(Log.MESSAGE, this, "queryExp(): bindings: " + tpp.bindings);
         System.out.println("queryExp(): bindingMap: " + tpp.bindingMap);
-        Log.log(Log.WARNING, this, "queryExp(): bindingMap: " + tpp.bindingMap);
+        Log.log(Log.MESSAGE, this, "queryExp(): bindingMap: " + tpp.bindingMap);
         System.out.println("queryExp(): proof: " + tpp.proof);
-        Log.log(Log.WARNING, this, "queryExp(): proof: " + tpp.proof);
-        ArrayList<String> proofStepsStr = new ArrayList<>();
+        Log.log(Log.MESSAGE, this, "queryExp(): proof: " + tpp.proof);
+        java.util.List<String> proofStepsStr = new ArrayList<>();
         for (TPTPFormula ps : tpp.proof) {
             proofStepsStr.add(ps.toString());
         }
@@ -185,13 +186,13 @@ public class SUMOjEdit
             view = jEdit.getActiveView();
         }
         String contents = view.getEditPane().getTextArea().getSelectedText();
-        Log.log(Log.WARNING, this, "queryExp(): query with: " + contents);
+        Log.log(Log.MESSAGE, this, "queryExp(): query with: " + contents);
         System.out.println("queryExp(): query with: " + contents);
         String dir = KBmanager.getMgr().getPref("kbDir") + File.separator;
         String type = "tptp";
         String outfile = dir + "temp-comb." + type;
         System.out.println("queryExp(): query on file: " + outfile);
-        Log.log(Log.WARNING, this, "queryExp(): query on file: " + outfile);
+        Log.log(Log.MESSAGE, this, "queryExp(): query on file: " + outfile);
         Vampire vamp;
         EProver eprover;
         StringBuilder qlist = null;
@@ -238,7 +239,7 @@ public class SUMOjEdit
                 try {
                     Desktop.getDesktop().browse(java.net.URI.create(urlString));
                 } catch (IOException e) {
-                    Log.log(Log.WARNING, this, "browseTerm(): error " + e.getMessage() + "\n" + e.getStackTrace());
+                    Log.log(Log.ERROR, this, "browseTerm(): error " + e.getMessage() + "\n" + Arrays.toString(e.getStackTrace()));
                 }
             }
         }
@@ -253,16 +254,16 @@ public class SUMOjEdit
         Pattern p = Pattern.compile("line: (\\d+)");
         Matcher m = p.matcher(line);
         if (m.find()) {
-            Log.log(Log.WARNING, this, "getLineNum(): found line number: " + m.group(1));
+            Log.log(Log.MESSAGE, this, "getLineNum(): found line number: " + m.group(1));
             try {
                 result = Integer.parseInt(m.group(1));
             } catch (NumberFormatException nfe) {}
         }
         if (result == 0) {
-            p = Pattern.compile("line&58; (\\d+)");
+            p = Pattern.compile("line&#58; (\\d+)");
             m = p.matcher(line);
             if (m.find()) {
-                Log.log(Log.WARNING, this, "getLineNum(): found line number: " + m.group(1));
+                Log.log(Log.MESSAGE, this, "getLineNum(): found line number: " + m.group(1));
                 try {
                     result = Integer.parseInt(m.group(1));
                 } catch (NumberFormatException nfe) {}
@@ -358,7 +359,7 @@ public class SUMOjEdit
         if (!StringUtil.emptyString(contents) && Formula.atom(contents)
                 && kb.terms.contains(contents)) {
             FileSpec result = findDefn(contents);
-            Log.log(Log.WARNING, this, "gotoDefn(): file:"
+            Log.log(Log.MESSAGE, this, "gotoDefn(): file:"
                     + result.filepath + "\n" + result.line);
             if (result != null) {
                 if (!FileUtil.noPath(result.filepath).equals(currentFName)) {
@@ -368,7 +369,7 @@ public class SUMOjEdit
                     } catch (InterruptedException e) {}
                 }
                 int offset = view.getBuffer().getLineStartOffset(result.line);
-                Log.log(Log.WARNING, this, "gotoDefn(): offset:" + offset);
+                Log.log(Log.MESSAGE, this, "gotoDefn(): offset:" + offset);
                 view.getEditPane().getTextArea().moveCaretPosition(offset);
             }
         }
@@ -383,14 +384,14 @@ public class SUMOjEdit
         //kif.filename = "/home/apease/workspace/sumo/Merge.kif";
         try {
             kif.parse(new StringReader(contents));
-            Log.log(Log.WARNING, this, "checkErrors(): done reading kif file");
+            Log.log(Log.MESSAGE, this, "checkErrors(): done reading kif file");
         } catch (Exception e) {
-            Log.log(Log.WARNING, this, "checkErrors(): error loading kif file"
+            Log.log(Log.ERROR, this, "checkErrors(): error loading kif file"
                     + e.getMessage() + "\n" + e.getStackTrace());
             return null;
         }
         if (kif.errorSet != null && !kif.errorSet.isEmpty()) {
-            Log.log(Log.WARNING, this, "checkErrors(): error loading kif file"
+            Log.log(Log.ERROR, this, "checkErrors(): error loading kif file"
                     + kif.errorSet);
             return null;
         }
@@ -429,13 +430,13 @@ public class SUMOjEdit
         if (view == null) {
             view = jEdit.getActiveView();
         }
-        Log.log(Log.WARNING, this, "showStats(): starting");
+        Log.log(Log.MESSAGE, this, "showStats(): starting");
         errorlist.DefaultErrorSource errsrc;
         errsrc = new errorlist.DefaultErrorSource("sigmakee", view);
         String contents = view.getEditPane().getTextArea().getText();
         String path = view.getBuffer().getPath();
         String filename = FileUtil.noPath(path);
-        Log.log(Log.WARNING, this, "showStats(): path: " + path);
+        Log.log(Log.MESSAGE, this, "showStats(): path: " + path);
         KIF kif = new KIF();
         try {
             kif.parse(new StringReader(contents));
@@ -467,28 +468,28 @@ public class SUMOjEdit
                     }
                 }
             }
-            Log.log(Log.WARNING, this, "showStats(): # terms: " + termCount);
-            Log.log(Log.WARNING, this, "showStats(): # terms used from other files: " + otherTermCount);
-            Log.log(Log.WARNING, this, "showStats(): # axioms: " + kif.formulaMap.keySet().size());
+            Log.log(Log.MESSAGE, this, "showStats(): # terms: " + termCount);
+            Log.log(Log.MESSAGE, this, "showStats(): # terms used from other files: " + otherTermCount);
+            Log.log(Log.MESSAGE, this, "showStats(): # axioms: " + kif.formulaMap.keySet().size());
             int ruleCount = 0;
             for (Formula f : kif.formulaMap.values()) {
                 if (f.isRule()) {
                     ruleCount++;
                 }
             }
-            Log.log(Log.WARNING, this, "showStats(): # rules: " + ruleCount);
-            Log.log(Log.WARNING, this, "showStats(): done reading kif file");
+            Log.log(Log.MESSAGE, this, "showStats(): # rules: " + ruleCount);
+            Log.log(Log.MESSAGE, this, "showStats(): done reading kif file");
         } catch (Exception e) {
             StringWriter sw = new StringWriter();
             PrintWriter pw = new PrintWriter(sw);
             e.printStackTrace(pw);
-            Log.log(Log.WARNING, this, "showStats(): error loading kif file: " + e.getMessage() + "\n" + sw.toString());
+            Log.log(Log.ERROR, this, "showStats(): error loading kif file: " + e.getMessage() + "\n" + sw.toString());
             if (log) {
-                errsrc.addError(ErrorSource.WARNING, e.getMessage(), 1, 0, 0,
+                errsrc.addError(ErrorSource.ERROR, e.getMessage(), 1, 0, 0,
                         "error loading kif file with " + contents.length() + " characters ");
             }
         }
-        Log.log(Log.WARNING, this, "showStats(): complete");
+        Log.log(Log.MESSAGE, this, "showStats(): complete");
     }
 
     /**
@@ -503,7 +504,7 @@ public class SUMOjEdit
         if (view == null) {
             view = jEdit.getActiveView();
         }
-        Log.log(Log.WARNING, this, "checkErrors(): starting");
+        Log.log(Log.MESSAGE, this, "checkErrors(): starting");
         errorlist.DefaultErrorSource errsrc;
         errsrc = new errorlist.DefaultErrorSource("sigmakee", view);
         errorlist.ErrorSource.registerErrorSource(errsrc);
@@ -513,7 +514,7 @@ public class SUMOjEdit
         String contents = view.getEditPane().getTextArea().getText();
         String path = view.getBuffer().getPath();
         checkErrorsBody(contents, path, errsrc);
-        Log.log(Log.WARNING, this, "checkErrors(): complete");
+        Log.log(Log.MESSAGE, this, "checkErrors(): complete");
     }
 
     /**
@@ -522,20 +523,20 @@ public class SUMOjEdit
     public void checkErrorsBody(String contents, String path, errorlist.DefaultErrorSource errsrc) {
 
         KIF kif = new KIF();
-        //kif.filename = "/home/apease/workspace/sumo/Merge.kif";
+        kif.filename = path;
         try {
             kif.parse(new StringReader(contents));
-            Log.log(Log.WARNING, this, "checkErrors(): done reading kif file");
+            Log.log(Log.MESSAGE, this, "checkErrors(): done reading kif file");
         } catch (Exception e) {
-            Log.log(Log.WARNING, this, "checkErrors(): error loading kif file");
+            Log.log(Log.ERROR, this, "checkErrors(): error loading kif file");
             if (log) {
-                errsrc.addError(ErrorSource.WARNING, e.getMessage(), 1, 0, 0,
+                errsrc.addError(ErrorSource.ERROR, e.getMessage(), 1, 0, 0,
                         "error loading kif file with " + contents.length() + " characters ");
             }
         }
 
-        Log.log(Log.WARNING, this, "checkErrors(): success loading kif file with " + contents.length() + " characters ");
-        Log.log(Log.WARNING, this, "checkErrors(): filename: " + path);
+        Log.log(Log.MESSAGE, this, "checkErrors(): success loading kif file with " + contents.length() + " characters ");
+        Log.log(Log.MESSAGE, this, "checkErrors(): filename: " + path);
 
         int line;
         for (String warn : kif.warningSet) {
@@ -543,14 +544,14 @@ public class SUMOjEdit
             if (log) {
                 errsrc.addError(ErrorSource.WARNING, path, line, 0, 0, warn);
             }
-            Log.log(Log.WARNING, this, line);
+            Log.log(Log.ERROR, this, line);
         }
         for (String err : kif.errorSet) {
             line = getLineNum(err) - 1;
             if (log) {
                 errsrc.addError(ErrorSource.ERROR, path, line, 0, 0, err);
             }
-            Log.log(Log.WARNING, this, line);
+            Log.log(Log.ERROR, this, line);
         }
         int counter = 0;
         Set<String> nbeTerms = new HashSet<>();
@@ -563,7 +564,7 @@ public class SUMOjEdit
         Set<String> terms;
         java.util.List<Formula> forms;
         for (Formula f : kif.formulaMap.values()) {
-            Log.log(Log.WARNING, this, "checkErrors(): check formula: " + f);
+            Log.log(Log.MESSAGE, this, "checkErrors(): check formula: " + f);
             counter++;
             if (counter > 1000) {
                 Log.log(Log.WARNING, this, ".");
@@ -602,7 +603,7 @@ public class SUMOjEdit
                     if (log) {
                         errsrc.addError(ErrorSource.ERROR, path, f.startLine - 1, f.endLine - 1, 0, e);
                     }
-                    Log.log(Log.WARNING, this, e);
+                    Log.log(Log.ERROR, this, e);
                 }
             }
             //Log.log(Log.WARNING,this,"done checking var types ");
@@ -613,7 +614,7 @@ public class SUMOjEdit
                 if (log) {
                     errsrc.addError(ErrorSource.ERROR, path, f.startLine - 1, f.endLine - 1, 0, err);
                 }
-                Log.log(Log.WARNING, this, err);
+                Log.log(Log.ERROR, this, err);
             }
 
             // note that predicate variables can result in many relations being tried that don't
@@ -624,7 +625,7 @@ public class SUMOjEdit
                     if (log) {
                         errsrc.addError(ErrorSource.ERROR, path, f.startLine - 1, f.endLine - 1, 0, er);
                     }
-                    Log.log(Log.WARNING, this, er);
+                    Log.log(Log.ERROR, this, er);
                 }
             }
             term = PredVarInst.hasCorrectArity(f, kb);
@@ -633,10 +634,10 @@ public class SUMOjEdit
                 if (log) {
                     errsrc.addError(ErrorSource.ERROR, path, f.startLine - 1, f.endLine - 1, 0, msg);
                 }
-                Log.log(Log.WARNING, this, msg);
+                Log.log(Log.ERROR, this, msg);
             }
             terms = f.collectTerms();
-            Log.log(Log.WARNING, this, "checkErrors(): # terms in formula: " + terms.size());
+            Log.log(Log.MESSAGE, this, "checkErrors(): # terms in formula: " + terms.size());
             for (String t : terms) {
                 if (Diagnostics.LOG_OPS.contains(t) || t.equals("Entity")
                         || Formula.isVariable(t) || StringUtil.isNumeric(t) || StringUtil.isQuotedString(t)) {
@@ -653,7 +654,7 @@ public class SUMOjEdit
                                             "unknown term: " + t);
                                 }
                                 unkTerms.add(t);
-                                Log.log(Log.WARNING, this, "unknown term: " + t);
+                                Log.log(Log.ERROR, this, "unknown term: " + t);
                             }
                         }
                     }
@@ -664,7 +665,7 @@ public class SUMOjEdit
                 }
             }
         }
-        Log.log(Log.WARNING, this, "checkErrors(): check completed: ");
+        Log.log(Log.MESSAGE, this, "checkErrors(): check completed: ");
     }
 
     /**
@@ -705,7 +706,7 @@ public class SUMOjEdit
                 //Log.log(Log.WARNING,this,"toTPTP gather pred vars: " + PredVarInst.gatherPredVars(kb,f));
                 //if (f.predVarCache != null && f.predVarCache.size() > 0)
                 //	Log.log(Log.WARNING,this,"toTPTP Formula.isHigherOrder(): pred var cache: " + f.predVarCache);
-                if (f.isHigherOrder(kb) || (f.predVarCache != null && f.predVarCache.size() > 0)) {
+                if (f.isHigherOrder(kb) || (f.predVarCache != null && !f.predVarCache.isEmpty())) {
                     continue;
                 }
                 tptpStr = "fof(kb_" + f.getSourceFile() + "_" + f.startLine + ",axiom," + SUMOformulaToTPTPformula.process(f, false) + ").";
@@ -720,12 +721,12 @@ public class SUMOjEdit
             jEdit.newFile(view);
             view.getTextArea().setText(sb.toString());
         } catch (Exception e) {
-            Log.log(Log.WARNING, this, "toTPTP(): error loading kif file");
+            Log.log(Log.ERROR, this, "toTPTP(): error loading kif file");
             StringWriter errors = new StringWriter();
             e.printStackTrace(new PrintWriter(errors));
-            Log.log(Log.WARNING, this, "toTPTP(): error " + errors.toString());
+            Log.log(Log.ERROR, this, "toTPTP(): error " + errors.toString());
             if (log) {
-                errsrc.addError(ErrorSource.WARNING, e.getMessage(), 1, 0, 0,
+                errsrc.addError(ErrorSource.ERROR, e.getMessage(), 1, 0, 0,
                         "error loading kif file with " + contents.length() + " characters ");
             }
         }
@@ -742,7 +743,7 @@ public class SUMOjEdit
         if (view == null) {
             view = jEdit.getActiveView();
         }
-        Log.log(Log.WARNING, this, "toTPTP(): starting");
+        Log.log(Log.MESSAGE, this, "toTPTP(): starting");
 
         String contents = view.getEditPane().getTextArea().getText();
         String selected = view.getEditPane().getTextArea().getSelectedText();
@@ -766,16 +767,16 @@ public class SUMOjEdit
             if (StringUtil.emptyString(result)) {
                 Log.log(Log.WARNING, this, "toTPTP(): empty result");
             } else {
-                Log.log(Log.WARNING, this, "toTPTP(): result.length: " + result.length());
+                Log.log(Log.MESSAGE, this, "toTPTP(): result.length: " + result.length());
             }
         } catch (Exception e) {
             //e.printStackTrace();
             //Log.log(Log.WARNING, this, "toTPTP(): error " + Arrays.asList(e.getStackTrace()).toString().replaceAll(",","\n"));
             StringWriter errors = new StringWriter();
             e.printStackTrace(new PrintWriter(errors));
-            Log.log(Log.WARNING, this, "toTPTP(): error " + errors.toString());
+            Log.log(Log.ERROR, this, "toTPTP(): error " + errors.toString());
         }
-        Log.log(Log.WARNING, this, "toTPTP(): complete");
+        Log.log(Log.MESSAGE, this, "toTPTP(): complete");
     }
 
     /**
@@ -814,7 +815,7 @@ public class SUMOjEdit
             TPTP3ProofProcessor tpp = new TPTP3ProofProcessor();
             tpp.parseProofOutput(eprover.output, contents, kb, eprover.qlist);
             //tpp.processAnswersFromProof(contents);
-            ArrayList<String> proofStepsStr = new ArrayList<>();
+            java.util.List<String> proofStepsStr = new ArrayList<>();
             for (TPTPFormula ps : tpp.proof) {
                 proofStepsStr.add(ps.toString());
             }
