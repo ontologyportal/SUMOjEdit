@@ -4,14 +4,14 @@ SUMOjEdit PLUGIN
 ![screenshot](https://github.com/ontologyportal/SUMOjEdit/raw/master/screenshot-tp.jpeg)
 Started with the QuickNotepad tutorial and adapting bit by bit as a syntax checker for [SUMO](www.ontologyportal.org)
 
-This depends on [SigmaKEE](https://github.com/ontologyportal/sigmakee) and also the jEdit ErrorList plugin.
+This depends on proper installation/building of [SigmaKEE](https://github.com/ontologyportal/sigmakee).
 
 Installation-*nix
 =============================
 - You are free to use OpenJDK. Latest is JDK23
 - install jEdit.  On Ubuntu this is "sudo apt-get install jedit"
 - add to your .bashrc\
-  export JEDIT_HOME=/home/myname/.jedit editing the path to conform to your installation
+  export JEDIT_HOME=/home/myname/.jedit editing "myname" to conform to your machine home
 - Install SigmaKEE as per the [README](https://github.com/ontologyportal/sigmakee/blob/master/README.md)
 - clone SUMOjEdit into your workspace directory
 - edit build.xml to conform to your paths
@@ -20,7 +20,8 @@ Installation-*nix
   to it
 - then execute "ant" from the top SUMOjEdit directory
 - You may have to start jEdit from the command line to get it to use the correct\
-  java with: java -Xmx10g -Xss1m -jar /usr/share/jedit/jedit.jar
+  java with: java -Xmx10g -Xss1m -jar /usr/share/jedit/jedit.jar\
+  Can also create a .bashrc alias for the above java command
 
 Installation-Mac
 =============================
