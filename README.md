@@ -26,7 +26,8 @@ Installation-Mac
 =============================
 - You are free to use OpenJDK. Latest is JDK23
 - install [jEdit](http://jedit.org/index.php?page=download&platform=mac)
-  You may need to go to System->Security&Privacy->General and allow this app
+  (Choose the Mac OS X package link)\
+  After installing, you may need to go to System->Security&Privacy->Security and allow the jedit app
 - add to your \~/.zshrc\
   export JEDIT_HOME=\~/Library/jEdit
 - Install SigmaKEE as per the [README](https://github.com/ontologyportal/sigmakee/blob/master/README.md)
@@ -35,10 +36,12 @@ Installation-Mac
   directory on a mac is /Users/myname/Library/jEdit
 - make sure you don't already have a "catalog" file in your\
   /Users/myname/Library/jEdit/modes directory, or if you do, append the contents\
-  of ~/workspace/SUMOjEdit/catalog to it
+  of ~/workspace/SUMOjEdit/catalog into it
 - then execute "ant" from the top SUMOjEdit directory
 - you may have to start jEdit from the command line to get it to use the correct\
   java with: java -Xmx10g -Xss1m -jar /Applications/jEdit.app/Contents/Java/jedit.jar
+- can also create a .zshrc alias to perfrom the above java command\
+  alias jedit="java -Xmx10g -Xss1m -jar /Applications/jEdit.app/Contents/Java/jedit.jar"
 
 To build/run/debug/test on macOS using the NetBeans IDE
 =======================================================
