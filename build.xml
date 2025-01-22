@@ -108,7 +108,6 @@
         <copy todir="${jedit.home}/jars">
             <fileset dir="lib">
                 <exclude name="jedit.jar"/>
-                <exclude name="ErrorList.jar"/>
                 <!-- # including the jedit.jar in .jedit/jars causes strange problems -->
             </fileset>
         </copy>
