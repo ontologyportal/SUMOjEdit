@@ -18,9 +18,8 @@ Installation-*nix
 - make sure you don't already have a "catalog" file in your ~/.jedit/modes\
   directory, or if you do, append the contents of ~/workspace/SUMOjEdit/catalog\
   to it
-- then execute "ant" from the top SUMOjEdit directory
-- You may have to start jEdit from the command line to get it to use the correct\
-  java with: java -Xmx10g -Xss1m -jar /usr/share/jedit/jedit.jar\
+- Start jEdit normally so that it creates its ${jedit.home} space, then execute "ant" from the top SUMOjEdit directory
+- On the command line execute: java -Xmx10g -Xss1m -jar /usr/share/jedit/jedit.jar\
   Can also create a .bashrc alias for the above java command
 
 Installation-Mac
@@ -38,10 +37,9 @@ Installation-Mac
 - make sure you don't already have a "catalog" file in your\
   /Users/myname/Library/jEdit/modes directory, or if you do, append the contents\
   of ~/workspace/SUMOjEdit/catalog into it
-- then execute "ant" from the top SUMOjEdit directory
-- you may have to start jEdit from the command line to get it to use the correct\
-  java with: java -Xmx10g -Xss1m -jar /Applications/jEdit.app/Contents/Java/jedit.jar
-- can also create a .zshrc alias to perfrom the above java command\
+- Start jEdit normally so that it creates its ${jedit.home} space, then execute "ant" from the top SUMOjEdit directory
+- On the command line execute: java -Xmx10g -Xss1m -jar /Applications/jEdit.app/Contents/Java/jedit.jar\
+  Can also create a .zshrc alias to perfrom the above java command\
   alias jedit="java -Xmx10g -Xss1m -jar /Applications/jEdit.app/Contents/Java/jedit.jar"
 
 To build/run/debug/test on macOS using the NetBeans IDE
