@@ -10,17 +10,19 @@ Installation-*nix
 =============================
 - You are free to use OpenJDK. Latest is JDK23
 - install jEdit.  On Ubuntu this is "sudo apt-get install jedit"
-- add to your .bashrc\
-  export JEDIT_HOME=/home/myname/.jedit editing "myname" to conform to your machine home
 - Install SigmaKEE as per the [README](https://github.com/ontologyportal/sigmakee/blob/master/README.md)
 - clone SUMOjEdit into your workspace directory
 - edit build.xml to conform to your paths
+- add to your .bashrc\
+  export JEDIT_HOME=/home/myname/.jedit editing "myname" to conform to your machine home\
+  can be performed by: ant append.bashrc on the command line in the top SUMOjEdit directory
 - make sure you don't already have a "catalog" file in your ~/.jedit/modes\
   directory, or if you do, append the contents of ~/workspace/SUMOjEdit/catalog\
   to it
 - Start jEdit normally so that it creates its ${jedit.home} space, then execute "ant" from the top SUMOjEdit directory
 - On the command line execute: java -Xmx10g -Xss1m -jar /usr/share/jedit/jedit.jar\
-  Can also create a .bashrc alias for the above java command
+  Can also create a .bashrc alias for the above java command\
+  alias jedit="java -Xmx10g -Xss1m -jar /usr/share/jedit/jedit.jar"
 
 Installation-Mac
 =============================
@@ -28,12 +30,13 @@ Installation-Mac
 - install [jEdit](http://jedit.org/index.php?page=download&platform=mac)
   (Choose the Mac OS X package link)\
   After installing, you may need to go to System->Security&Privacy->Security and allow the jedit app
-- add to your \~/.zshrc\
-  export JEDIT_HOME=\~/Library/jEdit
 - Install SigmaKEE as per the [README](https://github.com/ontologyportal/sigmakee/blob/master/README.md)
 - clone SUMOjEdit into your workspace directory
 - edit build.xml to conform to your paths - note that your jEdit config\
   directory on a mac is /Users/myname/Library/jEdit
+- add to your \~/.zshrc\
+  export JEDIT_HOME=\~/Library/jEdit\
+  can be performed by: ant append.zshrc on the command line in the top SUMOjEdit directory
 - make sure you don't already have a "catalog" file in your\
   /Users/myname/Library/jEdit/modes directory, or if you do, append the contents\
   of ~/workspace/SUMOjEdit/catalog into it
