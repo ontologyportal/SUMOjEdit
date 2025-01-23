@@ -15,6 +15,15 @@
 
     <property name="javac.release" value="11"/>
 
+    <condition property="isUnixNotMac">
+        <and>
+            <os family="unix"/>
+            <not>
+                <os family="mac"/>
+            </not>
+        </and>
+    </condition>
+
     <target name="check.for.ivy.jar">
         <available file="${ivy.jar.file}" property="ivy.present"/>
     </target>
@@ -114,6 +123,22 @@
         <copy todir="${jedit.home}/modes" file="kif.xml" />
         <copy todir="${jedit.home}/modes" file="catalog" />
         <echo>deploying SUMOjEdit.jar, supporting files and supporting jars</echo>
+    </target>
+
+    <target name="append.bashrc" if="isUnixNotMac">
+        <echo file="${user.home}/.bashrc" append="true">
+## jEdit
+export JEDIT_HOME=~/.jedit
+alias jedit="java -Xmx10g -Xss1m -jar /usr/share/jedit/jedit.jar"
+</echo>
+    </target>
+
+    <target name="append.zshrc" unless="isUnixNotMac">
+        <echo file="${user.home}/.zshrc" append="true">
+## jEdit
+export JEDIT_HOME=~/Library/jEdit
+alias jedit="java -Xmx10g -Xss1m -jar /Applications/jEdit.app/Contents/Java/jedit.jar"
+</echo>
     </target>
 
     <target name="all" depends="deploy">
