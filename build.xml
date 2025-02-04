@@ -79,6 +79,7 @@
     </target>
 
     <target name="init" depends="clean">
+        <!-- Builds the SigmaUtils and TPTP jars as part of SigmaKee's init -->
         <ant antfile="../sigmakee/build.xml" inheritAll="false" target="all" />
         <copy todir="lib" file="../sigmakee/build/sigmakee.jar" />
         <echo message="JEDIT_HOME is set to = ${jedit.home}"/>
