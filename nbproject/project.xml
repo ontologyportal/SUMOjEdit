@@ -105,6 +105,11 @@ auxiliary.show.customizer.message=<message>
                     <ide-action name="clean"/>
                     <ide-action name="run"/>
                     <ide-action name="debug"/>
+                    <action>
+                        <script>${ant.script}</script>
+                        <label>Debug jEdit</label>
+                        <target>debug.jedit</target>
+                    </action>
                 </context-menu>
             </view>
             <subprojects/>
