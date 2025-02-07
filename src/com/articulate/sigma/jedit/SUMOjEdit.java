@@ -382,8 +382,8 @@ public class SUMOjEdit
 
         KIF kif = new KIF();
         //kif.filename = "/home/apease/workspace/sumo/Merge.kif";
-        try {
-            kif.parse(new StringReader(contents));
+        try (StringReader r = new StringReader(contents)) {
+            kif.parse(r);
             Log.log(Log.MESSAGE, this, "checkErrors(): done reading kif file");
         } catch (Exception e) {
             Log.log(Log.ERROR, this, "checkErrors(): error loading kif file"
@@ -438,8 +438,8 @@ public class SUMOjEdit
         String filename = FileUtil.noPath(path);
         Log.log(Log.MESSAGE, this, "showStats(): path: " + path);
         KIF kif = new KIF();
-        try {
-            kif.parse(new StringReader(contents));
+        try (StringReader r = new StringReader(contents)) {
+            kif.parse(r);
             int termCount = 0;
             int otherTermCount = 0;
             FileSpec defn;
@@ -505,8 +505,7 @@ public class SUMOjEdit
             view = jEdit.getActiveView();
         }
         Log.log(Log.MESSAGE, this, "checkErrors(): starting");
-        errorlist.DefaultErrorSource errsrc;
-        errsrc = new errorlist.DefaultErrorSource("sigmakee", view);
+        errorlist.DefaultErrorSource errsrc = new errorlist.DefaultErrorSource("sigmakee", view);
         errorlist.ErrorSource.registerErrorSource(errsrc);
         jEdit.getAction("error-list-clear").invoke(null);
         //errsrc.addError(ErrorSource.ERROR, "C:\\my_projects\\hw_if\\control\\ctrlapi.c",944,0,0,"LNT787: (Info -- enum constant 'DTV_PL_ASIG_AV_IP1_AUDIO' not used within switch)");
@@ -524,19 +523,19 @@ public class SUMOjEdit
 
         KIF kif = new KIF();
         kif.filename = path;
-        try {
-            kif.parse(new StringReader(contents));
-            Log.log(Log.MESSAGE, this, "checkErrors(): done reading kif file");
+        try (Reader r = new StringReader(contents)) {
+            kif.parse(r);
+            Log.log(Log.MESSAGE, this, "checkErrorsBody(): done reading kif file");
         } catch (Exception e) {
-            Log.log(Log.ERROR, this, "checkErrors(): error loading kif file");
+            Log.log(Log.ERROR, this, "checkErrorsBody(): error loading kif file");
             if (log) {
                 errsrc.addError(ErrorSource.ERROR, e.getMessage(), 1, 0, 0,
                         "error loading kif file with " + contents.length() + " characters ");
             }
         }
 
-        Log.log(Log.MESSAGE, this, "checkErrors(): success loading kif file with " + contents.length() + " characters ");
-        Log.log(Log.MESSAGE, this, "checkErrors(): filename: " + path);
+        Log.log(Log.MESSAGE, this, "checkErrorsBody(): success loading kif file with " + contents.length() + " characters ");
+        Log.log(Log.MESSAGE, this, "checkErrorsBody(): filename: " + path);
 
         int line;
         for (String warn : kif.warningSet) {
@@ -564,7 +563,7 @@ public class SUMOjEdit
         Set<String> terms;
         java.util.List<Formula> forms;
         for (Formula f : kif.formulaMap.values()) {
-            Log.log(Log.MESSAGE, this, "checkErrors(): check formula: " + f);
+            Log.log(Log.MESSAGE, this, "checkErrorsBody(): check formula: " + f);
             counter++;
             if (counter > 1000) {
                 Log.log(Log.WARNING, this, ".");
@@ -573,7 +572,7 @@ public class SUMOjEdit
             //Log.log(Log.WARNING,this,"checking formula " + f.toString());
             if (Diagnostics.quantifierNotInStatement(f)) {
                 if (log) {
-                    errsrc.addError(ErrorSource.ERROR, path, f.startLine - 1, f.endLine - 1, 0,
+                    errsrc.addError(ErrorSource.WARNING, path, f.startLine - 1, f.endLine - 1, 0,
                             "Quantifier not in statement");
                 }
             }
@@ -612,9 +611,9 @@ public class SUMOjEdit
             if (!unquant.isEmpty()) {
                 err = "Unquantified var(s) " + unquant + " in consequent";
                 if (log) {
-                    errsrc.addError(ErrorSource.ERROR, path, f.startLine - 1, f.endLine - 1, 0, err);
+                    errsrc.addError(ErrorSource.WARNING, path, f.startLine - 1, f.endLine - 1, 0, err);
                 }
-                Log.log(Log.ERROR, this, err);
+                Log.log(Log.WARNING, this, err);
             }
 
             // note that predicate variables can result in many relations being tried that don't
@@ -637,7 +636,7 @@ public class SUMOjEdit
                 Log.log(Log.ERROR, this, msg);
             }
             terms = f.collectTerms();
-            Log.log(Log.MESSAGE, this, "checkErrors(): # terms in formula: " + terms.size());
+            Log.log(Log.MESSAGE, this, "checkErrorsBody(): # terms in formula: " + terms.size());
             for (String t : terms) {
                 if (Diagnostics.LOG_OPS.contains(t) || t.equals("Entity")
                         || Formula.isVariable(t) || StringUtil.isNumeric(t) || StringUtil.isQuotedString(t)) {
@@ -650,22 +649,21 @@ public class SUMOjEdit
                             forms = kb.askWithRestriction(0, "subAttribute", 1, t);
                             if (forms == null || forms.isEmpty()) {
                                 if (log && !unkTerms.contains(t)) {
-                                    errsrc.addError(ErrorSource.ERROR, path, f.startLine - 1, f.endLine - 1, 0,
+                                    errsrc.addError(ErrorSource.WARNING, path, f.startLine - 1, f.endLine - 1, 0,
                                             "unknown term: " + t);
                                 }
                                 unkTerms.add(t);
-                                Log.log(Log.ERROR, this, "unknown term: " + t);
+                                Log.log(Log.WARNING, this, "unknown term: " + t);
                             }
                         }
                     }
                 }
                 if (log && Diagnostics.termNotBelowEntity(t, kb) && !nbeTerms.contains(t)) {
-                    errsrc.addError(ErrorSource.ERROR, path, f.startLine - 1, f.endLine - 1, 0, "term not below entity: " + t);
+                    errsrc.addError(ErrorSource.WARNING, path, f.startLine - 1, f.endLine - 1, 0, "term not below entity: " + t);
                     nbeTerms.add(t);
                 }
             }
         }
-        Log.log(Log.MESSAGE, this, "checkErrors(): check completed: ");
     }
 
     /**
@@ -690,8 +688,8 @@ public class SUMOjEdit
         errorlist.ErrorSource.registerErrorSource(errsrc);
         KIF kif = new KIF();
         //kif.filename = "/home/apease/workspace/sumo/Merge.kif";
-        try {
-            kif.parse(new StringReader(contents));
+        try (StringReader r = new StringReader(contents)) {
+            kif.parse(r);
             //Log.log(Log.WARNING,this,"toTPTP(): done reading kif file");
             java.util.List<Formula> ordered = kif.lexicalOrder();
             String pred, tptpStr;
