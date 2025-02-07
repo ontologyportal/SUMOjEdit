@@ -815,7 +815,7 @@ public class SUMOjEdit
             TPTP3ProofProcessor tpp = new TPTP3ProofProcessor();
             tpp.parseProofOutput(eprover.output, contents, kb, eprover.qlist);
             //tpp.processAnswersFromProof(contents);
-            java.util.List<String> proofStepsStr = new ArrayList<>();
+            ArrayList<String> proofStepsStr = new ArrayList<>();
             for (TPTPFormula ps : tpp.proof) {
                 proofStepsStr.add(ps.toString());
             }
