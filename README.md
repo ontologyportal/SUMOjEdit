@@ -20,11 +20,18 @@ Installation-*nix
 - make sure you don't already have a "catalog" file in your ~/.jedit/modes\
   directory, or if you do, append the contents of ~/workspace/SUMOjEdit/catalog\
   to it
-- Start jEdit normally so that it creates its ${jedit.home} space
+- Start jEdit normally so that it creates its $JEDIT_HOME space
 - From the command line in the top SUMOjEdit directory, execute: source ~/.bashrc,\
   then then execute: ant
-- Next, execute: java -Xmx10g -Xss1m -jar /usr/share/jedit/jedit.jar\
-  Can also create a .bashrc alias for the above java command\
+- If you want to monitor the jEdit's condition and if it started successfully you can run:\
+```sh
+tail -f $JEDIT_HOME/activity.log
+```
+- Next, to start jEdit, execute:
+```sh
+java -Xmx10g -Xss1m -jar /usr/share/jedit/jedit.jar
+```
+- Can also create a .bashrc alias for the above java command\
   alias jedit="java -Xmx10g -Xss1m -jar /usr/share/jedit/jedit.jar"
 
 Installation-Mac
@@ -44,11 +51,18 @@ Installation-Mac
 - make sure you don't already have a "catalog" file in your\
   /Users/myname/Library/jEdit/modes directory, or if you do, append the contents\
   of ~/workspace/SUMOjEdit/catalog into it
-- Start jEdit normally so that it creates its ${jedit.home} space
+- Start jEdit normally so that it creates its $JEDIT_HOME space
 - From the command line in the top SUMOjEdit directory, execute: source ~/.zshrc,\
   then then execute: ant
-- Next, execute: java -Xmx10g -Xss1m -jar /Applications/jEdit.app/Contents/Java/jedit.jar\
-  Can also create a .zshrc alias to perfrom the above java command\
+- If you want to monitor the jEdit's condition and if it started successfully you can run:\
+```sh
+tail -f $JEDIT_HOME/activity.log
+```
+- Next, to start jEdit, execute:
+```sh
+java -Xmx10g -Xss1m -jar /Applications/jEdit.app/Contents/Java/jedit.jar
+```
+- Can also create a .zshrc alias to perfrom the above java command\
   alias jedit="java -Xmx10g -Xss1m -jar /Applications/jEdit.app/Contents/Java/jedit.jar"
 
 To build/run/debug/test on macOS using the NetBeans IDE
@@ -110,6 +124,6 @@ ten the '+' symbol.  Select "Plugin: SUMOjEdit Plugin" from the dialog menu and 
 as the main plugin menu.  In later versions I may learn how to do this as part of the configuration
 but for now you'll need to add the menu items manually.
 - install the EditorScheme plugin with Plugins->PluginManager->Install-EditorScheme then
-Plugins-EditorScheme->SchemeSelector .  I like the Neon theme as the best "Dark mode" option
+Plugins-EditorScheme->SchemeSelector.  I like the Neon theme as the best "Dark mode" option
 - If you have a small screen or imperfect eyes you may wish to adjust the font size with
 Utilities->GlobalOptions->jEdit->TextArea->TextFont
