@@ -150,6 +150,7 @@
             <classpath refid="jecp"/>
         </nbjpdastart>
         <java jar="${jedit.jar}"
+              classpathref="jecp"
               fork="true">
             <jvmarg value="-agentlib:jdwp=transport=${debug.transport},address=${jpda.address}"/>
             <jvmarg line="${run.jvmargs}"/>
