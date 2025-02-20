@@ -31,6 +31,8 @@ import com.articulate.sigma.trans.*;
 import com.articulate.sigma.utils.*;
 
 import errorlist.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.gjt.sp.jedit.*;
 import org.gjt.sp.jedit.msg.PropertiesChanged;
@@ -59,7 +61,7 @@ public class SUMOjEdit
      */
     public SUMOjEdit(View view) {
 
-        //super(new BorderLayout());
+        Log.log(Log.MESSAGE, SUMOjEdit.this, "SUMOjEdit(): SUMOKBtoTPTPKB.rapidParsing==" + SUMOKBtoTPTPKB.rapidParsing);
         Log.log(Log.MESSAGE, SUMOjEdit.this, "SUMOjEdit(): initializing");
         KBmanager.getMgr().initializeOnce();
         kb = KBmanager.getMgr().getKB(KBmanager.getMgr().getPref("sumokbname"));
@@ -480,14 +482,15 @@ public class SUMOjEdit
             Log.log(Log.MESSAGE, this, "showStats(): # rules: " + ruleCount);
             Log.log(Log.MESSAGE, this, "showStats(): done reading kif file");
         } catch (Exception e) {
-            StringWriter sw = new StringWriter();
-            PrintWriter pw = new PrintWriter(sw);
-            e.printStackTrace(pw);
-            Log.log(Log.ERROR, this, "showStats(): error loading kif file: " + e.getMessage() + "\n" + sw.toString());
-            if (log) {
-                errsrc.addError(ErrorSource.ERROR, e.getMessage(), 1, 0, 0,
-                        "error loading kif file with " + contents.length() + " characters ");
-            }
+            try (Writer sw = new StringWriter();
+                PrintWriter pw = new PrintWriter(sw)) {
+                e.printStackTrace(pw);
+                Log.log(Log.ERROR, this, "showStats(): error loading kif file: " + e.getMessage() + "\n" + sw.toString());
+                if (log) {
+                    errsrc.addError(ErrorSource.ERROR, e.getMessage(), 1, 0, 0,
+                            "error loading kif file with " + contents.length() + " characters ");
+                }
+            } catch (IOException ex) {}
         }
         Log.log(Log.MESSAGE, this, "showStats(): complete");
     }
@@ -720,13 +723,15 @@ public class SUMOjEdit
             view.getTextArea().setText(sb.toString());
         } catch (Exception e) {
             Log.log(Log.ERROR, this, "toTPTP(): error loading kif file");
-            StringWriter errors = new StringWriter();
-            e.printStackTrace(new PrintWriter(errors));
-            Log.log(Log.ERROR, this, "toTPTP(): error " + errors.toString());
-            if (log) {
-                errsrc.addError(ErrorSource.ERROR, e.getMessage(), 1, 0, 0,
-                        "error loading kif file with " + contents.length() + " characters ");
-            }
+            try (Writer sw = new StringWriter();
+                PrintWriter pw = new PrintWriter(sw)) {
+                e.printStackTrace(pw);
+                Log.log(Log.ERROR, this, "toTPTP(): error " + sw.toString());
+                if (log) {
+                    errsrc.addError(ErrorSource.ERROR, e.getMessage(), 1, 0, 0,
+                            "error loading kif file with " + contents.length() + " characters ");
+                }
+            } catch (IOException ex) {}
         }
     }
 
@@ -770,9 +775,11 @@ public class SUMOjEdit
         } catch (Exception e) {
             //e.printStackTrace();
             //Log.log(Log.WARNING, this, "toTPTP(): error " + Arrays.asList(e.getStackTrace()).toString().replaceAll(",","\n"));
-            StringWriter errors = new StringWriter();
-            e.printStackTrace(new PrintWriter(errors));
-            Log.log(Log.ERROR, this, "toTPTP(): error " + errors.toString());
+            try (Writer sw = new StringWriter();
+                PrintWriter pw = new PrintWriter(sw)) {
+                e.printStackTrace(pw);
+                Log.log(Log.ERROR, this, "toTPTP(): error " + sw.toString());
+            } catch (IOException ex) {}
         }
         Log.log(Log.MESSAGE, this, "toTPTP(): complete");
     }
