@@ -31,8 +31,6 @@ import com.articulate.sigma.trans.*;
 import com.articulate.sigma.utils.*;
 
 import errorlist.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.gjt.sp.jedit.*;
 import org.gjt.sp.jedit.msg.PropertiesChanged;
@@ -793,6 +791,7 @@ public class SUMOjEdit
         System.out.println("  options:");
         System.out.println("  -h - show this help screen");
         System.out.println("  -d - <fname> - test diagnostics");
+        System.out.println("  -q - run a default query");
     }
 
     /**
@@ -816,6 +815,7 @@ public class SUMOjEdit
             showHelp();
         } else if (args != null && args.length > 0 && args[0].equals("-q")) {
             String contents = "(routeBetween ?X MenloParkCA MountainViewCA)";
+            System.out.println("E input: " + contents);
             EProver eprover = kb.askEProver(contents, 30, 1);
             TPTP3ProofProcessor tpp = new TPTP3ProofProcessor();
             tpp.parseProofOutput(eprover.output, contents, kb, eprover.qlist);
@@ -835,6 +835,8 @@ public class SUMOjEdit
             } else {
                 result.append("\n\n").append(StringUtil.arrayListToCRLFString(proofStepsStr));
             }
+            System.out.println("\nE result: " + result.toString());
+            System.out.println();
         } else {
             showHelp();
         }
