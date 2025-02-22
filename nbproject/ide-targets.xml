@@ -60,13 +60,20 @@
         <copy todir="${basedir}/lib" file="../SigmaUtils/sigmaUtils.jar" overwrite="true"/>
     </target>
 
-    <target name="test.compile" depends="compile">
+    <!-- TODO: move to build.xml when we have unit tests -->
+    <target name="test.compile" depends="QuickNotepad.compile">
         <mkdir dir="${build.test.classes.dir}"/>
-        <javac destdir="${build.test.classes.dir}" includeantruntime="false">
+        <javac destdir="${build.test.classes.dir}"
+               classpathref="tcp"
+               includeantruntime="false">
             <src refid="test.sourcepath"/>
             <classpath refid="tcp"/>
         </javac>
     </target>
+
+    <path id="test.sourcepath">
+        <pathelement path="test"/>
+    </path>
 
     <!--
     ===========
