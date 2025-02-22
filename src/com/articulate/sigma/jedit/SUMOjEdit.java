@@ -59,6 +59,8 @@ public class SUMOjEdit
      */
     public SUMOjEdit(View view) {
 
+        // TODO: jEdit doesn't work well with the use of an ExecutorService in sigmakee
+        SUMOKBtoTPTPKB.rapidParsing = false;
         Log.log(Log.MESSAGE, SUMOjEdit.this, "SUMOjEdit(): SUMOKBtoTPTPKB.rapidParsing==" + SUMOKBtoTPTPKB.rapidParsing);
         Log.log(Log.MESSAGE, SUMOjEdit.this, "SUMOjEdit(): initializing");
         KBmanager.getMgr().initializeOnce();
