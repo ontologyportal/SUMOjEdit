@@ -1,5 +1,5 @@
 <project xmlns:ivy="antlib:org.apache.ivy.ant"
-         name="QuickNotepad" default="all" basedir=".">
+         name="SUMOjEdit" default="all" basedir=".">
     <description>
         This is an ant build.xml file for building the SUMOjEdit plugin for jEdit.
     </description>
