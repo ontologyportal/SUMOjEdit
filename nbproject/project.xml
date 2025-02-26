@@ -9,7 +9,7 @@ auxiliary.show.customizer=false
 property there. Adding
 auxiliary.show.customizer.message=<message>
  will show your customized message when someone attempts to open the customizer.  -->
-            <name>QuickNotepad</name>
+            <name>SUMOjEdit</name>
             <properties>
                 <property-file>nbproject/private/project.properties</property-file>
                 <property-file>nbproject/build.properties</property-file>
