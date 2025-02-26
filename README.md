@@ -96,12 +96,12 @@ Installation Issues
 If you don't get syntax highlighting and the SUMO plugin menu, the following
 may help.
 
-To get the syntax highlighting, add the mode through the gui Global Options->Editing and the Edit Modes tab
+To get the syntax highlighting, add the mode through the gui menu via Utilities->Global Options->Editing and the Edit Modes tab
 
 Use the Add mode tab to
 
 - Name a mode SUMO
-- With Select Mode file to be /home/&lt;user&gt;/workspace/SUMOjEdit/kif.xml
+- With Select Mode file to be $JEDIT_HOME/modes/kif.xml
 - And File Name Glob *.kif
 
 The plugins then should show up on the menu, but you may also need to launch jedit from the SUMOjEdit directory.
@@ -122,12 +122,12 @@ Execution
 
 Customization
 =============================
-- you may wish to right click in the editor and "customize this menu" select the "Context Menu"
-ten the '+' symbol.  Select "Plugin: SUMOjEdit Plugin" from the dialog menu and add
-"format axioms" and "go to definition", which are handy to have on the context menu as well
-as the main plugin menu.  In later versions I may learn how to do this as part of the configuration
-but for now you'll need to add the menu items manually.
-- install the EditorScheme plugin with Plugins->PluginManager->Install-EditorScheme then
+- you may wish to right click in the editor and "customize this menu" select the "Context Menu"\
+then the '+' symbol.  Select "Plugin: SUMOjEdit Plugin" from the Command or macro: dialog menu and add\
+"format axioms", "go to definition" and "query on highlighted expressions", which are handy to have on\
+the context menu as well as the main plugin menu. In later versions this may already be performed as\
+part of the configuration but for now you'll need to add the menu items manually.
+- install the EditorScheme plugin with Plugins->PluginManager->Install-EditorScheme then\
 Plugins-EditorScheme->SchemeSelector.  I like the Neon theme as the best "Dark mode" option
-- If you have a small screen or imperfect eyes you may wish to adjust the font size with
+- If you have a small screen or imperfect eyes you may wish to adjust the font size with\
 Utilities->GlobalOptions->jEdit->TextArea->TextFont
