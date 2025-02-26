@@ -270,12 +270,10 @@
         <copy todir="${jedit.home}/jars" overwrite="true">
             <fileset dir="lib">
                 <exclude name="jedit.jar"/>
-                <exclude name="ErrorList.jar"/>
                 <!-- # including the jedit.jar in .jedit/jars causes strange problems -->
             </fileset>
         </copy>
         <copy todir="${jedit.home}/modes" file="kif.xml" overwrite="true"/>
-        <copy todir="${jedit.home}/modes" file="TPTP.xml" overwrite="true"/>
         <copy todir="${jedit.home}/modes" file="catalog" overwrite="true"/>
         <echo>deploying ${app.name}.jar, supporting files and supporting jars</echo>
     </target>
