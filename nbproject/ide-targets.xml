@@ -152,7 +152,7 @@
             <arg line="${run.args}"/>
         </java>
     </target>
-    <target name="debug.jedit" depends="compile">
+    <target name="debug.jedit" depends="deploy">
         <nbjpdastart addressproperty="jpda.address" name="${impl.title}" transport="${debug.transport}">
             <classpath refid="jecp"/>
         </nbjpdastart>
