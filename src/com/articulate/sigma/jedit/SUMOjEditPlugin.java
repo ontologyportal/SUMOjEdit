@@ -20,6 +20,8 @@ package com.articulate.sigma.jedit;
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
+import org.gjt.sp.jedit.EBComponent;
+import org.gjt.sp.jedit.EditBus;
 import org.gjt.sp.jedit.EditPlugin;
 import org.gjt.sp.jedit.jEdit;
 
@@ -28,9 +30,27 @@ import org.gjt.sp.jedit.jEdit;
  * @author Adam Pease
  */
 public class SUMOjEditPlugin extends EditPlugin {
-	public static final String NAME = "SUMOjEditPlugin";
-	public static final String OPTION_PREFIX = "options.SUMOjEdit.";
-	public static SUMOjEdit sje = new SUMOjEdit(jEdit.getActiveView());
+    public static final String NAME = "SUMOjEdit";
+    public static final String OPTION_PREFIX = "options." + NAME + ".";
 
-	public SUMOjEdit getSUMOjEdit() { return sje; }
+    private EBComponent sje;
+
+    @Override
+    public void start() {
+        sje = new SUMOjEdit(jEdit.getActiveView()); // view is null
+        EditBus.addToBus(sje);
+        super.start();
+    }
+
+    @Override
+    public void stop() {
+        EditBus.removeFromBus(sje);
+        super.stop();
+    }
+
+    /** JavaBean accessor for the plugin component
+     *
+     * @return an EBComponent (the plugin)
+     */
+    public EBComponent getSje() {return sje;}
 }
