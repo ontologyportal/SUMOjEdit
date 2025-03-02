@@ -51,7 +51,7 @@ auxiliary.show.customizer.message=<message>
                 </action>
                 <action name="debug">
                     <script>${ant.script}</script>
-                    <target>debug-nb</target>
+                    <target>debug.jedit</target>
                 </action>
                 <action name="debug.single">
                     <script>${ant.script}</script>
@@ -111,11 +111,6 @@ auxiliary.show.customizer.message=<message>
                     <ide-action name="run"/>
                     <ide-action name="test"/>
                     <ide-action name="debug"/>
-                    <action>
-                        <script>${ant.script}</script>
-                        <label>Debug jEdit</label>
-                        <target>debug.jedit</target>
-                    </action>
                 </context-menu>
             </view>
             <subprojects/>
