@@ -119,22 +119,6 @@
     =============
     -->
 
-    <target name="debug-nb" depends="deploy">
-        <nbjpdastart addressproperty="jpda.address" name="${impl.title}" transport="dt_socket">
-            <classpath refid="dcp"/>
-        </nbjpdastart>
-        <java classname="${main.class}"
-              classpathref="dcp"
-              fork="true">
-            <jvmarg value="-agentlib:jdwp=transport=dt_socket,address=${jpda.address}"/>
-            <jvmarg line="${run.jvmargs}"/>
-            <env key="SIGMA_HOME" value="${sigma_home}"/>
-            <env key="ONTOLOGYPORTAL_GIT" value="${ontologyportal.git}"/>
-            <env key="SIGMA_SRC" value="${sigma_src}"/>
-            <env key="CATALINA_HOME" value="${catalina.base}"/>
-            <arg line="${run.args}"/>
-        </java>
-    </target>
     <target name="debug-selected-file-in-java" depends="compile">
         <fail unless="debug.class">Must set property 'debug.class'</fail>
         <nbjpdastart addressproperty="jpda.address" name="${impl.title}" transport="${debug.transport}">
@@ -270,11 +254,12 @@
         <copy todir="${jedit.home}/jars" overwrite="true">
             <fileset dir="lib">
                 <exclude name="jedit.jar"/>
-                <!-- # including the jedit.jar in .jedit/jars causes strange problems -->
+                <!-- including the jedit.jar in .jedit/jars causes strange problems -->
             </fileset>
         </copy>
-        <copy todir="${jedit.home}/modes" file="kif.xml" overwrite="true"/>
         <copy todir="${jedit.home}/modes" file="catalog" overwrite="true"/>
+        <copy todir="${jedit.home}/modes" file="kif.xml" overwrite="true"/>
+        <copy todir="${jedit.home}/modes" file="TPTP.xml" overwrite="true"/>
         <echo>deploying ${app.name}.jar, supporting files and supporting jars</echo>
     </target>
     <target name="clean" depends="SUMOjEdit.clean" description="Delete old build, lib artifacts">
