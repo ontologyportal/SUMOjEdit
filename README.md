@@ -18,7 +18,6 @@ Installation-*nix
   export JEDIT_HOME=/home/myname/.jedit editing "myname" to conform to your machine home\
   This can also be performed by executing: ant append.bashrc on the command line\
   in the SUMOjEdit directory
-- Start jEdit normally so that it creates its $JEDIT_HOME space, then close it
 - From the command line in the SUMOjEdit directory, execute: source ~/.bashrc,\
   then then execute: ant
 - Next, build the KB with this command from the sigmakee directory:
@@ -51,7 +50,6 @@ Installation-Mac
   export JEDIT_HOME=\~/Library/jEdit\
   This can also be performed by executing: ant append.zshrc on the command line\
   in the SUMOjEdit directory
-- Start jEdit normally so that it creates its $JEDIT_HOME space, then close it
 - From the command line in the SUMOjEdit directory, execute: source ~/.zshrc,\
   then then execute: ant
 - Next, build the KB with this command from the sigmakee directory:
@@ -98,13 +96,11 @@ may help.
 
 To get the syntax highlighting, add the mode through the gui menu via Utilities->Global Options->Editing and the Edit Modes tab
 
-Use the Add mode tab to
+Use the Add Mode tab to
 
 - Name a mode SUMO
 - With Select Mode file to be $JEDIT_HOME/modes/kif.xml
 - And File Name Glob *.kif
-
-The plugins then should show up on the menu, but you may also need to launch jedit from the SUMOjEdit directory.
 
 Execution
 =============================
@@ -122,12 +118,13 @@ Execution
 
 Customization
 =============================
-- you may wish to right click in the editor and "customize this menu" select the "Context Menu"\
-then the '+' symbol.  Select "Plugin: SUMOjEdit Plugin" from the Command or macro: dialog menu and add\
-"format axioms", "go to definition" and "query on highlighted expressions", which are handy to have on\
-the context menu as well as the main plugin menu. In later versions this may already be performed as\
-part of the configuration but for now you'll need to add the menu items manually.
+- you may wish to customize by right clicking in the editor and selecting "Customize This Menu,"\
+select the "Context Menu" under jedit, then the '+' symbol. First, add a seperator, then select\
+"Plugin: SUMOjEdit Plugin" from the Command or macro: dialog menu and add "format axioms",\
+"go to definition" and "query on highlighted expressions", which are handy to have on the context\
+menu as well as the main plugin menu. In later versions this may already be performed as part of\
+the configuration, but for now you'll need to add the menu items manually.
 - install the EditorScheme plugin with Plugins->PluginManager->Install-EditorScheme then\
-Plugins-EditorScheme->SchemeSelector.  I like the Neon theme as the best "Dark mode" option
+Plugins-EditorScheme->SchemeSelector. I like the Neon theme as the best "Dark mode" option
 - If you have a small screen or imperfect eyes you may wish to adjust the font size with\
 Utilities->GlobalOptions->jEdit->TextArea->TextFont
