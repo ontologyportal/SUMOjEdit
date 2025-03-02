@@ -6,24 +6,36 @@ plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.activate=startup
 plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.usePluginHome=true
 
 # Required for all plugins:
-plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.name=SUMOjEditPlugin
+plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.name=SUMOjEdit
 plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.author=Adam Pease
+plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.description=A syntax aware editor for the Suggested Upper Merged Ontology (SUMO)
+plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.version=1.1.0
 
 # jars
-plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.jars=guava-19.0.jar sigmakee.jar
-
-# version number == jEdit version number
-plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.version=4.5
+plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.jars=\
+    antlr4-runtime-4.9.3.jar \
+    guava-19.0.jar \
+    java-prolog-parser-2.0.2.jar \
+    kryo-5.6.2.jar \
+    minlog-1.3.1.jar \
+    objenesis-3.4.jar \
+    reflectasm-1.11.9.jar \
+    sigmaUtils.jar \
+    sigmakee.jar \
+    tptp.jar
 
 # online help
-plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.docs=index.html
+#plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.docs=index.html
 
-# we only have one dependency, jEdit 4.5
+# Dependencies
 # See jEdit.getBuild() to understand version numbering scheme.
-plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.depend.0=jedit 04.05.99.00
+plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.depend.0=jedit 05.07.99.00
+plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.depend.1=jdk 11
+plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.depend.2=plugin errorlist.ErrorListPlugin 2.4.0
 
 # plugin menu - a list of actions or separators
-plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.menu=SUMOjEditPlugin.show-stats \
+plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.menu=\
+  SUMOjEditPlugin.show-stats \
   SUMOjEditPlugin.check-errors \
   SUMOjEditPlugin.format-select \
   SUMOjEditPlugin.goto-defn \
@@ -37,7 +49,7 @@ plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.menu=SUMOjEditPlugin.show-stat
   SUMOjEditPlugin.from-tptp
 
 # action labels for actions supplied by dockables.xml
-SUMOjEditPlugin.label=SUMOjEditPlugin
+#SUMOjEditPlugin.label=SUMOjEdit
 
 # action labels for actions supplied by actions.xml
 SUMOjEditPlugin.show-stats.label=Show statistics for buffer
@@ -54,38 +66,35 @@ SUMOjEditPlugin.to-tptp.label=SUO-KIF to TPTP
 SUMOjEditPlugin.from-tptp.label=SUO-KIF from TPTP
 
 # plugin option pane
-plugin.SUMOjEditPlugin.option-pane=SUMOjEditPlugin
+#plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.option-pane=SUMOjEdit
 
 # Option pane activation BeanShell snippet
-#options.SUMOjEditPlugin.code=new SUMOjEditOptionPane();
+#options.SUMOjEdit.code=new SUMOjEditPluginOptionPane();
 
 # Option pane labels
-#options.SUMOjEditPlugin.label=SUMOjEditPlugin
-#options.SUMOjEditPlugin.file=File:
-#options.SUMOjEditPlugin.choose-file=Choose
-#options.SUMOjEditPlugin.choose-file.title=Choose a file
-#options.SUMOjEditPlugin.choose-font=Font:
-#options.SUMOjEditPlugin.show-filepath.title=Display file path
+#options.SUMOjEdit.label=SUMOjEdit
+#options.SUMOjEdit.file=File:
+#options.SUMOjEdit.choose-file=Choose
+#options.SUMOjEdit.choose-file.title=Choose a file
+#options.SUMOjEdit.choose-font=Font:
+#options.SUMOjEdit.show-filepath.title=Display file path
 
 # window title
-SUMOjEditPlugin.title=SUMOjEditPlugin
+#SUMOjEditPlugin.title=SUMOjEdit
 
 # window toolbar buttons
 
 # default settings
-options.SUMOjEditPlugin.show-filepath=true
-options.SUMOjEditPlugin.font=Monospaced
-options.SUMOjEditPlugin.fontstyle=0
-options.SUMOjEditPlugin.fontsize=14
+#options.SUMOjEdit.show-filepath=true
+#options.SUMOjEdit.font=Monospaced
+#options.SUMOjEdit.fontstyle=0
+#options.SUMOjEdit.fontsize=14
 
 # Setting not defined but supplied for completeness
-options.SUMOjEditPlugin.filepath=
+#options.SUMOjEdit.filepath=
 
 #dependencies
-plugin.SUMOjEditPlugin.depend.0=jedit 04.02.02.00
-plugin.SUMOjEditPlugin.depend.2=plugin errorlist.ErrorListPlugin 2.4.0
-plugin.SUMOjEditPlugin.depend.3=plugin net.jakubholy.jedit.autocomplete.TextAutocompletePlugin 1.0.0
-plugin.SUMOjEditPlugin.depend.4=plugin net.jakubholy.jedit.autocomplete.ContextMenu 0.4
-plugin.SUMOjEditPlugin.depend.5=plugin editorscheme.EditorScheme 1.8
-plugin.SUMOjEditPlugin.depend.5=plugin CommonControlsPlugin 1.7.4
-
+#plugin.SUMOjEditPlugin.depend.3=plugin net.jakubholy.jedit.autocomplete.TextAutocompletePlugin 1.0.0
+#plugin.SUMOjEditPlugin.depend.4=plugin net.jakubholy.jedit.autocomplete.ContextMenu 0.4
+#plugin.SUMOjEditPlugin.depend.5=plugin editorscheme.EditorScheme 1.8
+#plugin.SUMOjEditPlugin.depend.5=plugin CommonControlsPlugin 1.7.4
