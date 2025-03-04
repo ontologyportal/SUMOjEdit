@@ -11,23 +11,24 @@ Installation-*nix
 - You are free to use OpenJDK. Latest is JDK23
 - install jEdit.  On Ubuntu this is "sudo apt-get install jedit"
 - Install SigmaKEE as per the [README](https://github.com/ontologyportal/sigmakee/blob/master/README.md)
-- clone SUMOjEdit into your workspace directory
+- clone SUMOjEdit into your workspace directory\
+  git clone https://github.com/ontologyportal/SUMOjEdit.git
 - edit build.xml to conform to your paths
 - add to your .bashrc\
   export JEDIT_HOME=/home/myname/.jedit editing "myname" to conform to your machine home\
   This can also be performed by executing: ant append.bashrc on the command line\
-  in the top SUMOjEdit directory
-- make sure you don't already have a "catalog" file in your ~/.jedit/modes\
-  directory, or if you do, append the contents of ~/workspace/SUMOjEdit/catalog\
-  to it
-- Start jEdit normally so that it creates its $JEDIT_HOME space
-- From the command line in the top SUMOjEdit directory, execute: source ~/.bashrc,\
+  in the SUMOjEdit directory
+- From the command line in the SUMOjEdit directory, execute: source ~/.bashrc,\
   then then execute: ant
+- Next, build the KB with this command from the sigmakee directory:
+```sh
+java -Xmx10g -Xss1m -cp $SIGMA_CP com.articulate.sigma.KB -l -R
+```
 - If you want to monitor the jEdit's condition and if it started successfully you can run:\
 ```sh
 tail -f $JEDIT_HOME/activity.log
 ```
-- Next, to start jEdit, execute:
+- Next, to start jEdit with this plugin, execute:
 ```sh
 java -Xmx10g -Xss1m -jar /usr/share/jedit/jedit.jar
 ```
@@ -41,24 +42,25 @@ Installation-Mac
   (Choose the Mac OS X package link)\
   After installing, you may need to go to System->Security&Privacy->Security and allow the jedit app
 - Install SigmaKEE as per the [README](https://github.com/ontologyportal/sigmakee/blob/master/README.md)
-- clone SUMOjEdit into your workspace directory
+- clone SUMOjEdit into your workspace directory\
+  git clone https://github.com/ontologyportal/SUMOjEdit.git
 - edit build.xml to conform to your paths - note that your jEdit config\
   directory on a mac is /Users/myname/Library/jEdit
 - add to your \~/.zshrc\
   export JEDIT_HOME=\~/Library/jEdit\
   This can also be performed by executing: ant append.zshrc on the command line\
-  in the top SUMOjEdit directory
-- make sure you don't already have a "catalog" file in your\
-  /Users/myname/Library/jEdit/modes directory, or if you do, append the contents\
-  of ~/workspace/SUMOjEdit/catalog into it
-- Start jEdit normally so that it creates its $JEDIT_HOME space
-- From the command line in the top SUMOjEdit directory, execute: source ~/.zshrc,\
+  in the SUMOjEdit directory
+- From the command line in the SUMOjEdit directory, execute: source ~/.zshrc,\
   then then execute: ant
+- Next, build the KB with this command from the sigmakee directory:
+```sh
+java -Xmx10g -Xss1m -cp $SIGMA_CP com.articulate.sigma.KB -l -R
+```
 - If you want to monitor the jEdit's condition and if it started successfully you can run:\
 ```sh
 tail -f $JEDIT_HOME/activity.log
 ```
-- Next, to start jEdit, execute:
+- Next, to start jEdit with this plugin, execute:
 ```sh
 java -Xmx10g -Xss1m -jar /Applications/jEdit.app/Contents/Java/jedit.jar
 ```
@@ -92,15 +94,13 @@ Installation Issues
 If you don't get syntax highlighting and the SUMO plugin menu, the following
 may help.
 
-To get the syntax highlighting, add the mode through the gui Global Options->Editing and the Edit Modes tab
+To get the syntax highlighting, add the mode through the gui menu via Utilities->Global Options->Editing and the Edit Modes tab
 
-Use the Add mode tab to
+Use the Add Mode tab to
 
 - Name a mode SUMO
-- With Select Mode file to be /home/&lt;user&gt;/workspace/SUMOjEdit/kif.xml
+- With Select Mode file to be $JEDIT_HOME/modes/kif.xml
 - And File Name Glob *.kif
-
-The plugins then should show up on the menu, but you may also need to launch jedit from the SUMOjEdit directory.
 
 Execution
 =============================
@@ -108,22 +108,23 @@ Execution
   all of WordNet, VerbNet etc)
 - load a .kif file
 - go to Plugins->SUMOjEdit Plugin->check KIF syntax errors
-- you can also highlight a SUO-KIF expression and Plugins->SUMOjEdit Plugin->query on highlighted expression
-  If you have Vampire installed and it finds a proof, a new buffer will be opened to display the proof.  It
-  should work with Eprover too but I need to test
-- other functions are "format axioms" which will reformat a highlighted axiom with standard SUMO indentation.
-  "go to definition" will make a guess at where the definition for a selected term starts and put the cursor at that
-  point in the file. "Browse term in Sigma" will open the public Sigma site in your browser, open on the
-  selected term.
+- you can also highlight a SUO-KIF expression and Plugins->SUMOjEdit Plugin->query on highlighted expression.\
+  If you have Vampire installed and it finds a proof, a new buffer will be opened to display the proof.\
+  It should work with Eprover too, but needs testing.
+- other functions are "format axioms" which will reformat a highlighted axiom with standard SUMO indentation.\
+  "go to definition" will make a guess at where the definition for a selected term starts and put the cursor \
+  at that point in the file.\
+  "Browse term in Sigma" will open the public Sigma site in your browser opened on the selected term.
 
 Customization
 =============================
-- you may wish to right click in the editor and "customize this menu" select the "Context Menu"
-ten the '+' symbol.  Select "Plugin: SUMOjEdit Plugin" from the dialog menu and add
-"format axioms" and "go to definition", which are handy to have on the context menu as well
-as the main plugin menu.  In later versions I may learn how to do this as part of the configuration
-but for now you'll need to add the menu items manually.
-- install the EditorScheme plugin with Plugins->PluginManager->Install-EditorScheme then
-Plugins-EditorScheme->SchemeSelector.  I like the Neon theme as the best "Dark mode" option
-- If you have a small screen or imperfect eyes you may wish to adjust the font size with
+- you may wish to customize by right clicking in the editor and selecting "Customize This Menu,"\
+select the "Context Menu" under jedit, then the '+' symbol. First, add a seperator, then select\
+"Plugin: SUMOjEdit Plugin" from the Command or macro: dialog menu and add "format axioms",\
+"go to definition" and "query on highlighted expressions", which are handy to have on the context\
+menu as well as the main plugin menu. In later versions this may already be performed as part of\
+the configuration, but for now you'll need to add the menu items manually.
+- install the EditorScheme plugin with Plugins->PluginManager->Install-EditorScheme then\
+Plugins-EditorScheme->SchemeSelector. I like the Neon theme as the best "Dark mode" option
+- If you have a small screen or imperfect eyes you may wish to adjust the font size with\
 Utilities->GlobalOptions->jEdit->TextArea->TextFont

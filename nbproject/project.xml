@@ -9,7 +9,7 @@ auxiliary.show.customizer=false
 property there. Adding
 auxiliary.show.customizer.message=<message>
  will show your customized message when someone attempts to open the customizer.  -->
-            <name>QuickNotepad</name>
+            <name>SUMOjEdit</name>
             <properties>
                 <property-file>nbproject/private/project.properties</property-file>
                 <property-file>nbproject/build.properties</property-file>
@@ -25,7 +25,7 @@ auxiliary.show.customizer.message=<message>
             <ide-actions>
                 <action name="build">
                     <script>${ant.script}</script>
-                    <target>compile</target>
+                    <target>deploy</target>
                 </action>
                 <action name="clean">
                     <script>${ant.script}</script>
@@ -33,7 +33,8 @@ auxiliary.show.customizer.message=<message>
                 </action>
                 <action name="rebuild">
                     <script>${ant.script}</script>
-                    <target>all</target>
+                    <target>clean</target>
+                    <target>deploy</target>
                 </action>
                 <action name="run.single">
                     <script>${ant.script}</script>
@@ -50,7 +51,7 @@ auxiliary.show.customizer.message=<message>
                 </action>
                 <action name="debug">
                     <script>${ant.script}</script>
-                    <target>debug-nb</target>
+                    <target>debug.jedit</target>
                 </action>
                 <action name="debug.single">
                     <script>${ant.script}</script>
@@ -82,6 +83,10 @@ auxiliary.show.customizer.message=<message>
                     <script>${ant.script}</script>
                     <target>run.jedit</target>
                 </action>
+                <action name="test">
+                    <script>${ant.script}</script>
+                    <target>test.unit</target>
+                </action>
             </ide-actions>
             <export>
                 <type>folder</type>
@@ -104,12 +109,8 @@ auxiliary.show.customizer.message=<message>
                     <ide-action name="rebuild"/>
                     <ide-action name="clean"/>
                     <ide-action name="run"/>
+                    <ide-action name="test"/>
                     <ide-action name="debug"/>
-                    <action>
-                        <script>${ant.script}</script>
-                        <label>Debug jEdit</label>
-                        <target>debug.jedit</target>
-                    </action>
                 </context-menu>
             </view>
             <subprojects/>

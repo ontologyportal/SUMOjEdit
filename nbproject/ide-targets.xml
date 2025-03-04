@@ -60,13 +60,20 @@
         <copy todir="${basedir}/lib" file="../SigmaUtils/sigmaUtils.jar" overwrite="true"/>
     </target>
 
-    <target name="test.compile" depends="compile">
+    <!-- TODO: move to build.xml when we have unit tests -->
+    <target name="test.compile" depends="SUMOjEdit.compile">
         <mkdir dir="${build.test.classes.dir}"/>
-        <javac destdir="${build.test.classes.dir}" includeantruntime="false">
+        <javac destdir="${build.test.classes.dir}"
+               classpathref="tcp"
+               includeantruntime="false">
             <src refid="test.sourcepath"/>
             <classpath refid="tcp"/>
         </javac>
     </target>
+
+    <path id="test.sourcepath">
+        <pathelement path="test"/>
+    </path>
 
     <!--
     ===========
@@ -94,7 +101,7 @@
             <arg line="${run.args}"/>
         </java>
     </target>
-    <target name="run.jedit" depends="compile">
+    <target name="run.jedit" depends="deploy">
         <java jar="${jedit.jar}"
               fork="true">
             <jvmarg line="${run.jvmargs}"/>
@@ -112,22 +119,6 @@
     =============
     -->
 
-    <target name="debug-nb" depends="compile">
-        <nbjpdastart addressproperty="jpda.address" name="${impl.title}" transport="dt_socket">
-            <classpath refid="dcp"/>
-        </nbjpdastart>
-        <java classname="${main.class}"
-              classpathref="dcp"
-              fork="true">
-            <jvmarg value="-agentlib:jdwp=transport=dt_socket,address=${jpda.address}"/>
-            <jvmarg line="${run.jvmargs}"/>
-            <env key="SIGMA_HOME" value="${sigma_home}"/>
-            <env key="ONTOLOGYPORTAL_GIT" value="${ontologyportal.git}"/>
-            <env key="SIGMA_SRC" value="${sigma_src}"/>
-            <env key="CATALINA_HOME" value="${catalina.base}"/>
-            <arg line="${run.args}"/>
-        </java>
-    </target>
     <target name="debug-selected-file-in-java" depends="compile">
         <fail unless="debug.class">Must set property 'debug.class'</fail>
         <nbjpdastart addressproperty="jpda.address" name="${impl.title}" transport="${debug.transport}">
@@ -145,7 +136,7 @@
             <arg line="${run.args}"/>
         </java>
     </target>
-    <target name="debug.jedit" depends="compile">
+    <target name="debug.jedit" depends="deploy">
         <nbjpdastart addressproperty="jpda.address" name="${impl.title}" transport="${debug.transport}">
             <classpath refid="jecp"/>
         </nbjpdastart>
@@ -263,16 +254,15 @@
         <copy todir="${jedit.home}/jars" overwrite="true">
             <fileset dir="lib">
                 <exclude name="jedit.jar"/>
-                <exclude name="ErrorList.jar"/>
-                <!-- # including the jedit.jar in .jedit/jars causes strange problems -->
+                <!-- including the jedit.jar in .jedit/jars causes strange problems -->
             </fileset>
         </copy>
+        <copy todir="${jedit.home}/modes" file="catalog" overwrite="true"/>
         <copy todir="${jedit.home}/modes" file="kif.xml" overwrite="true"/>
         <copy todir="${jedit.home}/modes" file="TPTP.xml" overwrite="true"/>
-        <copy todir="${jedit.home}/modes" file="catalog" overwrite="true"/>
         <echo>deploying ${app.name}.jar, supporting files and supporting jars</echo>
     </target>
-    <target name="clean" depends="QuickNotepad.clean" description="Delete old build, lib artifacts">
+    <target name="clean" depends="SUMOjEdit.clean" description="Delete old build, lib artifacts">
         <delete includeemptydirs="true" failonerror="false">
             <fileset dir="${dist.dir}"/>
         </delete>
