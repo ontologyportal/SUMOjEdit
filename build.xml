@@ -118,7 +118,7 @@
         <copy todir="${jedit.home}/jars">
             <fileset dir="lib">
                 <exclude name="jedit.jar"/>
-                <!-- # including the jedit.jar in .jedit/jars causes strange problems -->
+                <!-- including the jedit.jar in .jedit/jars causes strange problems -->
             </fileset>
         </copy>
         <copy todir="${jedit.home}/modes" file="kif.xml" />
