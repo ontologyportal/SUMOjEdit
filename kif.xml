@@ -3,57 +3,56 @@
 <!DOCTYPE MODE SYSTEM "xmode.dtd">
 
 <MODE>
-	<PROPS>
-		<PROPERTY NAME="lineComment" VALUE=";" />
-		<PROPERTY NAME="noWordSep" VALUE="_-+?:" />
-		<PROPERTY NAME="unalignedOpenBrackets" VALUE="(" />
-		<PROPERTY NAME="unalignedCloseBrackets" VALUE=")" />
-		<PROPERTY NAME="multipleBracketIndent" VALUE="true" />
-		<PROPERTY NAME="tabSize" VALUE="2" />
-		<PROPERTY NAME="noTabs" VALUE="true" />
-		<PROPERTY NAME="autoIndent" VALUE="simple" />
-		<PROPERTY NAME="maxLineLen" VALUE="70" />
-	</PROPS>
+    <PROPS>
+        <PROPERTY NAME="lineComment" VALUE=";" />
+        <PROPERTY NAME="noWordSep" VALUE="_-+?:" />
+        <PROPERTY NAME="unalignedOpenBrackets" VALUE="(" />
+        <PROPERTY NAME="unalignedCloseBrackets" VALUE=")" />
+        <PROPERTY NAME="multipleBracketIndent" VALUE="true" />
+        <PROPERTY NAME="tabSize" VALUE="2" />
+        <PROPERTY NAME="noTabs" VALUE="true" />
+        <PROPERTY NAME="autoIndent" VALUE="simple" />
+        <PROPERTY NAME="maxLineLen" VALUE="70" />
+    </PROPS>
 
-	<RULES IGNORE_CASE="FALSE"
-		HIGHLIGHT_DIGITS="TRUE"
-		NO_WORD_SEP="_-+?:"
-		DIGIT_RE="-?\d+([./]\d+)?"	>
+    <RULES IGNORE_CASE="FALSE"
+           HIGHLIGHT_DIGITS="TRUE"
+           NO_WORD_SEP="_-+?:"
+           DIGIT_RE="-?\d+([./]\d+)?">
 
-		<MARK_FOLLOWING AT_WORD_START="TRUE" TYPE="KEYWORD4">?</MARK_FOLLOWING>
-		<MARK_FOLLOWING AT_WORD_START="TRUE" TYPE="KEYWORD4">@</MARK_FOLLOWING>
+        <MARK_FOLLOWING AT_WORD_START="TRUE" TYPE="KEYWORD4">?</MARK_FOLLOWING>
+        <MARK_FOLLOWING AT_WORD_START="TRUE" TYPE="KEYWORD4">@</MARK_FOLLOWING>
 
-		<EOL_SPAN TYPE="COMMENT1">;</EOL_SPAN>
+        <EOL_SPAN TYPE="COMMENT1">;</EOL_SPAN>
 
-		<SPAN TYPE="LITERAL1" ESCAPE="\">
-			<BEGIN>"</BEGIN>
-			<END>"</END>
-		</SPAN>
+        <SPAN TYPE="LITERAL1" ESCAPE="\">
+            <BEGIN>"</BEGIN>
+            <END>"</END>
+        </SPAN>
 
-		<KEYWORDS>
-			<KEYWORD1>forall</KEYWORD1>
-			<KEYWORD1>exists</KEYWORD1>
-			<KEYWORD1>and</KEYWORD1>
-			<KEYWORD1>or</KEYWORD1>
-			<KEYWORD1>not</KEYWORD1>
-			<KEYWORD1>equal</KEYWORD1>    
-			<KEYWORD1>&lt;=&gt;</KEYWORD1>		
-			<KEYWORD1>=&gt;</KEYWORD1>					
+        <KEYWORDS>
+            <KEYWORD1>forall</KEYWORD1>
+            <KEYWORD1>exists</KEYWORD1>
+            <KEYWORD1>and</KEYWORD1>
+            <KEYWORD1>or</KEYWORD1>
+            <KEYWORD1>not</KEYWORD1>
+            <KEYWORD1>equal</KEYWORD1>
+            <KEYWORD1>&lt;=&gt;</KEYWORD1>
+            <KEYWORD1>=&gt;</KEYWORD1>
 
-			<KEYWORD2>instance</KEYWORD2>
-			<KEYWORD2>subclass</KEYWORD2>
-		    <KEYWORD2>domain</KEYWORD2>
-			<KEYWORD2>domainSubclass</KEYWORD2>
-			<KEYWORD2>range</KEYWORD2>
-			<KEYWORD2>rangeSubclass</KEYWORD2>		
-			
-			<KEYWORD3>documentation</KEYWORD3>	
-			<KEYWORD3>termFormat</KEYWORD3>
-			<KEYWORD3>format</KEYWORD3>
-			
-			<LITERAL2>True</LITERAL2>
-			<LITERAL2>False</LITERAL2>
-		</KEYWORDS>
-	</RULES>
+            <KEYWORD2>instance</KEYWORD2>
+            <KEYWORD2>subclass</KEYWORD2>
+            <KEYWORD2>domain</KEYWORD2>
+            <KEYWORD2>domainSubclass</KEYWORD2>
+            <KEYWORD2>range</KEYWORD2>
+            <KEYWORD2>rangeSubclass</KEYWORD2>
+
+            <KEYWORD3>documentation</KEYWORD3>
+            <KEYWORD3>termFormat</KEYWORD3>
+            <KEYWORD3>format</KEYWORD3>
+
+            <LITERAL2>True</LITERAL2>
+            <LITERAL2>False</LITERAL2>
+        </KEYWORDS>
+    </RULES>
 </MODE>
-
