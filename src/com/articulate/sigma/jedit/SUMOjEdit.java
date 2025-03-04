@@ -34,8 +34,9 @@ import errorlist.*;
 
 import org.gjt.sp.jedit.*;
 import org.gjt.sp.jedit.msg.BufferUpdate;
+import org.gjt.sp.jedit.msg.EditPaneUpdate;
 import org.gjt.sp.jedit.msg.EditorExiting;
-import org.gjt.sp.jedit.msg.PropertiesChanged;
+import org.gjt.sp.jedit.msg.VFSUpdate;
 import org.gjt.sp.jedit.msg.ViewUpdate;
 import org.gjt.sp.util.Log;
 
@@ -84,52 +85,64 @@ public class SUMOjEdit
 
     /** Props at: https://www.jedit.org/api/org/gjt/sp/jedit/msg/package-summary.html
      * ***************************************************************
-     * @param msg the message to handle
+     * @param msg the Edit Bus message to handle
      */
     @Override
     public void handleMessage(EBMessage msg) {
 
         if (msg instanceof BufferUpdate)
             bufferUpdate((BufferUpdate)msg);
-        else if (msg instanceof PropertiesChanged)
-            propertiesChanged((PropertiesChanged)msg);
+        else if (msg instanceof VFSUpdate)
+            vfsUpdate((VFSUpdate)msg);
         else if (msg instanceof ViewUpdate)
             viewUpdate((ViewUpdate)msg);
         else if (msg instanceof EditorExiting)
             editorExiting((EditorExiting)msg);
+        else if (msg instanceof EditPaneUpdate)
+            editPaneUpdate((EditPaneUpdate)msg);
     }
 
     /**
      * ***************************************************************
      */
     private void bufferUpdate(BufferUpdate bu) {
+
         if (bu.getView() == view)
             if (bu.getWhat() == BufferUpdate.DIRTY_CHANGED)
-                System.out.println("Buffer changed"); // file saved, or changed
+                System.out.println("DIRTY_CHANGED"); // file saved, or changed
     }
 
     /**
      * ***************************************************************
      */
-    private void propertiesChanged(PropertiesChanged pc) {
-        pc.paramString();
+    private void vfsUpdate(VFSUpdate vu) {
+
+        System.out.println("VFS update"); // file saved
     }
 
-    /**
-     * ***************************************************************
-     */
     private void viewUpdate(ViewUpdate vu) {
         if (vu.getView() == view)
             if (vu.getWhat() == ViewUpdate.CLOSED)
-                unload();
+                System.out.println("ViewUpdate.CLOSED"); // file saved, or changed
     }
 
     /**
      * ***************************************************************
      */
     private void editorExiting(EditorExiting ee) {
-        ee.paramString();
+
         unload();
+    }
+
+    /**
+     * ***************************************************************
+     */
+    private void editPaneUpdate(EditPaneUpdate eu) {
+
+        if (eu.getWhat() == EditPaneUpdate.BUFFERSET_CHANGED)
+            System.out.println("BUFFERSET_CHANGED");
+        else if (eu.getWhat() == EditPaneUpdate.BUFFER_CHANGED)
+            System.out.println("BUFFER_CHANGED"); // switching between files or panes and closing panes
     }
 
     /**
