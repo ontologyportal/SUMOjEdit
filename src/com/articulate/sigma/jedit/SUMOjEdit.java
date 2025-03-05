@@ -56,7 +56,7 @@ public class SUMOjEdit
 
     private final KB kb;
     private final FormulaPreprocessor fp;
-    private final errorlist.DefaultErrorSource errsrc;
+    private final DefaultErrorSource errsrc;
 
     private View view;
     private final KIF kif;
@@ -78,7 +78,7 @@ public class SUMOjEdit
         fp = new FormulaPreprocessor();
         SUMOtoTFAform.initOnce();
         this.view = view; // likely null
-        errsrc = new errorlist.DefaultErrorSource(getClass().getName(), this.view);
+        errsrc = new DefaultErrorSource(getClass().getName(), this.view);
         errorlist.ErrorSource.registerErrorSource(errsrc);
         kif = new KIF();
     }
