@@ -3,7 +3,6 @@ package com.articulate.sigma.jedit;
 import com.articulate.sigma.UnitTestBase;
 import com.articulate.sigma.utils.FileUtil;
 
-import errorlist.DefaultErrorSource.DefaultError;
 import errorlist.ErrorSource;
 
 import org.junit.After;
