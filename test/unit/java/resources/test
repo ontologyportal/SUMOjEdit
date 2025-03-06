@@ -7,7 +7,7 @@
 (and
 (instance ?STH1 Physical)
 (holdsDuring ?T1
-WhenFn(?STH!))
+WhenFn(?STH1))
 (holdsDuring ?T2
 WhenFn(?STH2))
 (earlier ?T1 ?T2))))
