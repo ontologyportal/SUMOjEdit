@@ -15,7 +15,7 @@
     <property name="tptp.home" value="${git.home}/TPTP-ANTLR"/>
     <property name="build.home" value="build"/>
     <property name="build.test.classes.dir" value="${build.home}/test/classes"/>
-    <property name="unit.test.suite" value="com.articulate.sigma.jedit.UnitTestSuite"/>
+    <property name="unit.test.suite" value="com.articulate.sigma.UnitTestSuite"/>
     <property name="test.unit.dir" value="test/unit/java"/>
     <property name="reports.dir" value="${build.home}/reports"/>
     <property name="report.html" value="file:${basedir}/${reports.dir}/html/index.html"/>
