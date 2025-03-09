@@ -9,7 +9,7 @@
 
     <property file="nbproject/private/private.properties"/>
     <import file="../build.xml"/>
-    <property file="nbproject/build.properties"/>
+    <property file="nbproject/project.properties"/>
     <condition property="isUnixNotMac">
         <and>
             <os family="unix"/>
@@ -58,17 +58,6 @@
         <echo message="TPTP is set to: ${tptp_home}"/>
         <copy todir="${basedir}/lib" file="${tptp_home}/tptp.jar" overwrite="true"/>
         <copy todir="${basedir}/lib" file="../SigmaUtils/sigmaUtils.jar" overwrite="true"/>
-    </target>
-
-    <!-- TODO: move to build.xml when we have unit tests -->
-    <target name="test.compile" depends="SUMOjEdit.compile">
-        <mkdir dir="${build.test.classes.dir}"/>
-        <javac destdir="${build.test.classes.dir}"
-               classpathref="tcp"
-               includeantruntime="false">
-            <src refid="test.sourcepath"/>
-            <classpath refid="tcp"/>
-        </javac>
     </target>
 
     <path id="test.sourcepath">
@@ -159,12 +148,15 @@
     ===================
     -->
 
-    <target name="test.unit" depends="clean,test.compile" description="Runs the UnitTestSuite">
+    <target name="test.unit" depends="clean,compile.test" description="Runs the UnitTestSuite">
         <junit printsummary="yes"
-               haltonfailure="yes"
                showoutput="yes"
                fork="yes">
             <jvmarg line="${run.jvmargs}"/>
+            <env key="SIGMA_HOME" value="${sigma_home}"/>
+            <env key="ONTOLOGYPORTAL_GIT" value="${ontologyportal.git}"/>
+            <env key="SIGMA_SRC" value="${sigma_src}"/>
+            <env key="CATALINA_HOME" value="${catalina.base}"/>
             <formatter type="plain" usefile="false"/>
             <classpath>
                 <path refid="tcp"/>
@@ -175,42 +167,114 @@
         </junit>
         <antcall target="junit.report"/>
     </target>
-    <target name="run-selected-test-in-unit" depends="clean,test.compile">
-        <fail unless="test.class">Must set property 'test.class'</fail>
+    <target name="test.integration" depends="clean,compile.test" description="Runs the IntegrationTestSuite">
         <junit printsummary="yes"
-               haltonfailure="yes"
-               fork="yes"
-               showoutput="yes">
+               showoutput="yes"
+               fork="yes">
             <jvmarg line="${run.jvmargs}"/>
+            <env key="SIGMA_HOME" value="${sigma_home}"/>
+            <env key="ONTOLOGYPORTAL_GIT" value="${ontologyportal.git}"/>
+            <env key="SIGMA_SRC" value="${sigma_src}"/>
+            <env key="CATALINA_HOME" value="${catalina.base}"/>
             <formatter type="plain" usefile="false"/>
             <classpath>
                 <path refid="tcp"/>
             </classpath>
-            <test name="${test.class}" haltonfailure="no">
+            <test name="${integration.test.suite}" haltonfailure="no" todir="${reports.dir}">
+                <formatter type="xml"/>
+            </test>
+        </junit>
+        <antcall target="junit.report"/>
+        <echo message="Now, manually run thorough.clean to purge KBs and restore the main config"/>
+    </target>
+    <target name="run-selected-test-in-unit" depends="clean,compile.test">
+        <fail unless="test.class">Must set property 'test.class'</fail>
+        <junit printsummary="yes"
+               showoutput="yes"
+               fork="yes">
+            <jvmarg line="${run.jvmargs}"/>
+            <env key="SIGMA_HOME" value="${sigma_home}"/>
+            <env key="ONTOLOGYPORTAL_GIT" value="${ontologyportal.git}"/>
+            <env key="SIGMA_SRC" value="${sigma_src}"/>
+            <env key="CATALINA_HOME" value="${catalina.base}"/>
+            <formatter type="plain" usefile="false"/>
+            <classpath>
+                <path refid="tcp"/>
+            </classpath>
+            <test name="${test.class}" haltonfailure="no" todir="${reports.dir}">
                 <formatter type="xml"/>
             </test>
         </junit>
     </target>
-    <target name="junit.report" >
-        <junitreport todir="${reports.dir}">
-            <fileset dir="${reports.dir}">
-                <include name="TEST-*.xml"/>
-            </fileset>
-            <report format="frames" todir="${reports.dir}/html"/>
-        </junitreport>
-        <antcall target="open.junit.report"/>
+    <target name="run-single-test-method-in-unit" depends="clean,compile.test">
+        <fail unless="test.class">Must set property 'test.class'</fail>
+        <junit printsummary="yes"
+               showoutput="yes"
+               fork="yes">
+            <jvmarg line="${run.jvmargs}"/>
+            <env key="SIGMA_HOME" value="${sigma_home}"/>
+            <env key="ONTOLOGYPORTAL_GIT" value="${ontologyportal.git}"/>
+            <env key="SIGMA_SRC" value="${sigma_src}"/>
+            <env key="CATALINA_HOME" value="${catalina.base}"/>
+            <formatter type="plain" usefile="false"/>
+            <classpath>
+                <path refid="tcp"/>
+            </classpath>
+            <test name="${test.class}" methods="${method}" haltonfailure="no" todir="${reports.dir}">
+                <formatter type="xml"/>
+            </test>
+        </junit>
     </target>
-    <target name="open.junit.report" depends="report.mac,report.unix"/>
-    <target name="report.mac">
-        <exec executable="sh" osfamily="mac">
-            <arg value="-c"/>
-            <arg value="open -u ${report.html}"/>
-        </exec>
+
+    <!--
+    =====================
+    DEBUG TASKS FOR TESTS
+    =====================
+    -->
+
+    <target name="debug-selected-test-in-unit" depends="clean,compile.test">
+        <fail unless="test.class">Must set property 'test.class'</fail>
+        <nbjpdastart addressproperty="jpda.address" name="${impl.title}" transport="${debug.transport}">
+            <classpath refid="tcp"/>
+        </nbjpdastart>
+        <junit printsummary="yes"
+               showoutput="yes"
+               fork="yes">
+            <jvmarg value="-agentlib:jdwp=transport=${debug.transport},address=${jpda.address}"/>
+            <jvmarg line="${run.jvmargs}"/>
+            <env key="SIGMA_HOME" value="${sigma_home}"/>
+            <env key="ONTOLOGYPORTAL_GIT" value="${ontologyportal.git}"/>
+            <env key="SIGMA_SRC" value="${sigma_src}"/>
+            <env key="CATALINA_HOME" value="${catalina.base}"/>
+            <formatter type="plain" usefile="false"/>
+            <classpath refid="tcp"/>
+            <test name="${test.class}" haltonfailure="no" todir="${reports.dir}">
+                <formatter type="xml"/>
+            </test>
+        </junit>
     </target>
-    <target name="report.unix" if="isUnixNotMac">
-        <exec executable="sh" osfamily="unix">
-            <arg value="xdg-open ${report.html}"/>
-        </exec>
+    <target name="debug-single-test-method-in-unit" depends="clean,compile.test">
+        <fail unless="test.class">Must set property 'test.class'</fail>
+        <nbjpdastart addressproperty="jpda.address" name="${impl.title}" transport="${debug.transport}">
+            <classpath refid="tcp"/>
+        </nbjpdastart>
+        <junit printsummary="yes"
+               showoutput="yes"
+               fork="yes">
+            <jvmarg value="-agentlib:jdwp=transport=${debug.transport},address=${jpda.address}"/>
+            <jvmarg line="${run.jvmargs}"/>
+            <env key="SIGMA_HOME" value="${sigma_home}"/>
+            <env key="ONTOLOGYPORTAL_GIT" value="${ontologyportal.git}"/>
+            <env key="SIGMA_SRC" value="${sigma_src}"/>
+            <env key="CATALINA_HOME" value="${catalina.base}"/>
+            <formatter type="plain" usefile="false"/>
+            <classpath>
+                <path refid="tcp"/>
+            </classpath>
+            <test name="${test.class}" methods="${method}" haltonfailure="no" todir="${reports.dir}">
+                <formatter type="xml"/>
+            </test>
+        </junit>
     </target>
 
     <!--
@@ -253,6 +317,8 @@
         <copy todir="${jedit.home}/jars" file="${app.name}.jar" overwrite="true"/>
         <copy todir="${jedit.home}/jars" overwrite="true">
             <fileset dir="lib">
+                <exclude name="hamcrest-core-1.3.jar"/>
+                <exclude name="junit-4.13.2.jar"/>
                 <exclude name="jedit.jar"/>
                 <!-- including the jedit.jar in .jedit/jars causes strange problems -->
             </fileset>

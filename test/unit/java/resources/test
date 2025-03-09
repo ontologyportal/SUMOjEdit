@@ -1,0 +1,13 @@
+(=>
+(and
+(instance ?STH2 Physical)
+(instance ?FW Following)
+(patient ?FW ?STH2))
+(exists (?STH1 ?T1 ?T2)
+(and
+(instance ?STH1 Physical)
+(holdsDuring ?T1
+WhenFn(?STH1))
+(holdsDuring ?T2
+WhenFn(?STH2))
+(earlier ?T1 ?T2))))

@@ -56,7 +56,7 @@ public class SUMOjEdit
 
     private final KB kb;
     private final FormulaPreprocessor fp;
-    private final errorlist.DefaultErrorSource errsrc;
+    private final DefaultErrorSource errsrc;
 
     private View view;
     private final KIF kif;
@@ -78,7 +78,7 @@ public class SUMOjEdit
         fp = new FormulaPreprocessor();
         SUMOtoTFAform.initOnce();
         this.view = view; // likely null
-        errsrc = new errorlist.DefaultErrorSource(getClass().getName(), this.view);
+        errsrc = new DefaultErrorSource(getClass().getName(), this.view);
         errorlist.ErrorSource.registerErrorSource(errsrc);
         kif = new KIF();
     }
@@ -642,12 +642,9 @@ public class SUMOjEdit
         int counter = 0;
         Set<String> nbeTerms = new HashSet<>();
         Set<String> unkTerms = new HashSet<>();
-        Set<String> result;
+        Set<String> result, unquant, terms;
         Set<Formula> processed;
-        Set<String> unquant;
-        String err;
-        String term, msg;
-        Set<String> terms;
+        String err, term, msg;
         java.util.List<Formula> forms;
         for (Formula f : kif.formulaMap.values()) {
             Log.log(Log.MESSAGE, this, ":checkErrorsBody(): check formula: " + f);
