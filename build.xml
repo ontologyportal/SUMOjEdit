@@ -208,6 +208,7 @@ alias jedit="java -Xmx10g -Xss1m -jar /Applications/jEdit.app/Contents/Java/jedi
     ===================
     -->
 
+    <target name="test" depends="test.unit"/>
     <target name="test.unit" depends="clean,compile.test" description="Runs the UnitTestSuite">
         <junit printsummary="yes"
                haltonfailure="yes"
