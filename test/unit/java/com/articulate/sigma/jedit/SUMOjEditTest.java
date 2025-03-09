@@ -37,7 +37,7 @@ public class SUMOjEditTest extends UnitTestBase {
         sje = null;
     }
 
-    @Test
+    @Test // TODO: refactor when sigmaAntlr is incorporated
     public void testDiagnostics() {
 
         System.out.println("============= SUMOjEditTest.testDiagnostics ==================");
@@ -49,7 +49,7 @@ public class SUMOjEditTest extends UnitTestBase {
 
         ErrorSource errsrc = errsrcs[0];
         String msg = errsrc.getAllErrors()[0].getErrorMessage();
-        assertTrue(msg.contains("Illegal character"));
+        assertTrue(msg.contains("term not below entity"));
     }
 
 } // end class file SUMOjEditTest.java
