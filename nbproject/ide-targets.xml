@@ -45,10 +45,13 @@
     <target name="init" depends="init-ivy">
         <mkdir dir="${build.classes.dir}"/>
         <mkdir dir="${reports.dir}"/>
-        <ant antfile="${sigma_src}/nbproject/ide-targets.xml" inheritAll="false" target="all" />
-        <copy todir="lib" file="${sigma_src}/build/sigmakee.jar" overwrite="true"/>
         <echo message="JEDIT_HOME is set to: ${jedit.home}"/>
-
+        <!-- Build SigmaKEE -->
+        <ant antfile="${sigma_src}/nbproject/ide-targets.xml" inheritAll="false" target="all" />
+        <copy todir="lib" file="${sigma_src}/dist/sigmakee.jar" overwrite="true"/>
+        <!-- Build SigmaAntlr -->
+        <ant antfile="${sigma_antlr_src}/nbproject/ide-targets.xml" inheritAll="false" target="all" />
+        <copy todir="lib" file="${sigma_antlr_src}/dist/sigmaAntlr.jar" overwrite="true"/>
         <tstamp>
             <format property="TODAY_US" pattern="EEE, d MMM yyyy HHmm Z" locale="en,US"/>
         </tstamp>
