@@ -147,35 +147,13 @@
         <delete file="SUMOjEdit.jar"/>
 
         <!-- for dep updates, clean ${jedit.home}/jars -->
-        <delete>
+        <delete includeemptydirs="true" failonerror="false">
             <fileset dir="${jedit.home}/jars">
-                <include name="antlr4*"/>
-                <include name="guava*"/>
-                <include name="java-prolog*"/>
-                <include name="kryo*"/>
-                <include name="minlog*"/>
-                <include name="objenesis*"/>
-                <include name="reflectasm*"/>
-                <include name="sigmaAntlr*"/>
-                <include name="sigmaUtils*"/>
-                <include name="sigmakee*"/>
-                <include name="SUMOjEdit*"/>
-                <include name="tptp*"/>
+                <include name="*.jar"/>
             </fileset>
             <fileset dir="lib">
-                <include name="antlr4*"/>
-                <include name="guava*"/>
-                <include name="hamcrest-*"/>
-                <include name="java-prolog*"/>
-                <include name="junit-*"/>
-                <include name="kryo*"/>
-                <include name="minlog*"/>
-                <include name="objenesis*"/>
-                <include name="reflectasm*"/>
-                <include name="sigmaAntlr*"/>
-                <include name="sigmaUtils*"/>
-                <include name="sigmakee*"/>
-                <include name="tptp*"/>
+                <exclude name="ErrorList.jar"/>
+                <exclude name="jedit.jar"/>
             </fileset>
         </delete>
     </target>
