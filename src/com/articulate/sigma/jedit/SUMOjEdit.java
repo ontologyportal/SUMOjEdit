@@ -883,7 +883,7 @@ public class SUMOjEdit
      */
     public static void main(String args[]) {
 
-        log = true;
+        System.out.println("INFO: In SUMOjEdit.main()");
         KBmanager.getMgr().initializeOnce();
         //resultLimit = 0; // don't limit number of results on command line
         KB kb = KBmanager.getMgr().getKB(KBmanager.getMgr().getPref("sumokbname"));
