@@ -37,7 +37,7 @@ public class SUMOjEditTest extends UnitTestBase {
         sje = null;
     }
 
-    @Test // TODO: refactor when sigmaAntlr is incorporated
+    @Test
     public void testDiagnostics() {
 
         System.out.println("============= SUMOjEditTest.testDiagnostics ==================");
@@ -49,7 +49,7 @@ public class SUMOjEditTest extends UnitTestBase {
 
         ErrorSource errsrc = errsrcs[0];
         String msg = errsrc.getAllErrors()[0].getErrorMessage();
-        assertTrue(msg.contains("term not below entity"));
+        assertTrue(msg.contains("mismatched input ')'"));
     }
 
 } // end class file SUMOjEditTest.java
