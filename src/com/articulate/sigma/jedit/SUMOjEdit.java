@@ -648,7 +648,7 @@ public class SUMOjEdit
     /**
      * ***************************************************************
      */
-    private void checkErrorsBody(String contents, String path) {
+    public void checkErrorsBody(String contents, String path) {
 
         kif.filename = path;
         try (Reader r = new StringReader(contents)) {
