@@ -1,8 +1,9 @@
-SUMOjEdit PLUGIN
+# SUMOjEdit PLUGIN
 
 ![screenshot](https://github.com/ontologyportal/SUMOjEdit/raw/master/screenshot.jpeg)
 ![screenshot](https://github.com/ontologyportal/SUMOjEdit/raw/master/screenshot-tp.jpeg)
-Started with the QuickNotepad tutorial and adapting bit by bit as a syntax checker for [SUMO](www.ontologyportal.org)
+
+Started with the QuickNotepad tutorial and adapting bit by bit as a syntax checker for [SUMO](https://www.ontologyportal.org)
 
 This depends on proper installation/building of [SigmaKEE](https://github.com/ontologyportal/sigmakee).
 

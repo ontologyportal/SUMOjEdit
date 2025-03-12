@@ -26,6 +26,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.articulate.sigma.*;
+import com.articulate.sigma.parsing.SuokifApp;
+import com.articulate.sigma.parsing.SuokifVisitor;
 import com.articulate.sigma.tp.*;
 import com.articulate.sigma.trans.*;
 import com.articulate.sigma.utils.*;
@@ -60,6 +62,8 @@ public class SUMOjEdit
 
     private View view;
     private final KIF kif;
+    private final DefaultErrorSource.DefaultError dw;
+    private final DefaultErrorSource.DefaultError de;
 
     /**
      * ***************************************************************
@@ -81,6 +85,9 @@ public class SUMOjEdit
         errsrc = new DefaultErrorSource(getClass().getName(), this.view);
         errorlist.ErrorSource.registerErrorSource(errsrc);
         kif = new KIF();
+        kif.filename = "";
+        dw = new DefaultErrorSource.DefaultError(errsrc, ErrorSource.WARNING, kif.filename, 1, 0, 0, "Parse Warnings:");
+        de = new DefaultErrorSource.DefaultError(errsrc, ErrorSource.ERROR, kif.filename, 1, 0, 0, "Parse Errors:");
     }
 
     /** Props at: https://www.jedit.org/api/org/gjt/sp/jedit/msg/package-summary.html
@@ -150,20 +157,10 @@ public class SUMOjEdit
      * Clean up resources upon shutdown
      */
     private void unload() {
-        clearKifWarnAndErr();
-        EditBus.removeFromBus(this);
-        jEdit.getAction("error-list-clear").invoke(null);
+        clearErrors();
+        errsrc.clear();
         ErrorSource.unregisterErrorSource(errsrc);
-    }
-
-    /**
-     * ***************************************************************
-     * Clear warnings and errors from the KIF instance
-     */
-    private void clearKifWarnAndErr() {
-
-        kif.warningSet.clear();
-        kif.errorSet.clear();
+        EditBus.removeFromBus(this);
     }
 
     /**
@@ -327,10 +324,10 @@ public class SUMOjEdit
      * ***************************************************************
      * @return the line number of where the error/warning begins
      */
-    public int getLineNum(String line) {
+    private int getLineNum(String line) {
 
         int result = 0;
-        Pattern p = Pattern.compile("line: (\\d+)");
+        Pattern p = Pattern.compile("line (\\d+)");
         Matcher m = p.matcher(line);
         if (m.find()) {
 //            Log.log(Log.MESSAGE, this, ":getLineNum(): found line number: " + m.group(1));
@@ -347,6 +344,24 @@ public class SUMOjEdit
                     result = Integer.parseInt(m.group(1));
                 } catch (NumberFormatException nfe) {}
             }
+        }
+        return result;
+    }
+
+    /**
+     * ***************************************************************
+     * @return the line offset of where the error/warning begins
+     */
+    private int getOffset(String line) {
+
+        int result = 0;
+        Pattern p = Pattern.compile("\\:(\\d+)\\:");
+        Matcher m = p.matcher(line);
+        if (m.find()) {
+//            Log.log(Log.MESSAGE, this, ":getOffset(): found offset number: " + m.group(1));
+            try {
+                result = Integer.parseInt(m.group(1));
+            } catch (NumberFormatException nfe) {}
         }
         return result;
     }
@@ -464,45 +479,59 @@ public class SUMOjEdit
             kif.parse(r);
         } catch (Exception e) {
             Log.log(Log.ERROR, this, ":formatSelect(): error loading kif file: "
-                    + e.getMessage() + "\n" + e.getStackTrace());
+                    + e.getMessage() + "\n" + Arrays.toString(e.getStackTrace()));
             return null;
         } finally {
             logKifWarnAndErr();
         }
         if (kif.errorSet != null && !kif.errorSet.isEmpty()) {
-            Log.log(Log.ERROR, this, ":formatSelect(): error loading kif file"
+            if (log)
+                Log.log(Log.ERROR, this, ":formatSelect(): error loading kif file"
                     + kif.errorSet);
             return null;
         }
         Log.log(Log.MESSAGE, this, ":formatSelect(): done reading kif file");
         StringBuilder result = new StringBuilder();
-        for (Formula f : kif.formulasOrdered.values()) {
-            result.append(Formula.textFormat(f.getFormula())).append("\n");
-        }
+        for (Formula f : kif.formulasOrdered.values())
+            result.append(Formula.textFormat(f.getFormula()));
         return result.toString();
     }
 
     /**
      * ***************************************************************
      * Pass any warnings and/or errors to the ErrorList Plugin
-     * @param kif the KIF instance containing warnings/errors
      */
     private void logKifWarnAndErr() {
 
-        int line;
-        for (String warn : kif.warningSet) {
-            line = getLineNum(warn) - 1;
-            if (log) {
-                errsrc.addError(ErrorSource.WARNING, kif.filename, line, 0, 0, warn);
-            }
-        }
-        for (String err : kif.errorSet) {
-            line = getLineNum(err) - 1;
-            if (log) {
-                errsrc.addError(ErrorSource.ERROR, kif.filename, line, 0, 0, err);
-            }
-        }
+        dw.setFilePath(kif.filename);
+        for (String warn : kif.warningSet)
+            dw.addExtraMessage(warn);
+        de.setFilePath(kif.filename);
+        for (String err : kif.errorSet)
+            de.addExtraMessage(err);
+
+        if (dw.getExtraMessages().length > 0)
+            errsrc.addError(dw);
+        if (de.getExtraMessages().length > 0)
+            errsrc.addError(de);
+
+        clearErrors();
+    }
+
+    /**
+     * ***************************************************************
+     * Clear warnings and errors from the KIF instance
+     */
+    private void clearKifWarnAndErr() {
+
+        kif.warningSet.clear();
+        kif.errorSet.clear();
+    }
+
+    private void clearErrors() {
+
         clearKifWarnAndErr();
+        KButilities.clearErrors();
     }
 
     /**
@@ -513,14 +542,12 @@ public class SUMOjEdit
     @Override
     public void formatSelect() {
 
-        if (view == null) {
+        if (view == null)
             view = jEdit.getActiveView();
-        }
         String contents = view.getEditPane().getTextArea().getSelectedText();
         String result = formatSelectBody(contents);
-        if (!StringUtil.emptyString(result)) {
+        if (!StringUtil.emptyString(result))
             view.getEditPane().getTextArea().setSelectedText(result);
-        }
     }
 
     /**
@@ -530,16 +557,16 @@ public class SUMOjEdit
     @Override
     public void showStats() {
 
-        if (view == null) {
+        if (view == null)
             view = jEdit.getActiveView();
-        }
         Log.log(Log.MESSAGE, this, ":showStats(): starting");
-        kif.filename = this.view.getBuffer().getPath();
+        kif.filename = view.getBuffer().getPath();
         String contents = view.getEditPane().getTextArea().getText();
-        String path = view.getBuffer().getPath();
+        String path = kif.filename;
         Log.log(Log.MESSAGE, this, ":showStats(): path: " + path);
         String filename = FileUtil.noPath(path);
-        try (StringReader r = new StringReader(contents)) {
+        StringBuilder stats = new StringBuilder();
+        try (Reader r = new StringReader(contents)) {
             kif.parse(r);
             int termCount = 0;
             int otherTermCount = 0;
@@ -561,6 +588,7 @@ public class SUMOjEdit
                 //Log.log(Log.WARNING, this, "showStats(): this no path: " + thisNoPath);
                 if (thisNoPath.equals(filename) || StringUtil.emptyString(thisNoPath)) {
                     Log.log(Log.MESSAGE, this, ":showStats(): ******* in this file: " + t);
+                    stats.append("******* in this file: ").append(t).append('\n');
                     termCount++;
                 } else {
                     if (!Formula.isLogicalOperator(t)) {
@@ -570,8 +598,11 @@ public class SUMOjEdit
                 }
             }
             Log.log(Log.MESSAGE, this, ":showStats(): # terms: " + termCount);
+            stats.append("# terms: ").append(termCount).append('\n');
             Log.log(Log.MESSAGE, this, ":showStats(): # terms used from other files: " + otherTermCount);
+            stats.append("# terms used from other files: ").append(otherTermCount).append('\n');
             Log.log(Log.MESSAGE, this, ":showStats(): # axioms: " + kif.formulaMap.keySet().size());
+            stats.append("# axioms: ").append(kif.formulaMap.keySet().size()).append('\n');
             int ruleCount = 0;
             for (Formula f : kif.formulaMap.values()) {
                 if (f.isRule()) {
@@ -579,20 +610,20 @@ public class SUMOjEdit
                 }
             }
             Log.log(Log.MESSAGE, this, ":showStats(): # rules: " + ruleCount);
+            stats.append("# rules: ").append(ruleCount).append('\n');
             Log.log(Log.MESSAGE, this, ":showStats(): done reading kif file");
         } catch (Exception e) {
             try (Writer sw = new StringWriter();
                 PrintWriter pw = new PrintWriter(sw)) {
                 e.printStackTrace(pw);
                 Log.log(Log.ERROR, this, ":showStats(): error loading kif file: " + e.getMessage() + "\n" + sw.toString());
-                if (log) {
-                    errsrc.addError(ErrorSource.ERROR, e.getMessage(), 1, 0, 0,
-                            "error loading kif file with " + contents.length() + " characters ");
-                }
+                de.addExtraMessage("error loading kif file with " + contents.length() + " characters ");
             } catch (IOException ex) {}
         } finally {
             logKifWarnAndErr();
         }
+        jEdit.newFile(view);
+        view.getEditPane().getTextArea().setSelectedText(stats.toString());
         Log.log(Log.MESSAGE, this, ":showStats(): complete");
     }
 
@@ -604,11 +635,9 @@ public class SUMOjEdit
     @Override
     public void checkErrors() {
 
-        KButilities.clearErrors();
-        jEdit.getAction("error-list-clear").invoke(null);
-        if (view == null) {
+        if (view == null)
             view = jEdit.getActiveView();
-        }
+        errsrc.clear();
         Log.log(Log.MESSAGE, this, ":checkErrors(): starting");
         String contents = view.getEditPane().getTextArea().getText();
         String path = view.getBuffer().getPath();
@@ -619,136 +648,133 @@ public class SUMOjEdit
     /**
      * ***************************************************************
      */
-    public void checkErrorsBody(String contents, String path) {
+    private void checkErrorsBody(String contents, String path) {
 
         kif.filename = path;
         try (Reader r = new StringReader(contents)) {
             kif.parse(r);
             Log.log(Log.MESSAGE, this, ":checkErrorsBody(): done reading kif file");
         } catch (Exception e) {
-            Log.log(Log.ERROR, this, ":checkErrorsBody(): error loading kif file");
-            if (log) {
-                errsrc.addError(ErrorSource.ERROR, e.getMessage(), 1, 0, 0,
-                        "error loading kif file with " + contents.length() + " characters ");
-            }
-            return;
-        } finally {
+            if (log)
+                Log.log(Log.ERROR, this, ":checkErrorsBody(): error loading kif file");
+            de.addExtraMessage("error loading kif file: " + path + " with " + contents.length() + " characters ");
             logKifWarnAndErr();
+            return;
         }
 
         Log.log(Log.MESSAGE, this, ":checkErrorsBody(): success loading kif file with " + contents.length() + " characters ");
         Log.log(Log.MESSAGE, this, ":checkErrorsBody(): filename: " + path);
 
-        int counter = 0;
-        Set<String> nbeTerms = new HashSet<>();
-        Set<String> unkTerms = new HashSet<>();
-        Set<String> result, unquant, terms;
-        Set<Formula> processed;
-        String err, term, msg;
-        java.util.List<Formula> forms;
-        for (Formula f : kif.formulaMap.values()) {
-            Log.log(Log.MESSAGE, this, ":checkErrorsBody(): check formula: " + f);
-            counter++;
-            if (counter > 1000) {
-                Log.log(Log.WARNING, this, ".");
-                counter = 0;
-            }
-            //Log.log(Log.WARNING,this,"checking formula " + f.toString());
-            if (Diagnostics.quantifierNotInStatement(f)) {
-                if (log) {
-                    errsrc.addError(ErrorSource.WARNING, path, f.startLine - 1, f.endLine - 1, 0,
-                            "Quantifier not in statement");
+        try {
+            int counter = 0;
+            Set<String> nbeTerms = new HashSet<>();
+            Set<String> unkTerms = new HashSet<>();
+            Set<String> result, unquant, terms;
+            Set<Formula> processed;
+            String err, term, msg;
+            java.util.List<Formula> forms;
+            SuokifVisitor sv;
+            int line, offset;
+            for (Formula f : kif.formulaMap.values()) {
+                Log.log(Log.MESSAGE, this, ":checkErrorsBody(): check formula: " + f);
+                counter++;
+                if (counter > 1000) {
+                    Log.log(Log.NOTICE, this, ".");
+                    counter = 0;
                 }
-            }
-            result = Diagnostics.singleUseVariables(f);
-            if (result != null && !result.isEmpty()) {
-                if (log) {
-                    errsrc.addError(ErrorSource.WARNING, path, f.startLine - 1, f.endLine - 1, 0,
-                            "Variable(s) only used once: " + result.toString());
-                }
-            }
-            processed = fp.preProcess(f, false, kb);
-            if (f.errors != null && !f.errors.isEmpty()) {
-                for (String er : f.errors) {
-                    if (log) {
-                        errsrc.addError(ErrorSource.ERROR, path, f.startLine - 1, f.endLine - 1, 0, er);
+                // Check for syntax errors that KIF doesn't catch
+                sv = SuokifApp.process(Formula.textFormat(f.getFormula()));
+                if (!sv.errors.isEmpty()) {
+                    for (String er : sv.errors) {
+                        line = getLineNum(er);
+                        offset = getOffset(er);
+                        errsrc.addError(ErrorSource.ERROR, kif.filename, line-1, offset, offset+1, er);
+                        return;
                     }
                 }
-                for (String w : f.warnings) {
-                    if (log) {
-                        errsrc.addError(ErrorSource.WARNING, path, f.startLine - 1, f.endLine - 1, 0, w);
+                //Log.log(Log.WARNING,this,"checking formula " + f.toString());
+                if (Diagnostics.quantifierNotInStatement(f)) {
+                    dw.addExtraMessage("Quantifier not in statement");
+                }
+                result = Diagnostics.singleUseVariables(f);
+                if (result != null && !result.isEmpty()) {
+                    dw.addExtraMessage("Variable(s) only used once: " + result.toString());
+                }
+                processed = fp.preProcess(f, false, kb);
+                if (f.errors != null && !f.errors.isEmpty()) {
+                    for (String er : f.errors) {
+                        de.addExtraMessage(er);
+                    }
+                    for (String w : f.warnings) {
+                        dw.addExtraMessage(w);
                     }
                 }
-            }
-            //Log.log(Log.WARNING,this,"checking variables in formula ");
-            if (!KButilities.isValidFormula(kb, f.toString())) {
-                for (String e : KButilities.errors) {
-                    if (log) {
-                        errsrc.addError(ErrorSource.ERROR, path, f.startLine - 1, f.endLine - 1, 0, e);
+                //Log.log(Log.WARNING,this,"checking variables in formula ");
+                if (!KButilities.isValidFormula(kb, f.toString())) {
+                    for (String e : KButilities.errors) {
+                        de.addExtraMessage(e);
+                        if (log)
+                            Log.log(Log.ERROR, this, e);
                     }
-                    Log.log(Log.ERROR, this, e);
                 }
-            }
-            //Log.log(Log.WARNING,this,"done checking var types ");
+                //Log.log(Log.WARNING,this,"done checking var types ");
 
-            unquant = Diagnostics.unquantInConsequent(f);
-            if (!unquant.isEmpty()) {
-                err = "Unquantified var(s) " + unquant + " in consequent";
-                if (log) {
-                    errsrc.addError(ErrorSource.WARNING, path, f.startLine - 1, f.endLine - 1, 0, err);
+                unquant = Diagnostics.unquantInConsequent(f);
+                if (!unquant.isEmpty()) {
+                    err = "Unquantified var(s) " + unquant + " in consequent";
+                    dw.addExtraMessage(err);
+                    if (log)
+                        Log.log(Log.WARNING, this, err);
                 }
-                Log.log(Log.WARNING, this, err);
-            }
 
-            // note that predicate variables can result in many relations being tried that don't
-            // fit because of type inconsistencies, which then are rejected and not a formalization error
-            // so ignore those cases (of size()>1)
-            if (SUMOtoTFAform.errors != null && !f.errors.isEmpty() && processed.size() == 1) {
-                for (String er : SUMOtoTFAform.errors) {
-                    if (log) {
-                        errsrc.addError(ErrorSource.ERROR, path, f.startLine - 1, f.endLine - 1, 0, er);
+                // note that predicate variables can result in many relations being tried that don't
+                // fit because of type inconsistencies, which then are rejected and not a formalization error
+                // so ignore those cases (of size()>1)
+                if (SUMOtoTFAform.errors != null && !f.errors.isEmpty() && processed.size() == 1) {
+                    for (String er : SUMOtoTFAform.errors) {
+                        de.addExtraMessage(er);
+                        if (log)
+                            Log.log( Log.ERROR, this, er);
                     }
-                    Log.log(Log.ERROR, this, er);
                 }
-            }
-            term = PredVarInst.hasCorrectArity(f, kb);
-            if (!StringUtil.emptyString(term)) {
-                msg = ("Arity error of predicate " + term);
-                if (log) {
-                    errsrc.addError(ErrorSource.ERROR, path, f.startLine - 1, f.endLine - 1, 0, msg);
+                term = PredVarInst.hasCorrectArity(f, kb);
+                if (!StringUtil.emptyString(term)) {
+                    msg = ("Arity error of predicate " + term);
+                    de.addExtraMessage(msg);
+                    if (log)
+                        Log.log(Log.ERROR, this, msg);
                 }
-                Log.log(Log.ERROR, this, msg);
-            }
-            terms = f.collectTerms();
-            Log.log(Log.MESSAGE, this, ":checkErrorsBody(): # terms in formula: " + terms.size());
-            for (String t : terms) {
-                if (Diagnostics.LOG_OPS.contains(t) || t.equals("Entity")
-                        || Formula.isVariable(t) || StringUtil.isNumeric(t) || StringUtil.isQuotedString(t)) {
-                    continue;
-                } else {
-                    forms = kb.askWithRestriction(0, "instance", 1, t);
-                    if (forms == null || forms.isEmpty()) {
-                        forms = kb.askWithRestriction(0, "subclass", 1, t);
+                terms = f.collectTerms();
+                Log.log(Log.MESSAGE, this, ":checkErrorsBody(): # terms in formula: " + terms.size());
+                for (String t : terms) {
+                    if (Diagnostics.LOG_OPS.contains(t) || t.equals("Entity")
+                            || Formula.isVariable(t) || StringUtil.isNumeric(t) || StringUtil.isQuotedString(t)) {
+                        continue;
+                    } else {
+                        forms = kb.askWithRestriction(0, "instance", 1, t);
                         if (forms == null || forms.isEmpty()) {
-                            forms = kb.askWithRestriction(0, "subAttribute", 1, t);
+                            forms = kb.askWithRestriction(0, "subclass", 1, t);
                             if (forms == null || forms.isEmpty()) {
-                                if (log && !unkTerms.contains(t)) {
-                                    errsrc.addError(ErrorSource.WARNING, path, f.startLine - 1, f.endLine - 1, 0,
-                                            "unknown term: " + t);
+                                forms = kb.askWithRestriction(0, "subAttribute", 1, t);
+                                if (forms == null || forms.isEmpty()) {
+                                    if (!unkTerms.contains(t))
+                                        dw.addExtraMessage("unknown term: " + t);
+                                    unkTerms.add(t);
+                                    if (log)
+                                        Log.log(Log.WARNING, this, "unknown term: " + t);
                                 }
-                                unkTerms.add(t);
-                                Log.log(Log.WARNING, this, "unknown term: " + t);
                             }
                         }
                     }
-                }
-                if (log && Diagnostics.termNotBelowEntity(t, kb) && !nbeTerms.contains(t)) {
-                    errsrc.addError(ErrorSource.WARNING, path, f.startLine - 1, f.endLine - 1, 0, "term not below entity: " + t);
-                    nbeTerms.add(t);
+                    if (Diagnostics.termNotBelowEntity(t, kb) && !nbeTerms.contains(t)) {
+                        dw.addExtraMessage("term not below entity: " + t);
+                        nbeTerms.add(t);
+                    }
                 }
             }
+        } finally {
+            logKifWarnAndErr();
         }
-        clearKifWarnAndErr();
     }
 
     /**
@@ -759,9 +785,8 @@ public class SUMOjEdit
     @Override
     public void toTPTP() {
 
-        if (view == null) {
+        if (view == null)
             view = jEdit.getActiveView();
-        }
         Log.log(Log.MESSAGE, this, ":toTPTP(): starting");
         //Log.log(Log.WARNING,this,"toTPTP Formula.isHigherOrder(): kb: " + kb);
 
@@ -786,9 +811,8 @@ public class SUMOjEdit
                 //Log.log(Log.WARNING,this,"toTPTP gather pred vars: " + PredVarInst.gatherPredVars(kb,f));
                 //if (f.predVarCache != null && f.predVarCache.size() > 0)
                 //	Log.log(Log.WARNING,this,"toTPTP Formula.isHigherOrder(): pred var cache: " + f.predVarCache);
-                if (f.isHigherOrder(kb) || (f.predVarCache != null && !f.predVarCache.isEmpty())) {
+                if (f.isHigherOrder(kb) || (f.predVarCache != null && !f.predVarCache.isEmpty()))
                     continue;
-                }
                 tptpStr = "fof(kb_" + f.getSourceFile() + "_" + f.startLine + ",axiom," + SUMOformulaToTPTPformula.process(f, false) + ").";
                 //Log.log(Log.WARNING,this,"toTPTP(): formatted as TPTP: " + tptpStr);
                 sv = new TPTPVisitor();
@@ -805,11 +829,9 @@ public class SUMOjEdit
             try (Writer sw = new StringWriter();
                 PrintWriter pw = new PrintWriter(sw)) {
                 e.printStackTrace(pw);
-                Log.log(Log.ERROR, this, ":toTPTP(): error " + sw.toString());
-                if (log) {
-                    errsrc.addError(ErrorSource.ERROR, e.getMessage(), 1, 0, 0,
-                            "error loading kif file with " + contents.length() + " characters ");
-                }
+                if (log)
+                    Log.log(Log.ERROR, this, ":toTPTP(): error " + sw.toString());
+                de.addExtraMessage("error loading kif file with " + contents.length() + " characters ");
             } catch (IOException ex) {}
         } finally {
             logKifWarnAndErr();
@@ -824,15 +846,13 @@ public class SUMOjEdit
     @Override
     public void fromTPTP() {
 
-        if (view == null) {
+        if (view == null)
             view = jEdit.getActiveView();
-        }
         Log.log(Log.MESSAGE, this, ":fromTPTP(): starting");
         String contents = view.getEditPane().getTextArea().getText();
         String selected = view.getEditPane().getTextArea().getSelectedText();
-        if (!StringUtil.emptyString(selected)) {
+        if (!StringUtil.emptyString(selected))
             contents = selected;
-        }
         String path = view.getBuffer().getPath();
         try {
             TPTPVisitor sv = new TPTPVisitor();
@@ -855,12 +875,12 @@ public class SUMOjEdit
             try (Writer sw = new StringWriter();
                 PrintWriter pw = new PrintWriter(sw)) {
                 e.printStackTrace(pw);
-                Log.log(Log.ERROR, this, ":fromTPTP(): error " + sw.toString());
-                if (log) {
-                    errsrc.addError(ErrorSource.ERROR, e.getMessage(), 1, 0, 0,
-                            "error loading kif file with " + contents.length() + " characters ");
-                }
+                if (log)
+                    Log.log(Log.ERROR, this, ":fromTPTP(): error " + sw.toString());
+                de.addExtraMessage("error loading kif file with " + contents.length() + " characters ");
             } catch (IOException ex) {}
+        } finally {
+            logKifWarnAndErr();
         }
         Log.log(Log.MESSAGE, this, ":fromTPTP(): complete");
     }
@@ -883,7 +903,7 @@ public class SUMOjEdit
      */
     public static void main(String args[]) {
 
-        log = true;
+        System.out.println("INFO: In SUMOjEdit.main()");
         KBmanager.getMgr().initializeOnce();
         //resultLimit = 0; // don't limit number of results on command line
         KB kb = KBmanager.getMgr().getKB(KBmanager.getMgr().getPref("sumokbname"));

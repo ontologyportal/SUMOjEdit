@@ -86,9 +86,10 @@
     </target>
 
     <target name="init" depends="init-ivy">
-        <!-- Builds the SigmaUtils and TPTP jars as part of SigmaKee's init -->
-        <ant antfile="../sigmakee/build.xml" inheritAll="false" target="all" />
+        <!-- Builds the SigmaUtils and TPTP jars as part of SigmaKEE's init -->
+        <ant antfile="../sigmaAntlr/build.xml" inheritAll="false" target="all" />
         <copy todir="lib" file="../sigmakee/build/sigmakee.jar" />
+        <copy todir="lib" file="../sigmaAntlr/sigmaAntlr.jar" />
         <echo message="JEDIT_HOME is set to = ${jedit.home}"/>
     </target>
 
@@ -141,24 +142,18 @@
 
     <target name="clean">
         <delete includeemptydirs="true" failonerror="false">
-            <fileset dir="build"/>
+            <fileset dir="${build.home}"/>
         </delete>
         <delete file="SUMOjEdit.jar"/>
 
         <!-- for dep updates, clean ${jedit.home}/jars -->
-        <delete>
+        <delete includeemptydirs="true" failonerror="false">
             <fileset dir="${jedit.home}/jars">
-                <include name="antlr4*"/>
-                <include name="guava*"/>
-                <include name="java-prolog*"/>
-                <include name="kryo*"/>
-                <include name="minlog*"/>
-                <include name="objenesis*"/>
-                <include name="reflectasm*"/>
-                <include name="sigmaUtils*"/>
-                <include name="sigmakee*"/>
-                <include name="SUMOjEdit*"/>
-                <include name="tptp*"/>
+                <include name="*.jar"/>
+            </fileset>
+            <fileset dir="lib">
+                <exclude name="ErrorList.jar"/>
+                <exclude name="jedit.jar"/>
             </fileset>
         </delete>
     </target>

@@ -45,10 +45,11 @@
     <target name="init" depends="init-ivy">
         <mkdir dir="${build.classes.dir}"/>
         <mkdir dir="${reports.dir}"/>
-        <ant antfile="${sigma_src}/nbproject/ide-targets.xml" inheritAll="false" target="all" />
-        <copy todir="lib" file="${sigma_src}/build/sigmakee.jar" overwrite="true"/>
         <echo message="JEDIT_HOME is set to: ${jedit.home}"/>
-
+        <!-- Build SigmaAntlr which builds SigmaKEE -->
+        <ant antfile="${sigma_antlr_src}/nbproject/ide-targets.xml" inheritAll="false" target="all" />
+        <copy todir="lib" file="${sigma_src}/dist/sigmakee.jar" overwrite="true"/>
+        <copy todir="lib" file="${sigma_antlr_src}/dist/sigmaAntlr.jar" overwrite="true"/>
         <tstamp>
             <format property="TODAY_US" pattern="EEE, d MMM yyyy HHmm Z" locale="en,US"/>
         </tstamp>
@@ -75,6 +76,11 @@
               classpathref="rcp"
               fork="true">
             <jvmarg line="${run.jvmargs}"/>
+            <env key="SIGMA_HOME" value="${sigma_home}"/>
+            <env key="ONTOLOGYPORTAL_GIT" value="${ontologyportal.git}"/>
+            <env key="SIGMA_SRC" value="${sigma_src}"/>
+            <env key="CATALINA_HOME" value="${catalina.base}"/>
+            <arg line="${run.args}"/>
         </java>
     </target>
     <target name="run-selected-file-in-java" depends="compile">
