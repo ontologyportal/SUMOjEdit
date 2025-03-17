@@ -4,7 +4,7 @@
         This is an ant build.xml file for building the SUMOjEdit plugin for jEdit.
     </description>
 
-    <property name="ivy.install.version" value="2.5.1"/>
+    <property name="ivy.install.version" value="2.5.3"/>
     <property name="ivy.home" value="${basedir}/.ivy"/>
     <property name="ivy.jar.dir" value="${ivy.home}/lib"/>
     <property name="ivy.jar.file" value="${ivy.jar.dir}/ivy.jar"/>
