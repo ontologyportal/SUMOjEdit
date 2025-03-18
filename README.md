@@ -10,63 +10,71 @@ This depends on proper installation/building of [SigmaKEE](https://github.com/on
 Installation-*nix
 =============================
 - You are free to use OpenJDK. Latest is JDK23
-- install jEdit.  On Ubuntu this is "sudo apt-get install jedit"
+- Install jEdit.  On Ubuntu this is:
+```sh
+sudo apt-get install jedit
+```
 - Install SigmaKEE as per the [README](https://github.com/ontologyportal/sigmakee/blob/master/README.md)
-- clone SUMOjEdit into your workspace directory\
-  git clone https://github.com/ontologyportal/SUMOjEdit.git
-- edit build.xml to conform to your paths
-- add to your .bashrc\
-  export JEDIT_HOME=/home/myname/.jedit editing "myname" to conform to your machine home\
-  This can also be performed by executing: ant append.bashrc on the command line\
-  in the SUMOjEdit directory
-- From the command line in the SUMOjEdit directory, execute: source ~/.bashrc,\
-  then then execute: ant
-- Next, build the KB with this command from the sigmakee directory:
+- Clone SUMOjEdit and SigmaAntlr into your workspace directory:
+```sh
+cd ~/workspace
+git clone https://github.com/ontologyportal/SUMOjEdit.git
+git clone https://github.com/ontologyportal/sigmaAntlr.git
+```
+- Add to your ~/.bashrc editing "myname" to conform to your machine home.
+```sh
+cd $HOME
+echo "# SUMOjEdit" >> .bashrc
+echo "export JEDIT_HOME=/home/myname/.jedit" >> .bashrc
+```
+- This can also be performed by executing the following on the command line in\
+  the SUMOjEdit directory.
+```sh
+cd ~/workspace/SUMOjEdit
+ant append.bashrc
+```
+- Then build SUMOjEdit which deploys to your jedit home
+```sh
+source ~/.bashrc
+ant
+```
+- If you haven't yet run sigmakee for the first time, then it's recommended\
+  to build the KB with this command from the sigmakee directory:
 ```sh
 java -Xmx10g -Xss1m -cp $SIGMA_CP com.articulate.sigma.KB -l -R
 ```
-- If you want to monitor the jEdit's condition and if it started successfully you can run:\
+- If you want to monitor SUMOjEdit's condition to see if it started\
+  successfully you can run:
 ```sh
 tail -f $JEDIT_HOME/activity.log
 ```
-- Next, to start jEdit with this plugin, execute:
+- Next, to start SUMOjEdit execute:
 ```sh
 java -Xmx10g -Xss1m -jar /usr/share/jedit/jedit.jar
 ```
-- Can also create a .bashrc alias for the above java command\
-  alias jedit="java -Xmx10g -Xss1m -jar /usr/share/jedit/jedit.jar"
+- Can also create a "jedit" alias in your .bashrc for the above java command
+```sh
+echo "alias jedit=\"java -Xmx10g -Xss1m -jar /usr/share/jedit/jedit.jar\"" >> .bashrc
+```
 
-Installation-Mac
+Installation-macOS
 =============================
-- You are free to use OpenJDK. Latest is JDK23
-- install [jEdit](http://jedit.org/index.php?page=download&platform=mac)
+- Basically mirrors the above install notes with these differences
+- Install [jEdit](http://jedit.org/index.php?page=download&platform=mac)
   (Choose the Mac OS X package link)\
   After installing, you may need to go to System->Security&Privacy->Security and allow the jedit app
-- Install SigmaKEE as per the [README](https://github.com/ontologyportal/sigmakee/blob/master/README.md)
-- clone SUMOjEdit into your workspace directory\
-  git clone https://github.com/ontologyportal/SUMOjEdit.git
-- edit build.xml to conform to your paths - note that your jEdit config\
-  directory on a mac is /Users/myname/Library/jEdit
-- add to your \~/.zshrc\
-  export JEDIT_HOME=\~/Library/jEdit\
-  This can also be performed by executing: ant append.zshrc on the command line\
-  in the SUMOjEdit directory
-- From the command line in the SUMOjEdit directory, execute: source ~/.zshrc,\
-  then then execute: ant
-- Next, build the KB with this command from the sigmakee directory:
+- Note that your jEdit home directory on a mac is /Users/myname/Library/jEdit
+- Instead of ant append.bashrc:
 ```sh
-java -Xmx10g -Xss1m -cp $SIGMA_CP com.articulate.sigma.KB -l -R
+cd ~/workspace/SUMOjEdit
+ant append.zshrc
+source ~/.zshrc
+ant
 ```
-- If you want to monitor the jEdit's condition and if it started successfully you can run:\
+- Can also create a jedit alias in your ~/.zshrc
 ```sh
-tail -f $JEDIT_HOME/activity.log
+echo "alias jedit=\"java -Xmx10g -Xss1m -jar /Applications/jEdit.app/Contents/Java/jedit.jar\" >> ~/.zshrc
 ```
-- Next, to start jEdit with this plugin, execute:
-```sh
-java -Xmx10g -Xss1m -jar /Applications/jEdit.app/Contents/Java/jedit.jar
-```
-- Can also create a .zshrc alias to perfrom the above java command\
-  alias jedit="java -Xmx10g -Xss1m -jar /Applications/jEdit.app/Contents/Java/jedit.jar"
 
 To build/run/debug/test on macOS using the NetBeans IDE
 =======================================================
