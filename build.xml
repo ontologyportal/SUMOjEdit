@@ -9,6 +9,7 @@
     <property name="ivy.jar.dir" value="${ivy.home}/lib"/>
     <property name="ivy.jar.file" value="${ivy.jar.dir}/ivy.jar"/>
 
+    <property name="app.name" value="SUMOjEdit"/>
     <property environment="env"/>
     <property name="jedit.home" value="${env.JEDIT_HOME}"/>
     <property name="git.home" value="${env.ONTOLOGYPORTAL_GIT}"/>
@@ -57,7 +58,7 @@
                 We will not fail as long as local lib dir exists (it may be empty) and
                 Ivy is in at least one of Ant's lib dir or the local lib dir. -->
         <path id="ivy.lib.path">
-            <fileset dir="${ivy.jar.dir}" includes="*.jar"/>
+            <fileset file="${ivy.jar.file}"/>
         </path>
         <taskdef resource="org/apache/ivy/ant/antlib.xml"
                  uri="antlib:org.apache.ivy.ant" classpathref="ivy.lib.path"/>
@@ -153,26 +154,25 @@
             </fileset>
         </delete>
     </target>
-
     <target name="deploy" depends="dist">
-        <copy todir="${jedit.home}/jars" file="SUMOjEdit.jar" />
-        <copy todir="${jedit.home}/jars">
+        <copy todir="${jedit.home}/jars" file="${app.name}.jar" overwrite="true"/>
+        <copy todir="${jedit.home}/jars" overwrite="true">
             <fileset dir="lib">
-                <exclude name="hamcrest-core-1.3.jar"/>
-                <exclude name="junit-4.13.2.jar"/>
-                <exclude name="jedit.jar"/>
+                <exclude name="hamcrest*"/>
+                <exclude name="junit*"/>
                 <!-- including the jedit.jar in .jedit/jars causes strange problems -->
+                <exclude name="jedit.jar"/>
             </fileset>
         </copy>
         <copy todir="${jedit.home}/modes" file="kif.xml" overwrite="true"/>
         <copy todir="${jedit.home}/modes" file="catalog" overwrite="true"/>
         <copy todir="${jedit.home}/modes" file="TPTP.xml" overwrite="true"/>
-        <echo>deploying SUMOjEdit.jar, supporting files and supporting jars</echo>
+        <echo>deploying ${app.name}.jar, supporting files and supporting jars</echo>
     </target>
 
     <target name="append.bashrc" if="isUnixNotMac">
         <echo file="${user.home}/.bashrc" append="true">
-## jEdit
+## SUMOjEdit
 export JEDIT_HOME=~/.jedit
 alias jedit="java -Xmx10g -Xss1m -jar /usr/share/jedit/jedit.jar"
 </echo>
@@ -180,13 +180,13 @@ alias jedit="java -Xmx10g -Xss1m -jar /usr/share/jedit/jedit.jar"
 
     <target name="append.zshrc" unless="isUnixNotMac">
         <echo file="${user.home}/.zshrc" append="true">
-## jEdit
+## SUMOjEdit
 export JEDIT_HOME=~/Library/jEdit
 alias jedit="java -Xmx10g -Xss1m -jar /Applications/jEdit.app/Contents/Java/jedit.jar"
 </echo>
     </target>
 
-    <target name="all" depends="deploy">
+    <target name="all" depends="clean,deploy">
         <tstamp>
             <format property="TODAY_US" pattern="yyyy-MM-dd HH:mm:ss:sss zzz" locale="en,US"/>
         </tstamp>
