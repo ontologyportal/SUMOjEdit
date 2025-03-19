@@ -29,7 +29,7 @@ plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.jars=\
 
 # Dependencies
 # See jEdit.getBuild() to understand version numbering scheme.
-plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.depend.0=jedit 05.07.99.00
+plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.depend.0=jedit 05.05.99.00
 plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.depend.1=jdk 11
 plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.depend.2=plugin errorlist.ErrorListPlugin 2.4.0
 
