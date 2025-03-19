@@ -61,21 +61,21 @@ Installation-macOS
 - Install [jEdit](http://jedit.org/index.php?page=download&platform=mac)
   (Choose the Mac OS X package link)\
   After installing, you may need to go to System->Security&Privacy->Security and allow the jedit app
-- Note that your jEdit home directory on macOS is: /Users/myname/Library/jEdit or ~/Library/jEdit
-- Instead of ant append.bashrc:
-```sh
-cd ~/workspace/SUMOjEdit
-ant append.zshrc
-source ~/.zshrc
-ant
-```
-- Can also create a jedit alias in your ~/.zshrc
+- Note that your jEdit home directory on macOS is: /Users/myname/Library/jEdit or ~/Library/jEdit\
+Contents of your ~/.zshrc:
 ```sh
 cd $HOME
 echo "# SUMOjEdit" >> .zshrc
 echo "export JEDIT_HOME=~/Library/jEdit" >> .zshrc
 echo "export JEDIT_JAR=/Applications/jEdit.app/Contents/Java/jedit.jar" >> .zshrc
 echo "alias jedit=java -Xmx10g -Xss1m -jar \$JEDIT_JAR" >> .zshrc
+```
+Or just execute:
+```sh
+cd ~/workspace/SUMOjEdit
+ant append.zshrc
+source ~/.zshrc
+ant
 ```
 
 To build/run/debug/test on macOS using the NetBeans IDE
