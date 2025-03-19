@@ -30,7 +30,7 @@ import org.gjt.sp.jedit.jEdit;
  * @author Adam Pease
  */
 public class SUMOjEditPlugin extends EditPlugin {
-    public static final String NAME = "SUMOjEdit";
+    public static final String NAME = "sumojedit";
     public static final String OPTION_PREFIX = "options." + NAME + ".";
 
     private EBComponent sje;

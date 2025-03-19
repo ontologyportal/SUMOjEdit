@@ -27,7 +27,7 @@ plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.jars=\
     tptp.jar
 
 # online help
-#plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.docs=index.html
+plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.docs=index.html
 
 # Dependencies
 # See jEdit.getBuild() to understand version numbering scheme.
@@ -37,54 +37,55 @@ plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.depend.2=plugin errorlist.Erro
 
 # plugin menu - a list of actions or separators
 plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.menu=\
-  SUMOjEditPlugin.show-stats \
-  SUMOjEditPlugin.check-errors \
-  SUMOjEditPlugin.format-select \
-  SUMOjEditPlugin.goto-defn \
-  SUMOjEditPlugin.browse-term \
-  SUMOjEditPlugin.setFOF \
-  SUMOjEditPlugin.setTFF \
-  SUMOjEditPlugin.chooseVamp \
-  SUMOjEditPlugin.chooseE \
-  SUMOjEditPlugin.query-exp \
-  SUMOjEditPlugin.to-tptp \
-  SUMOjEditPlugin.from-tptp
+  sumojedit.show-stats \
+  sumojedit.check-errors \
+  sumojedit.format-select \
+  sumojedit.goto-defn \
+  sumojedit.browse-term \
+  sumojedit.setFOF \
+  sumojedit.setTFF \
+  sumojedit.chooseVamp \
+  sumojedit.chooseE \
+  sumojedit.query-exp \
+  sumojedit.to-tptp \
+  sumojedit.from-tptp
 
 # action labels for actions supplied by dockables.xml
-#SUMOjEditPlugin.label=SUMOjEdit
+#sumojedit.label=SUMOjEdit
 
 # action labels for actions supplied by actions.xml
-SUMOjEditPlugin.show-stats.label=Show statistics for buffer
-SUMOjEditPlugin.check-errors.label=Check for SUO-KIF errors
-SUMOjEditPlugin.format-select.label=format axioms
-SUMOjEditPlugin.goto-defn.label=go to definition
-SUMOjEditPlugin.browse-term.label=browse term in Sigma
-SUMOjEditPlugin.setFOF.label=select FOF language
-SUMOjEditPlugin.setTFF.label=select TFF language
-SUMOjEditPlugin.chooseVamp.label=select Vampire
-SUMOjEditPlugin.chooseE.label=select EProver
-SUMOjEditPlugin.query-exp.label=query on highlighted expression
-SUMOjEditPlugin.to-tptp.label=SUO-KIF to TPTP
-SUMOjEditPlugin.from-tptp.label=SUO-KIF from TPTP
+sumojedit.show-stats.label=show statistics for buffer
+sumojedit.check-errors.label=check for syntax errors
+sumojedit.format-select.label=format axioms
+sumojedit.goto-defn.label=go to definition
+sumojedit.browse-term.label=browse term in Sigma
+sumojedit.setFOF.label=select FOF language
+sumojedit.setTFF.label=select TFF language
+sumojedit.chooseVamp.label=select Vampire
+sumojedit.chooseE.label=select EProver
+sumojedit.query-exp.label=query on highlighted expression
+sumojedit.to-tptp.label=SUO-KIF to TPTP
+sumojedit.from-tptp.label=SUO-KIF from TPTP
 
 # plugin option pane
-#plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.option-pane=SUMOjEdit
+#plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.option-pane=sumojedit
 
 # Option pane activation BeanShell snippet
-#options.SUMOjEdit.code=new SUMOjEditPluginOptionPane();
+#options.sumojedit.code=new SUMOjEditPluginOptionPane();
 
 # Option pane labels
-#options.SUMOjEdit.label=SUMOjEdit
-#options.SUMOjEdit.file=File:
-#options.SUMOjEdit.choose-file=Choose
-#options.SUMOjEdit.choose-file.title=Choose a file
-#options.SUMOjEdit.choose-font=Font:
-#options.SUMOjEdit.show-filepath.title=Display file path
+#options.sumojedit.label=SUMOjEdit
+#options.sumojedit.file=File:
+#options.sumojedit.choose-file=Choose
+#options.sumojedit.choose-file.title=Choose a file
+#options.sumojedit.choose-font=Font:
+#options.sumojedit.show-filepath.title=Display file path
 
 # window title
-#SUMOjEditPlugin.title=SUMOjEdit
+#sumojedit.title=SUMOjEdit
 
 # window toolbar buttons
+# none
 
 # default settings
 #options.SUMOjEdit.show-filepath=true
@@ -93,10 +94,10 @@ SUMOjEditPlugin.from-tptp.label=SUO-KIF from TPTP
 #options.SUMOjEdit.fontsize=14
 
 # Setting not defined but supplied for completeness
-#options.SUMOjEdit.filepath=
+#options.sumojedit.filepath=
 
-#dependencies
-#plugin.SUMOjEditPlugin.depend.3=plugin net.jakubholy.jedit.autocomplete.TextAutocompletePlugin 1.0.0
-#plugin.SUMOjEditPlugin.depend.4=plugin net.jakubholy.jedit.autocomplete.ContextMenu 0.4
-#plugin.SUMOjEditPlugin.depend.5=plugin editorscheme.EditorScheme 1.8
-#plugin.SUMOjEditPlugin.depend.5=plugin CommonControlsPlugin 1.7.4
+# dependencies (not used)
+#plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.depend.3=plugin net.jakubholy.jedit.autocomplete.TextAutocompletePlugin 1.0.0
+#plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.depend.4=plugin net.jakubholy.jedit.autocomplete.ContextMenu 0.4
+#plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.depend.5=plugin editorscheme.EditorScheme 1.8
+#plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.depend.5=plugin CommonControlsPlugin 1.7.4

@@ -1,61 +1,61 @@
 <!DOCTYPE ACTIONS SYSTEM "actions.dtd">
 <ACTIONS>
-    <ACTION NAME="SUMOjEditPlugin.show-stats">
+    <ACTION NAME="sumojedit.show-stats">
         <CODE>
             jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.showStats();
         </CODE>
     </ACTION>
-    <ACTION NAME="SUMOjEditPlugin.check-errors">
+    <ACTION NAME="sumojedit.check-errors">
         <CODE>
             jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.checkErrors();
         </CODE>
     </ACTION>
-    <ACTION NAME="SUMOjEditPlugin.format-select">
+    <ACTION NAME="sumojedit.format-select">
         <CODE>
             jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.formatSelect();
         </CODE>
     </ACTION>
-    <ACTION NAME="SUMOjEditPlugin.goto-defn">
+    <ACTION NAME="sumojedit.goto-defn">
         <CODE>
             jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.gotoDefn();
         </CODE>
     </ACTION>
-    <ACTION NAME="SUMOjEditPlugin.browse-term">
+    <ACTION NAME="sumojedit.browse-term">
         <CODE>
             jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.browseTerm();
         </CODE>
     </ACTION>
-    <ACTION NAME="SUMOjEditPlugin.chooseE">
+    <ACTION NAME="sumojedit.chooseE">
         <CODE>
             jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.chooseE();
         </CODE>
     </ACTION>
-    <ACTION NAME="SUMOjEditPlugin.chooseVamp">
+    <ACTION NAME="sumojedit.chooseVamp">
         <CODE>
             jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.chooseVamp();
         </CODE>
     </ACTION>
-    <ACTION NAME="SUMOjEditPlugin.setFOF">
+    <ACTION NAME="sumojedit.setFOF">
         <CODE>
             jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.setFOF();
         </CODE>
     </ACTION>
-    <ACTION NAME="SUMOjEditPlugin.setTFF">
+    <ACTION NAME="sumojedit.setTFF">
         <CODE>
             jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.setTFF();
         </CODE>
     </ACTION>
-    <ACTION NAME="SUMOjEditPlugin.query-exp">
+    <ACTION NAME="sumojedit.query-exp">
         <CODE>
             jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.queryExp();
         </CODE>
     </ACTION>
-    <ACTION NAME="SUMOjEditPlugin.to-tptp">
+    <ACTION NAME="sumojedit.to-tptp">
         <CODE>
             jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.toTPTP();
         </CODE>
     </ACTION>
-    <ACTION NAME="SUMOjEditPlugin.from-tptp">
+    <ACTION NAME="sumojedit.from-tptp">
         <CODE>
             jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.fromTPTP();
         </CODE>
