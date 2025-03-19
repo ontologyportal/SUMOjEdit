@@ -183,7 +183,7 @@ alias jedit=java -Xmx10g -Xss1m -jar $JEDIT_JAR
     </target>
 
     <target name="append.zshrc" unless="isUnixNotMac">
-        <echo file=".zshrc" append="true">
+        <echo file="${user.home}/.zshrc" append="true">
 # SUMOjEdit
 export JEDIT_HOME=~/Library/jEdit
 export JEDIT_JAR=/Applications/jEdit.app/Contents/Java/jedit.jar
