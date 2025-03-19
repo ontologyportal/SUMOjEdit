@@ -1,0 +1,214 @@
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+        <title>jEdit SUMOjEdit Plugin</title>
+        <meta name="generator" content="DocBook XSL Stylesheets V1.75.1">
+        <link rel="home" href="#SUMOjEdit" title="jEdit SUMOjEdit Plugin">
+        <link rel="next" href="#id36107169" title="Introduction">
+    </head>
+    <body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+        <div class="article" title="jEdit SUMOjEdit Plugin">
+            <div class="titlepage">
+                <div>
+                    <div><h2 class="title"><a name="SUMOjEdit"></a>jEdit SUMOjEdit Plugin</h2></div>
+                    <div>
+                        <div class="author">
+                            <h3 class="author">
+                                <span class="firstname">Adam</span>
+                                <span class="surname">Pease</span>
+                            </h3>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="releaseinfo">Version 1.1</p>
+                    </div>
+                    <div>
+                        <div class="legalnotice" title="Legal Notice">
+                            <a name="id36107140"></a>
+                            <p class="legalnotice-title"><b>Legal Notice</b></p>
+                            <p>Permission is granted to copy, distribute and/or modify this
+                                document under the terms of the GNU Free Documentation License,
+                                Version 1.1 or any later version published by the Free Software
+                                Foundation; with no "Invariant Sections",
+                                "Front-Cover Texts" or "Back-Cover Texts",
+                                each as defined in the license. A copy of the license is included in
+                                the file <code class="filename">COPYING.DOC.txt</code> included with the
+                                jEdit distribution.</p>
+                        </div>
+                    </div>
+                </div>
+                <hr>
+            </div>
+            <div class="toc">
+                <p><b>Table of Contents</b></p>
+                <ul>
+                    <li><span class="section"><a href="#id36107169">Introduction</a></span></li>
+                    <li><span class="section"><a href="#id36107238">Operation</a></span></li>
+                    <li><span class="section"><a href="#id36107396">Execution</a></span></li>
+                    <li><span class="section"><a href="#options">Customization</a></span></li>
+                    <li><span class="section"><a href="#id36107528">Legal notices</a></span></li>
+                    <li><span class="section"><a href="#id36107566">Feedback</a></span></li>
+                </ul>
+            </div>
+            <div class="section" title="Introduction">
+                <div class="titlepage">
+                    <div>
+                        <div><h2 class="title" style="clear: both"><a name="id36107169"></a>Introduction</h2></div>
+                    </div>
+                </div>
+                <a class="indexterm" name="id36107175"></a>
+                <p>Started with the QuickNotepad tutorial and adapting bit by bit as a syntax checker for <a href="https://www.ontologyportal.org">SUMO</a> and <a href="https://www.tptp.org">TPTP</a>.<br>
+                   This depends on <a href="https://github.com/ontologyportal/sigmakee">SigmaKEE</a> and also the jEdit ErrorList plugin which is already included.</p>
+            </div>
+            <div class="section" title="Operation">
+                <div class="titlepage">
+                    <div>
+                        <div><h2 class="title" style="clear: both"><a name="id36107238"></a>Operation</h2></div>
+                    </div>
+                </div>
+                <p>
+                    <a class="indexterm" name="id36107244"></a> When SUMOjEdit is activated, you can then
+                    load and edit both *.kif and *.tptp files. Text can be
+                    edited using the keyboard and mouse. The text area component recognizes
+                    the following basic editing shortcuts (sub CMD for macOS):</p>
+                <div class="informaltable">
+                    <table border="0">
+                        <colgroup>
+                            <col align="left">
+                            <col align="left">
+                            <col align="left">
+                            <col align="left">
+                        </colgroup>
+                        <tbody>
+                            <tr>
+                                <td align="left"> </td>
+                                <td align="left">Cut</td>
+                                <td align="left"> </td>
+                                <td align="left">
+                                    <span class="keysym">Ctrl</span>+<span class="keysym">x</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td align="left"> </td>
+                                <td align="left">Copy</td>
+                                <td align="left"> </td>
+                                <td align="left">
+                                    <span class="keysym">Ctrl</span>+<span class="keysym">c</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td align="left"> </td>
+                                <td align="left">Paste</td>
+                                <td align="left"> </td>
+                                <td align="left"><span class="keysym">Ctrl</span>+<span class="keysym">v</span></td>
+                            </tr>
+                            <tr>
+                                <td align="left"> </td>
+                                <td align="left">Select All</td>
+                                <td align="left"> </td><td align="left"><span class="keysym">Ctrl</span>+<span class="keysym">a</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="section" title="Toolbar buttons">
+                <div class="titlepage">
+                    <div>
+                        <div><h2 class="title" style="clear: both"><a name="id36107396"></a>Execution</h2></div>
+                    </div>
+                </div>
+                <div class="itemizedlist">
+                    <ul class="itemizedlist" type="disc">
+                        <li class="listitem">
+                            <p><span class="guilabel"><strong>Startup SUMOjEdit</strong></span> - and wait a couple of minutes since
+                                it loads all the kif files specified in your Sigma config.xml, all of WordNet, VerbNet, etc.</p>
+                        </li>
+                        <li class="listitem">
+                            <p><span class="guilabel"><strong>Choose a KIF or TPTP file</strong></span> -
+                                Open the file selection dialog permitting the user to select a
+                                file to view in the text area. If a new file is
+                                selected, the old file is automatically saved. The selection is
+                                valid only for the current editing session; to change the
+                                default SUMOjEdit file for future sessions.</p>
+                        </li>
+                        <li class="listitem">
+                            <p><span class="guilabel"><strong>SUMOjEdit plugin</strong></span> - Go to Plugins->SUMOjEdit Plugin->check for syntax errors.
+                            You can also highlight a SUO-KIF expression from Plugins->SUMOjEdit Plugin->query on highlighted expression.
+                            If you have Vampire installed and it finds a proof, a new buffer will be opened to display the proof.
+                            It should work with Eprover too, but needs testing.</p>
+                        </li>
+                        <li class="listitem">
+                            <p><span class="guilabel"><strong>Other functions</strong></span> - are "format axioms"
+                                which will reformat a highlighted axiom with standard SUMO indentation.
+                                "go to definition" will make a guess at where the definition for a selected term starts and put the
+                                cursor at that point in the file. "browse term in Sigma" will open the public Sigma site in your browser
+                                opened on the selected term.</p>
+                        </li>
+                        <li class="listitem">
+                            <p><span class="guilabel"><strong>Activity log</strong></span> - it's good to monitor SUMOjEdit from jEdit's
+                            activity log by Utilities->Troubleshooting->Activity Log.</p>
+                        </li>
+                    </ul>
+                </div>
+                <p>These operations are listed in the menu which appears for
+                    SUMOjEdit under the <span class="guimenu"><strong>Plugins</strong></span> heading.</p>
+            </div>
+            <div class="section" title="Options">
+                <div class="titlepage">
+                    <div>
+                        <div><h2 class="title" style="clear: both"><a name="options"></a>Customization</h2></div>
+                    </div>
+                </div><a class="indexterm" name="id36107479"></a>
+                <div class="itemizedlist">
+                    <ul class="itemizedlist" type="disc">
+                        <li class="listitem">
+                            <p>You may wish to customize by right clicking in the editor and selecting "Customize This Menu,"
+                            select the "Context Menu" under jedit, then the '+' symbol. First, add a seperator, then select
+                            "Plugin: SUMOjEdit Plugin" from the Command or macro: dialog menu and add "format axioms",
+                            "go to definition" and "query on highlighted expressions", which are handy to have on the context
+                            menu as well as the main plugin menu. In later versions this may already be performed as part of
+                            the configuration, but for now you'll need to add the menu items manually.</p>
+                        </li>
+                        <li class="listitem">
+                            <p>Install the EditorScheme plugin with Plugins->PluginManager->Install-EditorScheme then
+                            Plugins-EditorScheme->SchemeSelector. I like the Neon theme as the best "Dark mode" option.</p>
+                        </li>
+                        <li class="listitem">
+                            <p>If you have a small screen or imperfect eyes you may wish to adjust the font size with
+                            Utilities->GlobalOptions->jEdit->TextArea->TextFont.</p>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="section" title="Legal notices">
+                <div class="titlepage">
+                    <div>
+                        <div><h2 class="title" style="clear: both"><a name="id36107528"></a>Legal notices</h2></div>
+                    </div>
+                </div>
+                <p>The SUMOjEdit plugin is released under the GNU General Public
+                    License (either version 2 or any later version, at the user's option). A
+                    copy of the GPL is available in the <code class="filename">COPYING.txt</code>
+                    file in the jEdit distribution.</p>
+                <p>The SUMOjEdit plugin comes with ABSOLUTELY NO WARRANTY OF ANY
+                    KIND; see section 11 and 12 of the GPL for details.</p>
+                <p>Permission is granted to copy, distribute and/or modify this
+                    document under the terms of the GNU Free Documentation License, Version
+                    1.1 or any later version published by the Free Software Foundation; with
+                    no "Invariant Sections", "Front-Cover Texts"
+                    or "Back-Cover Texts", each as defined in the license. A
+                    copy of the license is included in the file
+                    <code class="filename">COPYING.DOC.txt</code> included with the jEdit
+                    distribution.</p>
+            </div>
+            <div class="section" title="Feedback">
+                <div class="titlepage">
+                    <div>
+                        <div><h2 class="title" style="clear: both"><a name="id36107566"></a>Feedback</h2></div>
+                    </div>
+                </div>
+                <p>Comments, bug reports and other feedback may be sent to <a href="mailto:adam.pease@infosys.com?SUMOjEdit">Articulate Software</a>.</p>
+            </div>
+        </div>
+    </body>
+</html>

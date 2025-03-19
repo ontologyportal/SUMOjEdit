@@ -1,9 +1,9 @@
 SUMOjEdit PLUGIN
 
-Started with the QuickNotepad tutorial and adapting bit by bit as a syntax checker for SUMO
+Started with the QuickNotepad tutorial and adapting bit by bit as a syntax checker for SUMO and TPTP
 www.ontologyportal.org
 
-This depends on SigmaKEE https://github.com/ontologyportal/sigmakee and also the jEdit ErrorList plugin.
+This depends on SigmaKEE https://github.com/ontologyportal/sigmakee and also the jEdit ErrorList plugin which is already included.
 
 Installation
 =============================
@@ -16,5 +16,5 @@ Execution
 =============================
 - startup jEdit (and wait a while since it loads all the kif files specified in your Sigma config.xml,
   all of WordNet, VerbNet etc)
-- load a .kif file
-- go to Plugins->SUMOjEdit Plugin->check KIF syntax errors
+- load a .kif or .tptp file
+- go to Plugins->SUMOjEdit Plugin->check for syntax errors

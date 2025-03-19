@@ -108,8 +108,11 @@
                release="${javac.release}">
             <src refid="core.sourcepath"/>
         </javac>
-        <copy todir="build/classes" file="config/SUMOjEdit.props" />
-        <copy todir="build/classes" file="config/actions.xml" />
+        <copy todir="${build.home}/classes" file="config/SUMOjEdit.props"/>
+        <copy todir="${build.home}/classes" file="config/actions.xml"/>
+        <copy todir="${build.home}/classes" file="README.txt"/>
+        <copy todir="${build.home}/classes" file="index.html"/>
+        <copy todir="${build.home}/classes" file="toc.xml"/>
     </target>
 
     <target name="compile.test" depends="compile">

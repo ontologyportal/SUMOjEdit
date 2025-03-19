@@ -9,7 +9,7 @@
         <PROPERTY NAME="unalignedOpenBrackets" VALUE="(" />
         <PROPERTY NAME="unalignedCloseBrackets" VALUE=")" />
         <PROPERTY NAME="multipleBracketIndent" VALUE="true" />
-        <PROPERTY NAME="tabSize" VALUE="2" />
+        <!--<PROPERTY NAME="tabSize" VALUE="2" />-->
         <PROPERTY NAME="noTabs" VALUE="true" />
         <PROPERTY NAME="autoIndent" VALUE="simple" />
         <PROPERTY NAME="maxLineLen" VALUE="70" />

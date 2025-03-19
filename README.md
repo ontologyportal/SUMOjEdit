@@ -100,10 +100,11 @@ my.name=${your.name}
 
 Installation Issues
 =============================
-If you don't get syntax highlighting and the SUMO plugin menu, the following
+If you don't get syntax highlighting or the SUMOjEdit plugin menu, the following
 may help.
 
-To get the syntax highlighting, add the mode through the gui menu via Utilities->Global Options->Editing and the Edit Modes tab
+To get the syntax highlighting, add these modes through the gui menu via \
+Utilities->Global Options->Editing and the Edit Modes tab
 
 Use the Add Mode tab to
 
@@ -111,19 +112,23 @@ Use the Add Mode tab to
 - With Select Mode file to be $JEDIT_HOME/modes/kif.xml
 - And File Name Glob *.kif
 
+- Name a mode TPTP
+- With Select Mode file to be $JEDIT_HOME/modes/TPTP.xml
+- And File Name Glob *.tptp
+
 Execution
 =============================
-- startup jEdit (and wait a while since it loads all the kif files specified in your Sigma config.xml,
-  all of WordNet, VerbNet etc)
-- load a .kif file
-- go to Plugins->SUMOjEdit Plugin->check KIF syntax errors
-- you can also highlight a SUO-KIF expression and Plugins->SUMOjEdit Plugin->query on highlighted expression.\
+- startup jEdit (and wait a couple of minutes since it loads all the kif files specified in your Sigma \
+  config.xml, all of WordNet, VerbNet, etc.)
+- load a .kif or .tptp file
+- go to Plugins->SUMOjEdit Plugin->check for syntax errors
+- you can also highlight a SUO-KIF expression from Plugins->SUMOjEdit Plugin->query on highlighted expression.\
   If you have Vampire installed and it finds a proof, a new buffer will be opened to display the proof.\
   It should work with Eprover too, but needs testing.
 - other functions are "format axioms" which will reformat a highlighted axiom with standard SUMO indentation.\
   "go to definition" will make a guess at where the definition for a selected term starts and put the cursor \
   at that point in the file.\
-  "Browse term in Sigma" will open the public Sigma site in your browser opened on the selected term.
+  "browse term in Sigma" will open the public Sigma site in your browser opened on the selected term.
 
 Customization
 =============================
@@ -135,5 +140,5 @@ menu as well as the main plugin menu. In later versions this may already be perf
 the configuration, but for now you'll need to add the menu items manually.
 - install the EditorScheme plugin with Plugins->PluginManager->Install-EditorScheme then\
 Plugins-EditorScheme->SchemeSelector. I like the Neon theme as the best "Dark mode" option
-- If you have a small screen or imperfect eyes you may wish to adjust the font size with\
+- if you have a small screen or imperfect eyes you may wish to adjust the font size with\
 Utilities->GlobalOptions->jEdit->TextArea->TextFont
