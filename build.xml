@@ -196,6 +196,29 @@ alias jedit="java -Xmx10g -Xss1m -jar /Applications/jEdit.app/Contents/Java/jedi
         <echo>the system date/time is ${TODAY_US}</echo>
     </target>
 
+    <target name="update.sumojedit">
+        <git command="pull" dir="${user.dir}">
+            <args>
+                <arg value="--progress"/>
+                <arg value="--verbose"/>
+            </args>
+        </git>
+    </target>
+
+    <!-- git macro utils setup from: https://tonyyan.wordpress.com/2017/03/10/integrate-git-into-ant-targets/-->
+    <macrodef name="git">
+        <attribute name="command"/>
+        <attribute name="dir" default="${git.home}"/>
+        <element name="args" optional="true"/>
+        <sequential>
+            <echo message="git @{command}"/>
+            <exec executable="git" dir="@{dir}">
+                <arg value="@{command}"/>
+                <args/>
+            </exec>
+        </sequential>
+    </macrodef>
+
     <!--
     ===================
     RUN TASKS FOR TESTS
