@@ -175,19 +175,19 @@
 
     <target name="append.bashrc" if="isUnixNotMac">
         <echo file="${user.home}/.bashrc" append="true">
-## SUMOjEdit
+# SUMOjEdit
 export JEDIT_HOME=~/.jedit
 export JEDIT_JAR=/usr/share/jedit/jedit.jar
-alias jedit=java -Xmx10g -Xss1m -jar \$JEDIT_JAR
+alias jedit=java -Xmx10g -Xss1m -jar $JEDIT_JAR
 </echo>
     </target>
 
     <target name="append.zshrc" unless="isUnixNotMac">
-        <echo file="${user.home}/.zshrc" append="true">
-## SUMOjEdit
+        <echo file=".zshrc" append="true">
+# SUMOjEdit
 export JEDIT_HOME=~/Library/jEdit
 export JEDIT_JAR=/Applications/jEdit.app/Contents/Java/jedit.jar
-alias jedit=java -Xmx10g -Xss1m -jar \$JEDIT_JAR
+alias jedit=java -Xmx10g -Xss1m -jar $JEDIT_JAR
 </echo>
     </target>
 
