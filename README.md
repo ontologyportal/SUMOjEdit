@@ -26,6 +26,8 @@ git clone https://github.com/ontologyportal/sigmaAntlr.git
 cd $HOME
 echo "# SUMOjEdit" >> .bashrc
 echo "export JEDIT_HOME=/home/myname/.jedit" >> .bashrc
+echo "export JEDIT_JAR=/usr/share/jedit/jedit.jar" >> .bashrc
+echo "alias jedit=java -Xmx10g -Xss1m -jar \$JEDIT_JAR" >> .bashrc
 ```
 - This can also be performed by executing the following on the command line in\
   the SUMOjEdit directory.
@@ -50,11 +52,7 @@ tail -f $JEDIT_HOME/activity.log
 ```
 - Next, to start SUMOjEdit execute:
 ```sh
-java -Xmx10g -Xss1m -jar /usr/share/jedit/jedit.jar
-```
-- Can also create a "jedit" alias in your .bashrc for the above java command
-```sh
-echo "alias jedit=\"java -Xmx10g -Xss1m -jar /usr/share/jedit/jedit.jar\"" >> .bashrc
+jedit
 ```
 
 Installation-macOS
@@ -63,7 +61,7 @@ Installation-macOS
 - Install [jEdit](http://jedit.org/index.php?page=download&platform=mac)
   (Choose the Mac OS X package link)\
   After installing, you may need to go to System->Security&Privacy->Security and allow the jedit app
-- Note that your jEdit home directory on a mac is /Users/myname/Library/jEdit
+- Note that your jEdit home directory on macOS is: /Users/myname/Library/jEdit or ~/Library/jEdit
 - Instead of ant append.bashrc:
 ```sh
 cd ~/workspace/SUMOjEdit
@@ -73,7 +71,11 @@ ant
 ```
 - Can also create a jedit alias in your ~/.zshrc
 ```sh
-echo "alias jedit=\"java -Xmx10g -Xss1m -jar /Applications/jEdit.app/Contents/Java/jedit.jar\" >> ~/.zshrc
+cd $HOME
+echo "# SUMOjEdit" >> .zshrc
+echo "export JEDIT_HOME=~/Library/jEdit" >> .zshrc
+echo "export JEDIT_JAR=/Applications/jEdit.app/Contents/Java/jedit.jar" >> .zshrc
+echo "alias jedit=java -Xmx10g -Xss1m -jar \$JEDIT_JAR" >> .zshrc
 ```
 
 To build/run/debug/test on macOS using the NetBeans IDE

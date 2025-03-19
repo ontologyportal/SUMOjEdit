@@ -84,17 +84,17 @@
 
     <target name="init" depends="init-ivy">
         <!-- Builds the SigmaUtils and TPTP jars as part of SigmaKEE's init -->
-        <ant antfile="../sigmaAntlr/build.xml" inheritAll="false" target="all" />
-        <copy todir="lib" file="../sigmakee/build/sigmakee.jar" />
-        <copy todir="lib" file="../sigmaAntlr/sigmaAntlr.jar" />
+        <ant antfile="../sigmaAntlr/build.xml" inheritAll="false" target="all"/>
+        <copy todir="lib" file="../sigmakee/build/sigmakee.jar"/>
+        <copy todir="lib" file="../sigmaAntlr/sigmaAntlr.jar"/>
         <echo message="JEDIT_HOME is set to = ${jedit.home}"/>
     </target>
 
     <target name="TPTP" depends="init">
         <echo message="SIGMA_HOME is set to = ${env.SIGMA_HOME}"/>
         <echo message="TPTP is set to = ${tptp.home}"/>
-        <copy todir="${basedir}/lib" file="${tptp.home}/tptp.jar" />
-        <copy todir="${basedir}/lib" file="../SigmaUtils/sigmaUtils.jar" />
+        <copy todir="${basedir}/lib" file="${tptp.home}/tptp.jar"/>
+        <copy todir="${basedir}/lib" file="../SigmaUtils/sigmaUtils.jar"/>
     </target>
 
     <target name="compile" depends="TPTP" description="Compile SUMOjEdit">
@@ -177,7 +177,8 @@
         <echo file="${user.home}/.bashrc" append="true">
 ## SUMOjEdit
 export JEDIT_HOME=~/.jedit
-alias jedit="java -Xmx10g -Xss1m -jar /usr/share/jedit/jedit.jar"
+export JEDIT_JAR=/usr/share/jedit/jedit.jar
+alias jedit=java -Xmx10g -Xss1m -jar \$JEDIT_JAR
 </echo>
     </target>
 
@@ -185,7 +186,8 @@ alias jedit="java -Xmx10g -Xss1m -jar /usr/share/jedit/jedit.jar"
         <echo file="${user.home}/.zshrc" append="true">
 ## SUMOjEdit
 export JEDIT_HOME=~/Library/jEdit
-alias jedit="java -Xmx10g -Xss1m -jar /Applications/jEdit.app/Contents/Java/jedit.jar"
+export JEDIT_JAR=/Applications/jEdit.app/Contents/Java/jedit.jar
+alias jedit=java -Xmx10g -Xss1m -jar \$JEDIT_JAR
 </echo>
     </target>
 
