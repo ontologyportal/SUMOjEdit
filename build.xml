@@ -12,6 +12,7 @@
     <property name="app.name" value="SUMOjEdit"/>
     <property environment="env"/>
     <property name="jedit.home" value="${env.JEDIT_HOME}"/>
+    <property name="jedit.jar" value="${env.JEDIT_JAR}"/>
     <property name="git.home" value="${env.ONTOLOGYPORTAL_GIT}"/>
     <property name="tptp.home" value="${git.home}/TPTP-ANTLR"/>
     <property name="build.home" value="build"/>
@@ -66,6 +67,7 @@
 
         <path id="compile.classpath">
             <fileset dir="lib">
+                <include name="${jedit.jar}"/>
                 <include name="*.jar"/>
                 <exclude name="junit*"/>
                 <exclude name="hamcrest*"/>
