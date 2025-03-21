@@ -99,7 +99,7 @@
         <copy todir="${basedir}/lib" file="../SigmaUtils/sigmaUtils.jar"/>
     </target>
 
-    <target name="compile" depends="TPTP" description="Compile SUMOjEdit">
+    <target name="compile" depends="TPTP" description="Compile ${app.name}">
         <mkdir dir="build/classes"/>
         <javac destdir="build/classes"
                debug="on"
@@ -131,7 +131,7 @@
     </target>
 
     <target name="dist" depends="compile.test" description="Create the *.war file and place in build.">
-        <jar destfile="SUMOjEdit.jar">
+        <jar destfile="${app.name}.jar">
             <fileset dir="build/classes"/>
         </jar>
     </target>
