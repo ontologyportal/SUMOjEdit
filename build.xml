@@ -163,7 +163,7 @@
         <copy todir="${jedit.home}/jars" file="${app.name}.jar" overwrite="true"/>
         <copy todir="${jedit.home}/jars" overwrite="true">
             <fileset dir="lib">
-                <exclude name="hamcrest*"/>
+                <exclude name="hamcrest-core*"/>
                 <exclude name="junit*"/>
                 <!-- including the jedit.jar in .jedit/jars causes strange problems -->
                 <exclude name="jedit.jar"/>
