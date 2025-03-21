@@ -1,21 +1,20 @@
 package com.articulate.sigma.jedit;
 
-import com.articulate.sigma.UnitTestBase;
 import com.articulate.sigma.utils.FileUtil;
 
 import errorlist.ErrorSource;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import static org.junit.Assert.assertTrue;
 
 /**
  *
  * @author <a href="mailto:tdnorbra@nps.edu?subject=com.articulate.sigma.jedit.SUMOjEditTest">Terry Norbraten, NPS MOVES</a>
  */
-public class SUMOjEditTest extends UnitTestBase {
+public class SUMOjEditTest extends Assert {
 
     static String test;
     SUMOjEdit sje;
@@ -29,6 +28,7 @@ public class SUMOjEditTest extends UnitTestBase {
     @Before
     public void beforeTest() {
 
+        // This will call KBmanager.getMgr().initializeOnce()
         sje = new SUMOjEdit(null);
     }
 
