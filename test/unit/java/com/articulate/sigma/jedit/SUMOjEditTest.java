@@ -37,7 +37,7 @@ public class SUMOjEditTest extends Assert {
         sje = null;
     }
 
-    @Test
+    @Test // Will exercise SigmaAntlr parser
     public void testDiagnostics() {
 
         System.out.println("============= SUMOjEditTest.testDiagnostics ==================");
