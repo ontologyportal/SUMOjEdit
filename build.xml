@@ -154,6 +154,7 @@
             </fileset>
             <fileset dir="lib">
                 <exclude name="ErrorList.jar"/>
+                <exclude name="jedit.jar"/>
             </fileset>
         </delete>
     </target>
