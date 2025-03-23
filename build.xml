@@ -66,8 +66,8 @@
         <ivy:retrieve/>
 
         <path id="compile.classpath">
+            <pathelement path="${jedit.jar}"/>
             <fileset dir="lib">
-                <include name="${jedit.jar}"/>
                 <include name="*.jar"/>
                 <exclude name="junit*"/>
                 <exclude name="hamcrest*"/>
@@ -85,23 +85,22 @@
     </target>
 
     <target name="init" depends="init-ivy">
+        <mkdir dir="${build.home}/classes"/>
+        <echo message="JEDIT_HOME is set to = ${jedit.home}"/>
+        <echo message="SIGMA_HOME is set to = ${env.SIGMA_HOME}"/>
+    </target>
+
+    <target name="sigma.antlr" depends="init">
         <!-- Builds the SigmaUtils and TPTP jars as part of SigmaKEE's init -->
         <ant antfile="../sigmaAntlr/build.xml" inheritAll="false" target="all"/>
         <copy todir="lib" file="../sigmakee/build/sigmakee.jar"/>
         <copy todir="lib" file="../sigmaAntlr/sigmaAntlr.jar"/>
-        <echo message="JEDIT_HOME is set to = ${jedit.home}"/>
+        <copy todir="lib" file="${tptp.home}/tptp.jar"/>
+        <copy todir="lib" file="../SigmaUtils/sigmaUtils.jar"/>
     </target>
 
-    <target name="TPTP" depends="init">
-        <echo message="SIGMA_HOME is set to = ${env.SIGMA_HOME}"/>
-        <echo message="TPTP is set to = ${tptp.home}"/>
-        <copy todir="${basedir}/lib" file="${tptp.home}/tptp.jar"/>
-        <copy todir="${basedir}/lib" file="../SigmaUtils/sigmaUtils.jar"/>
-    </target>
-
-    <target name="compile" depends="TPTP" description="Compile ${app.name}">
-        <mkdir dir="build/classes"/>
-        <javac destdir="build/classes"
+    <target name="compile" depends="sigma.antlr" description="Compile ${app.name}">
+        <javac destdir="${build.home}/classes"
                debug="on"
                optimize="on"
                deprecation="on"
@@ -152,6 +151,10 @@
         <delete includeemptydirs="true" failonerror="false">
             <fileset dir="${jedit.home}/jars">
                 <include name="*.jar"/>
+            </fileset>
+            <fileset dir="${jedit.home}/modes">
+                <include name="*.xml"/>
+                <include name="catalog"/>
             </fileset>
             <fileset dir="lib">
                 <exclude name="ErrorList.jar"/>
@@ -230,7 +233,7 @@ alias jedit=java -Xmx10g -Xss1m -jar $JEDIT_JAR
     -->
 
     <target name="test" depends="test.unit"/>
-    <target name="test.unit" depends="clean,compile.test" description="Runs the UnitTestSuite">
+    <target name="test.unit" depends="compile.test" description="Runs the UnitTestSuite">
         <junit printsummary="yes"
                haltonfailure="yes"
                showoutput="yes"

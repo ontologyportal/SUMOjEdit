@@ -45,6 +45,6 @@ COPY  --from=builder \
 COPY  --from=builder \
     $SIGMA_HOME/KBs/development $SIGMA_HOME/KBs/development/
 
-COPY ./sumojedit/lib/*.jar /root/sumojedit/
-COPY ./sumojedit/SUMOjEdit.jar /root/sumojedit/
-ADD .jedit /root/.jedit
+COPY ./SUMOjEdit/lib/*.jar /root/sumojedit/
+COPY ./SUMOjEdit/SUMOjEdit.jar /root/sumojedit/
+ADD ./.jedit /root/.jedit

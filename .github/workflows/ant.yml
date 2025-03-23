@@ -16,21 +16,23 @@ jobs:
     name: Build & Test
     runs-on: ubuntu-latest
     container:
-        image: apease/sigmakee:latest
+        image: apease/sigma-ci:latest
     env:
-      # Explicitly set SIGMA_HOME
-      SIGMA_HOME: /root/sigmakee-runtime
+      SIGMA_HOME: ${{ github.workspace }}/sigmakee-runtime
+      SIGMA_SRC: ${{ github.workspace }}/sigmakee
       ONTOLOGYPORTAL_GIT: ${{ github.workspace }}
+      JEDIT_HOME: ${{ github.workspace }}/.jedit
 
     steps:
-      - name: checkout sumojedit
+      - name: checkout SUMOjEdit
         uses: actions/checkout@v4
         with:
-          path: sumojedit
+          path: SUMOjEdit
 
       - name: checkout sigmaAntlr
         uses: actions/checkout@v4
         with:
+          repository: 'ontologyportal/sigmaAntlr'
           path: sigmaAntlr
 
       - name: checkout sigmakee
@@ -51,6 +53,12 @@ jobs:
           repository: 'ontologyportal/SigmaUtils'
           path: SigmaUtils
 
+      - name: checkout sumo
+        uses: actions/checkout@v4
+        with:
+          repository: 'ontologyportal/sumo'
+          path: sumo
+
       - name: Set up JDK 21 for x64
         uses: actions/setup-java@v4
         with:
@@ -58,34 +66,58 @@ jobs:
           distribution: 'temurin'
 
       - name: Build with Ant
-        env:
-          JEDIT_HOME: $ONTOLOGYPORTAL_GIT/.jedit
-        working-directory: ./sumojedit
+        working-directory: ./SUMOjEdit
         run: ant
 
+      - name: Upload sumojedit-base
+        uses: actions/upload-artifact@v4
+        with:
+          name: sumojedit-base
+          include-hidden-files: true
+          path: |
+            ./SUMOjEdit/SUMOjEdit.jar
+            ./SUMOjEdit/lib/*.jar
+            !./SUMOjEdit/lib/hamcrest-core*.jar
+            !./SUMOjEdit/lib/junit*.jar
+            !./SUMOjEdit/lib/jedit.jar
+            ./.jedit
+
+      - name: Setup SIGMA_HOME
+        working-directory: ${{ github.workspace }}
+        run: |
+          echo "SIGMA_HOME: $SIGMA_HOME"
+          echo "SIGMA_SRC: $SIGMA_SRC"
+          echo "ONTOLOGYPORTAL_GIT: $ONTOLOGYPORTAL_GIT"
+          mkdir -p $SIGMA_HOME/KBs/WordNetMappings
+          cp -R $ONTOLOGYPORTAL_GIT/sumo/* $SIGMA_HOME/KBs
+          cp /opt/WordNet-3.0/dict/* $SIGMA_HOME/KBs/WordNetMappings/
+          cp $SIGMA_SRC/config.xml $SIGMA_HOME/KBs
+          sed -i "s|/home/theuser/workspace/sumo|$SIGMA_HOME/KBs|g" $SIGMA_HOME/KBs/config.xml
+          sed -i "s|/home/theuser/.sigmakee|$SIGMA_HOME|g" $SIGMA_HOME/KBs/config.xml
+          sed -i "s|/home/theuser/E/bin/e_ltb_runner|/usr/local/bin/e_ltb_runner|g" $SIGMA_HOME/KBs/config.xml
+          sed -i "s|/home/theuser/Programs/vampire/build/vampire|/usr/local/bin/vampire|g" $SIGMA_HOME/KBs/config.xml
+          sed -i "s|/home/theuser|/root|g" $SIGMA_HOME/KBs/config.xml
+          sed -i '/<kb name/,/<\/kb>/d' $SIGMA_HOME/KBs/config.xml
+
+      - name: Setup KB config for tests
+        working-directory: ${{ github.workspace }}
+        run: >
+          sed -i '/<\/configuration>/i\
+          <kb name="SUMO">\n
+          <constituent filename="Merge.kif"\/>\n
+          <constituent filename="Mid-level-ontology.kif"\/>\n
+          <constituent filename="english_format.kif"\/>\n
+          <constituent filename="domainEnglishFormat.kif"\/>\n
+          <\/kb>' $SIGMA_HOME/KBs/config.xml
+
       - name: Run unit tests
-        working-directory: ./sumojedit
+        working-directory: ./SUMOjEdit
         run: ant test.unit
 
 #      - name: Run integration tests
 #        env:
-#        working-directory: ./sumojedit
+#        working-directory: ./SUMOjEdit
 #        run: ant test.integration
-
-      - name: Upload sumojedit-base
-        env:
-          SUMO_JEDIT_HOME: ${{ github.workspace }}/sumojedit
-          JEDIT_HOME: $ONTOLOGYPORTAL_GIT/.jedit
-        uses: actions/upload-artifact@v4
-        with:
-          name: sumojedit-base
-          path: |
-            $SUMO_JEDIT_HOME/lib/*.jar
-            !$SUMO_JEDIT_HOME/lib/hamcrest-core*.jar
-            !$SUMO_JEDIT_HOME/lib/junit*.jar
-            !$SUMO_JEDIT_HOME/lib/jedit.jar
-            $SUMO_JEDIT_HOME/SUMOjEdit.jar
-            $JEDIT_HOME
 
   build-sumojedit:
     runs-on: ubuntu-latest
@@ -108,6 +140,8 @@ jobs:
         uses: actions/download-artifact@v4.1.7
         with:
           name: sumojedit-base
+      - name: Display structure
+        run: ls -R
 
       - name: Set image account name
         env:
