@@ -106,7 +106,7 @@ jobs:
 
 #      - name: Run integration tests
 #        env:
-#        working-directory: ./sumojedit
+#        working-directory: ./SUMOjEdit
 #        run: ant test.integration
 
       - name: Upload sumojedit-base
