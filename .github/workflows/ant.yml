@@ -112,11 +112,11 @@ jobs:
         with:
           name: sumojedit-base
           path: |
+            ./SUMOjEdit/SUMOjEdit.jar
             ./SUMOjEdit/lib/*.jar
             !./SUMOjEdit/lib/hamcrest-core*.jar
             !./SUMOjEdit/lib/junit*.jar
             !./SUMOjEdit/lib/jedit.jar
-            ./SUMOjEdit/SUMOjEdit.jar
             ./.jedit
 
   build-sumojedit:
