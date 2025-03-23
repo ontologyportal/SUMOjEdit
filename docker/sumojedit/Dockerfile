@@ -47,4 +47,4 @@ COPY  --from=builder \
 
 COPY ./sumojedit/lib/*.jar /root/sumojedit/
 COPY ./sumojedit/SUMOjEdit.jar /root/sumojedit/
-ADD .jedit /root/.jedit
+ADD ./.jedit /root/.jedit

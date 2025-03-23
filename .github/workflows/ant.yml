@@ -69,6 +69,18 @@ jobs:
         working-directory: ./SUMOjEdit
         run: ant
 
+      - name: Upload sumojedit-base
+        uses: actions/upload-artifact@v4
+        with:
+          name: sumojedit-base
+          path: |
+            ./SUMOjEdit/SUMOjEdit.jar
+            ./SUMOjEdit/lib/*.jar
+            !./SUMOjEdit/lib/hamcrest-core*.jar
+            !./SUMOjEdit/lib/junit*.jar
+            !./SUMOjEdit/lib/jedit.jar
+            ./.jedit
+
       - name: Setup SIGMA_HOME
         working-directory: ${{ github.workspace }}
         run: |
@@ -105,18 +117,6 @@ jobs:
 #        env:
 #        working-directory: ./SUMOjEdit
 #        run: ant test.integration
-
-      - name: Upload sumojedit-base
-        uses: actions/upload-artifact@v4
-        with:
-          name: sumojedit-base
-          path: |
-            ./SUMOjEdit/SUMOjEdit.jar
-            ./SUMOjEdit/lib/*.jar
-            !./SUMOjEdit/lib/hamcrest-core*.jar
-            !./SUMOjEdit/lib/junit*.jar
-            !./SUMOjEdit/lib/jedit.jar
-            ./.jedit
 
   build-sumojedit:
     runs-on: ubuntu-latest
