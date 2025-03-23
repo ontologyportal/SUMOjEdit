@@ -69,8 +69,9 @@ jobs:
         working-directory: ./SUMOjEdit
         run: |
           ant
-          ls -la
-          ls -la ..
+          ls -la ../.jedit
+          cd ..
+          pwd
 
       - name: Upload sumojedit-base
         uses: actions/upload-artifact@v4
