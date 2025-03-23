@@ -42,22 +42,22 @@
     ============
     -->
 
-    <target name="sigma.antlr" depends="init-ivy">
-        <!-- Build SigmaAntlr which builds SigmaKEE -->
-        <ant antfile="${sigma_antlr_src}/nbproject/ide-targets.xml" inheritAll="false" target="all" />
-        <copy todir="lib" file="${sigma_src}/dist/sigmakee.jar" overwrite="true"/>
-        <copy todir="lib" file="${sigma_antlr_src}/dist/sigmaAntlr.jar" overwrite="true"/>
-        <copy todir="${basedir}/lib" file="${tptp_home}/tptp.jar" overwrite="true"/>
-        <copy todir="${basedir}/lib" file="../SigmaUtils/sigmaUtils.jar" overwrite="true"/>
-    </target>
 
-    <target name="init" depends="sigma.antlr">
+    <target name="init" depends="init-ivy">
         <mkdir dir="${build.home}/classes"/>
         <mkdir dir="${reports.dir}"/>
         <echo message="JEDIT_HOME is set to: ${jedit.home}"/>
         <tstamp>
             <format property="TODAY_US" pattern="EEE, d MMM yyyy HHmm Z" locale="en,US"/>
         </tstamp>
+    </target>
+    <target name="sigma.antlr" depends="init">
+        <!-- Build SigmaAntlr which builds SigmaKEE -->
+        <ant antfile="${sigma_antlr_src}/nbproject/ide-targets.xml" inheritAll="false" target="all" />
+        <copy todir="lib" file="${sigma_src}/dist/sigmakee.jar" overwrite="true"/>
+        <copy todir="lib" file="${sigma_antlr_src}/dist/sigmaAntlr.jar" overwrite="true"/>
+        <copy todir="${basedir}/lib" file="${tptp_home}/tptp.jar" overwrite="true"/>
+        <copy todir="${basedir}/lib" file="../SigmaUtils/sigmaUtils.jar" overwrite="true"/>
     </target>
 
     <path id="test.sourcepath">
