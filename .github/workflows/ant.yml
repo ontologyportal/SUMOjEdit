@@ -26,7 +26,7 @@ jobs:
       - name: checkout sumojedit
         uses: actions/checkout@v4
         with:
-          path: sumojedit
+          path: SUMOjEdit
 
       - name: checkout sigmaAntlr
         uses: actions/checkout@v4
@@ -60,11 +60,11 @@ jobs:
       - name: Build with Ant
         env:
           JEDIT_HOME: $ONTOLOGYPORTAL_GIT/.jedit
-        working-directory: ./sumojedit
+        working-directory: ./SUMOjEdit
         run: ant
 
       - name: Run unit tests
-        working-directory: ./sumojedit
+        working-directory: ./SUMOjEdit
         run: ant test.unit
 
 #      - name: Run integration tests
@@ -74,7 +74,7 @@ jobs:
 
       - name: Upload sumojedit-base
         env:
-          SUMO_JEDIT_HOME: ${{ github.workspace }}/sumojedit
+          SUMO_JEDIT_HOME: ${{ github.workspace }}/SUMOjEdit
           JEDIT_HOME: $ONTOLOGYPORTAL_GIT/.jedit
         uses: actions/upload-artifact@v4
         with:
