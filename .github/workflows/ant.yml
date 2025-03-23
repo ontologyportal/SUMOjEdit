@@ -21,6 +21,7 @@ jobs:
       # Explicitly set SIGMA_HOME
       SIGMA_HOME: /root/sigmakee-runtime
       ONTOLOGYPORTAL_GIT: ${{ github.workspace }}
+      SIGMA_SRC: $ONTOLOGYPORTAL_GIT/sigmakee
 
     steps:
       - name: checkout SUMOjEdit
