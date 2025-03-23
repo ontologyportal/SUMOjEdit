@@ -152,6 +152,10 @@
             <fileset dir="${jedit.home}/jars">
                 <include name="*.jar"/>
             </fileset>
+            <fileset dir="${jedit.home}/modes">
+                <include name="*.xml"/>
+                <include name="catalog"/>
+            </fileset>
             <fileset dir="lib">
                 <exclude name="ErrorList.jar"/>
                 <exclude name="jedit.jar"/>
