@@ -67,16 +67,13 @@ jobs:
 
       - name: Build with Ant
         working-directory: ./SUMOjEdit
-        run: |
-          ant
-          ls -la ../.jedit
-          cd ..
-          pwd
+        run: ant
 
       - name: Upload sumojedit-base
         uses: actions/upload-artifact@v4
         with:
           name: sumojedit-base
+          include-hidden-files: true
           path: |
             ./SUMOjEdit/SUMOjEdit.jar
             ./SUMOjEdit/lib/*.jar
