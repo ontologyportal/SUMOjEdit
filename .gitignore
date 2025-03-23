@@ -20,3 +20,6 @@
 /lib/junit-4.13.2.jar
 /lib/sigmaAntlr.jar
 /lib/tomcat-servlet-api-9.0.97.jar
+/docker/sumojedit/.jedit/
+/docker/sumojedit/sigmakee-runtime/
+/docker/sumojedit/sumojedit/
