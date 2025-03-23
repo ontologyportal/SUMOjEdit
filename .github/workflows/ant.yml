@@ -16,7 +16,7 @@ jobs:
     name: Build & Test
     runs-on: ubuntu-latest
     container:
-        image: apease/sigmakee:latest
+        image: apease/sigma-ci:latest
     env:
       SIGMA_HOME: ${{ github.workspace }}/sigmakee-runtime
       SIGMA_SRC: ${{ github.workspace }}/sigmakee
