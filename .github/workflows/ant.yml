@@ -79,6 +79,26 @@ jobs:
           mkdir -p $SIGMA_HOME/KBs/WordNetMappings
           cp -R $ONTOLOGYPORTAL_GIT/sumo/* $SIGMA_HOME/KBs
           cp /opt/WordNet-3.0/dict/* $SIGMA_HOME/KBs/WordNetMappings/
+          cp $SIGMA_SRC/config.xml $SIGMA_HOME/KBs
+          sed -i "s|/home/theuser/workspace/sumo|$SIGMA_HOME/KBs|g" $SIGMA_HOME/KBs/config.xml
+          sed -i "s|/home/theuser/.sigmakee|$SIGMA_HOME|g" $SIGMA_HOME/KBs/config.xml
+          sed -i "s|/home/theuser/E/bin/e_ltb_runner|/usr/local/bin/e_ltb_runner|g" $SIGMA_HOME/KBs/config.xml
+          sed -i "s|/home/theuser/Programs/vampire/build/vampire|/usr/local/bin/vampire|g" $SIGMA_HOME/KBs/config.xml
+          sed -i "s|/home/theuser|/root|g" $SIGMA_HOME/KBs/config.xml
+          sed -i '/<kb name/,/<\/kb>/d' $SIGMA_HOME/KBs/config.xml
+
+      - name: Setup KB config for tests
+        env:
+          SIGMA_HOME: ${{ github.workspace }}/sigmakee-runtime
+        working-directory: ${{ github.workspace }}
+        run: >
+          sed -i '/<\/configuration>/i\
+          <kb name="SUMO">\n
+          <constituent filename="Merge.kif"\/>\n
+          <constituent filename="Mid-level-ontology.kif"\/>\n
+          <constituent filename="english_format.kif"\/>\n
+          <constituent filename="domainEnglishFormat.kif"\/>\n
+          <\/kb>' $SIGMA_HOME/KBs/config.xml
 
       - name: Run unit tests
         working-directory: ./SUMOjEdit
@@ -90,19 +110,16 @@ jobs:
 #        run: ant test.integration
 
       - name: Upload sumojedit-base
-        env:
-          SUMO_JEDIT_HOME: ${{ github.workspace }}/SUMOjEdit
-          JEDIT_HOME: $ONTOLOGYPORTAL_GIT/.jedit
         uses: actions/upload-artifact@v4
         with:
           name: sumojedit-base
           path: |
-            $SUMO_JEDIT_HOME/lib/*.jar
-            !$SUMO_JEDIT_HOME/lib/hamcrest-core*.jar
-            !$SUMO_JEDIT_HOME/lib/junit*.jar
-            !$SUMO_JEDIT_HOME/lib/jedit.jar
-            $SUMO_JEDIT_HOME/SUMOjEdit.jar
-            $JEDIT_HOME
+            ./SUMOjEdit/lib/*.jar
+            !./SUMOjEdit/lib/hamcrest-core*.jar
+            !./SUMOjEdit/lib/junit*.jar
+            !./SUMOjEdit/lib/jedit.jar
+            ./SUMOjEdit/SUMOjEdit.jar
+            ./jedit
 
   build-sumojedit:
     runs-on: ubuntu-latest
