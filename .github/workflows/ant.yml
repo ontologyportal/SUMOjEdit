@@ -23,7 +23,7 @@ jobs:
       ONTOLOGYPORTAL_GIT: ${{ github.workspace }}
 
     steps:
-      - name: checkout sumojedit
+      - name: checkout SUMOjEdit
         uses: actions/checkout@v4
         with:
           path: SUMOjEdit
@@ -31,6 +31,7 @@ jobs:
       - name: checkout sigmaAntlr
         uses: actions/checkout@v4
         with:
+          repository: 'ontologyportal/sigmaAntlr'
           path: sigmaAntlr
 
       - name: checkout sigmakee
@@ -61,7 +62,7 @@ jobs:
         env:
           JEDIT_HOME: $ONTOLOGYPORTAL_GIT/.jedit
         working-directory: ./SUMOjEdit
-        run: ant -noinput -buildfile build.xml all
+        run: ant
 
       - name: Run unit tests
         working-directory: ./SUMOjEdit
