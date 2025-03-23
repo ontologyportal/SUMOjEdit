@@ -16,7 +16,7 @@ jobs:
     name: Build & Test
     runs-on: ubuntu-latest
     container:
-        image: apease/sigmakee:latest
+        image: apease/sigma-ci:latest
     env:
       # Explicitly set SIGMA_HOME
       SIGMA_HOME: /root/sigmakee-runtime
@@ -89,6 +89,8 @@ jobs:
 
   build-sumojedit:
     runs-on: ubuntu-latest
+    container:
+        image: apease/sigmakee:latest
     needs: build-test-upload
     steps:
       - name: Checkout
