@@ -16,12 +16,12 @@ jobs:
     name: Build & Test
     runs-on: ubuntu-latest
     container:
-        image: apease/sigma-ci:latest
+        image: apease/sigmakee:latest
     env:
       # Explicitly set SIGMA_HOME
       SIGMA_HOME: /root/sigmakee-runtime
       ONTOLOGYPORTAL_GIT: ${{ github.workspace }}
-      SIGMA_SRC: $ONTOLOGYPORTAL_GIT/sigmakee
+      SIGMA_SRC: ${{ github.workspace }}/sigmakee
 
     steps:
       - name: checkout SUMOjEdit
@@ -59,6 +59,12 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
+      - name: Set up Ant
+        uses: cedx/setup-ant@v3
+        with:
+          optional-tasks: true
+          version: latest
+
       - name: Build with Ant
         env:
           JEDIT_HOME: $ONTOLOGYPORTAL_GIT/.jedit
@@ -91,8 +97,6 @@ jobs:
 
   build-sumojedit:
     runs-on: ubuntu-latest
-    container:
-        image: apease/sigmakee:latest
     needs: build-test-upload
     steps:
       - name: Checkout
