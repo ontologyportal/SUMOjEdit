@@ -66,8 +66,8 @@
         <ivy:retrieve/>
 
         <path id="compile.classpath">
+            <pathelement path="${jedit.jar}"/>
             <fileset dir="lib">
-                <include name="${jedit.jar}"/>
                 <include name="*.jar"/>
                 <exclude name="junit*"/>
                 <exclude name="hamcrest*"/>
@@ -84,24 +84,23 @@
         </path>
     </target>
 
-    <target name="init" depends="init-ivy">
+    <target name="sigma.antlr" depends="init-ivy">
         <!-- Builds the SigmaUtils and TPTP jars as part of SigmaKEE's init -->
         <ant antfile="../sigmaAntlr/build.xml" inheritAll="false" target="all"/>
         <copy todir="lib" file="../sigmakee/build/sigmakee.jar"/>
         <copy todir="lib" file="../sigmaAntlr/sigmaAntlr.jar"/>
+        <copy todir="lib" file="${tptp.home}/tptp.jar"/>
+        <copy todir="lib" file="../SigmaUtils/sigmaUtils.jar"/>
+    </target>
+
+    <target name="init" depends="sigma.antlr">
+        <mkdir dir="${build.home}/classes"/>
         <echo message="JEDIT_HOME is set to = ${jedit.home}"/>
-    </target>
-
-    <target name="TPTP" depends="init">
         <echo message="SIGMA_HOME is set to = ${env.SIGMA_HOME}"/>
-        <echo message="TPTP is set to = ${tptp.home}"/>
-        <copy todir="${basedir}/lib" file="${tptp.home}/tptp.jar"/>
-        <copy todir="${basedir}/lib" file="../SigmaUtils/sigmaUtils.jar"/>
     </target>
 
-    <target name="compile" depends="TPTP" description="Compile ${app.name}">
-        <mkdir dir="build/classes"/>
-        <javac destdir="build/classes"
+    <target name="compile" depends="init" description="Compile ${app.name}">
+        <javac destdir="${build.home}/classes"
                debug="on"
                optimize="on"
                deprecation="on"
@@ -155,7 +154,7 @@
             </fileset>
             <fileset dir="lib">
                 <exclude name="ErrorList.jar"/>
-                <exclude name="jedit.jar"/>
+                <exclude name="jedit*.jar"/>
             </fileset>
         </delete>
     </target>
