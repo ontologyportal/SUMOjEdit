@@ -67,7 +67,10 @@ jobs:
 
       - name: Build with Ant
         working-directory: ./SUMOjEdit
-        run: ant
+        run: |
+          ant
+          ls -la
+          ls -la ${{ github.workspace }}
 
       - name: Upload sumojedit-base
         uses: actions/upload-artifact@v4
