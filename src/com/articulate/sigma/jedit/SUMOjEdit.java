@@ -56,38 +56,47 @@ public class SUMOjEdit
     private static boolean log = true;
     private static boolean darkMode = true;
 
-    private final KB kb;
     private final FormulaPreprocessor fp;
     private final DefaultErrorSource errsrc;
-
-    private View view;
     private final KIF kif;
     private final DefaultErrorSource.DefaultError dw;
     private final DefaultErrorSource.DefaultError de;
 
-    /**
+    private KB kb;
+    private View view;
+
+    /** Initializes this plugin and loads the KBs
      * ***************************************************************
      * @param view the current jedit window
      */
     public SUMOjEdit(View view) {
 
-        // TODO: jEdit hangs when using the ExecutorService in sigmakee. Disable
-        // here for now. 2/27/25 tdn
-        SUMOKBtoTPTPKB.rapidParsing = false;
         Log.log(Log.MESSAGE, SUMOjEdit.this, ": SUMOKBtoTPTPKB.rapidParsing==" + SUMOKBtoTPTPKB.rapidParsing);
         Log.log(Log.MESSAGE, SUMOjEdit.this, ": initializing");
-        KBmanager.getMgr().initializeOnce();
-        kb = KBmanager.getMgr().getKB(KBmanager.getMgr().getPref("sumokbname"));
-        Log.log(Log.MESSAGE, SUMOjEdit.this, ": kb: " + kb);
-        fp = new FormulaPreprocessor();
-        SUMOtoTFAform.initOnce();
+
+        // Initialize local plugin
         this.view = view; // likely null
         errsrc = new DefaultErrorSource(getClass().getName(), this.view);
         errorlist.ErrorSource.registerErrorSource(errsrc);
         kif = new KIF();
         kif.filename = "";
+        fp = new FormulaPreprocessor();
         dw = new DefaultErrorSource.DefaultError(errsrc, ErrorSource.WARNING, kif.filename, 1, 0, 0, "Parse Warnings:");
         de = new DefaultErrorSource.DefaultError(errsrc, ErrorSource.ERROR, kif.filename, 1, 0, 0, "Parse Errors:");
+
+        // Init the KBs
+        Runnable r = () -> {
+            KBmanager.getMgr().initializeOnce();
+            kb = KBmanager.getMgr().getKB(KBmanager.getMgr().getPref("sumokbname"));
+            Log.log(Log.MESSAGE, SUMOjEdit.this, ": kb: " + kb);
+            SUMOtoTFAform.initOnce();
+        };
+
+        // Allow jEdit to start while the KBs are loading
+        Thread t = new Thread(r);
+        t.setName(SUMOjEdit.class.getName() + " KB init");
+        t.setDaemon(true);
+        t.start();
     }
 
     /** Props at: https://www.jedit.org/api/org/gjt/sp/jedit/msg/package-summary.html
@@ -904,11 +913,10 @@ public class SUMOjEdit
     public static void main(String args[]) {
 
         System.out.println("INFO: In SUMOjEdit.main()");
-        KBmanager.getMgr().initializeOnce();
+        SUMOjEdit sje = new SUMOjEdit(null);
         //resultLimit = 0; // don't limit number of results on command line
-        KB kb = KBmanager.getMgr().getKB(KBmanager.getMgr().getPref("sumokbname"));
+        KB kb = sje.kb;
         if (args != null && args.length > 1 && args[0].equals("-d")) {
-            SUMOjEdit sje = new SUMOjEdit(null);
             String contents = String.join("\n", FileUtil.readLines(args[1], false));
             sje.checkErrorsBody(contents, args[1]);
         } else if (args != null && args.length > 0 && args[0].equals("-h")) {

@@ -1,13 +1,52 @@
-# SUMOjEdit PLUGIN
-
-![screenshot](https://github.com/ontologyportal/SUMOjEdit/raw/master/screenshot.jpeg)
-![screenshot](https://github.com/ontologyportal/SUMOjEdit/raw/master/screenshot-tp.jpeg)
+# SUMOjEdit PLUGIN Introduction
 
 Started with the QuickNotepad tutorial and adapting bit by bit as a syntax checker for [SUMO](https://www.ontologyportal.org)
 
 This depends on proper installation/building of [SigmaKEE](https://github.com/ontologyportal/sigmakee).
 
-Installation-*nix
+# Installation Instructions
+## Container-based installation (Docker)
+### For WIN
+- Install [Docker Desktop](https://docs.docker.com/desktop/setup/install/windows-install)
+- Configure an [X11 Server](https://github.com/saiccoumar/PX4_Docker_Config/#x11-forwarding)
+### For *nix
+- Install [Docker Desktop](https://docs.docker.com/desktop/setup/install/linux/ubuntu/)
+- An X11 Server is already configured on *nix installations
+### For macOS
+- Install [Docker Desktop](https://docs.docker.com/desktop/setup/install/mac-install/)
+- Configure an [X11 Server](https://github.com/saiccoumar/PX4_Docker_Config/#x11-forwarding)
+- When the xterm console comes up, type xhost +localhost vice xhost +local
+### Then from your respective O/S command shell:
+- Pull and run the sumojedit image:
+```sh
+docker pull apease/sumojedit:latest
+docker run -it -d -p 8080:8080 --name test01 apease/sumojedit:latest
+```
+- To run the SigmaKEE KB Browser, point your local browser to:
+```url
+http://localhost:8080/sigma/login.html
+```
+- Login with user:password -> admin:admin
+- Wait a minute for the enviroment to set up the KB for the first time use
+- Navigate to the Browse page and type in a term to search
+- To use SUMOjEdit, first determine the running container id:
+```sh
+docker ps
+```
+- Then login log into a Bash instance on the running sumojedit container and \
+execute jedit:
+```sh
+docker exec -it <container_id> /bin/bash
+jedit
+```
+### Trouble shooting running a UI in a Docker container
+- A lot of helpful info [here](https://medium.com/@saicoumar/running-linux-guis-in-a-docker-container-73fef186db30)
+
+## Local installation
+### For WIN
+- Install [WSL2](https://github.com/ontologyportal/sigmakee/wiki/Windows-installation)
+- Then follow the instructions for *nix below
+### For *nix
 =============================
 - You are free to use OpenJDK. Latest is JDK23
 - Install jEdit.  On Ubuntu this is:
@@ -26,6 +65,8 @@ git clone https://github.com/ontologyportal/sigmaAntlr.git
 cd $HOME
 echo "# SUMOjEdit" >> .bashrc
 echo "export JEDIT_HOME=/home/myname/.jedit" >> .bashrc
+echo "export JEDIT_JAR=/usr/share/jedit/jedit.jar" >> .bashrc
+echo "alias jedit=java -Xmx10g -Xss1m -jar \$JEDIT_JAR" >> .bashrc
 ```
 - This can also be performed by executing the following on the command line in\
   the SUMOjEdit directory.
@@ -50,34 +91,78 @@ tail -f $JEDIT_HOME/activity.log
 ```
 - Next, to start SUMOjEdit execute:
 ```sh
-java -Xmx10g -Xss1m -jar /usr/share/jedit/jedit.jar
-```
-- Can also create a "jedit" alias in your .bashrc for the above java command
-```sh
-echo "alias jedit=\"java -Xmx10g -Xss1m -jar /usr/share/jedit/jedit.jar\"" >> .bashrc
+jedit
 ```
 
-Installation-macOS
+### For macOS
 =============================
 - Basically mirrors the above install notes with these differences
 - Install [jEdit](http://jedit.org/index.php?page=download&platform=mac)
   (Choose the Mac OS X package link)\
   After installing, you may need to go to System->Security&Privacy->Security and allow the jedit app
-- Note that your jEdit home directory on a mac is /Users/myname/Library/jEdit
-- Instead of ant append.bashrc:
+- Note that your jEdit home directory on macOS is: /Users/myname/Library/jEdit or ~/Library/jEdit\
+Contents of your ~/.zshrc:
+```sh
+cd $HOME
+echo "# SUMOjEdit" >> .zshrc
+echo "export JEDIT_HOME=~/Library/jEdit" >> .zshrc
+echo "export JEDIT_JAR=/Applications/jEdit.app/Contents/Java/jedit.jar" >> .zshrc
+echo "alias jedit=java -Xmx10g -Xss1m -jar \$JEDIT_JAR" >> .zshrc
+```
+Or just execute:
 ```sh
 cd ~/workspace/SUMOjEdit
 ant append.zshrc
 source ~/.zshrc
 ant
 ```
-- Can also create a jedit alias in your ~/.zshrc
-```sh
-echo "alias jedit=\"java -Xmx10g -Xss1m -jar /Applications/jEdit.app/Contents/Java/jedit.jar\" >> ~/.zshrc
-```
+## Installation Issues
+=============================\
+If you don't get syntax highlighting or the SUMOjEdit plugin menu, the following\
+may help.
 
-To build/run/debug/test on macOS using the NetBeans IDE
-=======================================================
+To get the syntax highlighting, add these modes through the gui menu via \
+Utilities->Global Options->Editing and the Edit Modes tab
+
+Use the Add Mode tab to
+
+- Name a mode SUMO
+- With Select Mode file to be $JEDIT_HOME/modes/kif.xml
+- And File Name Glob *.kif
+
+- Name a mode TPTP
+- With Select Mode file to be $JEDIT_HOME/modes/TPTP.xml
+- And File Name Glob *.tptp
+
+## Execution
+=============================
+- startup jEdit (and wait a couple of minutes since it loads all the kif files specified in your Sigma \
+  config.xml, all of WordNet, VerbNet, etc.)
+- load a .kif or .tptp file
+- go to Plugins->SUMOjEdit Plugin->check for syntax errors
+- you can also highlight a SUO-KIF expression from Plugins->SUMOjEdit Plugin->query on highlighted expression.\
+  If you have Vampire installed and it finds a proof, a new buffer will be opened to display the proof.\
+  It should work with Eprover too, but needs testing.
+- other functions are "format axioms" which will reformat a highlighted axiom with standard SUMO indentation.\
+  "go to definition" will make a guess at where the definition for a selected term starts and put the cursor \
+  at that point in the file.\
+  "browse term in Sigma" will open the public Sigma site in your browser opened on the selected term.
+
+## Customization
+=============================
+- you may wish to customize by right clicking in the editor and selecting "Customize This Menu,"\
+select the "Context Menu" under jedit, then the '+' symbol. First, add a seperator, then select\
+"Plugin: SUMOjEdit Plugin" from the Command or macro: dialog menu and add "format axioms",\
+"go to definition" and "query on highlighted expressions", which are handy to have on the context\
+menu as well as the main plugin menu. In later versions this may already be performed as part of\
+the configuration, but for now you'll need to add the menu items manually.
+- install the EditorScheme plugin with Plugins->PluginManager->Install-EditorScheme then\
+Plugins-EditorScheme->SchemeSelector. I like the Neon theme as the best "Dark mode" option
+- if you have a small screen or imperfect eyes you may wish to adjust the font size with\
+Utilities->GlobalOptions->jEdit->TextArea->TextFont
+
+## To build/run/debug/test on macOS using the NetBeans IDE
+=============================\
 Define a nbproject/private/private.properties file with these keys:
 
 \# private properties\
@@ -98,47 +183,5 @@ my.email=${user}@${your.email.domain}\
 my.name=${your.name}
 
 
-Installation Issues
-=============================
-If you don't get syntax highlighting or the SUMOjEdit plugin menu, the following
-may help.
-
-To get the syntax highlighting, add these modes through the gui menu via \
-Utilities->Global Options->Editing and the Edit Modes tab
-
-Use the Add Mode tab to
-
-- Name a mode SUMO
-- With Select Mode file to be $JEDIT_HOME/modes/kif.xml
-- And File Name Glob *.kif
-
-- Name a mode TPTP
-- With Select Mode file to be $JEDIT_HOME/modes/TPTP.xml
-- And File Name Glob *.tptp
-
-Execution
-=============================
-- startup jEdit (and wait a couple of minutes since it loads all the kif files specified in your Sigma \
-  config.xml, all of WordNet, VerbNet, etc.)
-- load a .kif or .tptp file
-- go to Plugins->SUMOjEdit Plugin->check for syntax errors
-- you can also highlight a SUO-KIF expression from Plugins->SUMOjEdit Plugin->query on highlighted expression.\
-  If you have Vampire installed and it finds a proof, a new buffer will be opened to display the proof.\
-  It should work with Eprover too, but needs testing.
-- other functions are "format axioms" which will reformat a highlighted axiom with standard SUMO indentation.\
-  "go to definition" will make a guess at where the definition for a selected term starts and put the cursor \
-  at that point in the file.\
-  "browse term in Sigma" will open the public Sigma site in your browser opened on the selected term.
-
-Customization
-=============================
-- you may wish to customize by right clicking in the editor and selecting "Customize This Menu,"\
-select the "Context Menu" under jedit, then the '+' symbol. First, add a seperator, then select\
-"Plugin: SUMOjEdit Plugin" from the Command or macro: dialog menu and add "format axioms",\
-"go to definition" and "query on highlighted expressions", which are handy to have on the context\
-menu as well as the main plugin menu. In later versions this may already be performed as part of\
-the configuration, but for now you'll need to add the menu items manually.
-- install the EditorScheme plugin with Plugins->PluginManager->Install-EditorScheme then\
-Plugins-EditorScheme->SchemeSelector. I like the Neon theme as the best "Dark mode" option
-- if you have a small screen or imperfect eyes you may wish to adjust the font size with\
-Utilities->GlobalOptions->jEdit->TextArea->TextFont
+![screenshot](https://github.com/ontologyportal/SUMOjEdit/raw/master/screenshot.jpeg)
+![screenshot](https://github.com/ontologyportal/SUMOjEdit/raw/master/screenshot-tp.jpeg)

@@ -12,6 +12,7 @@
     <property name="app.name" value="SUMOjEdit"/>
     <property environment="env"/>
     <property name="jedit.home" value="${env.JEDIT_HOME}"/>
+    <property name="jedit.jar" value="${env.JEDIT_JAR}"/>
     <property name="git.home" value="${env.ONTOLOGYPORTAL_GIT}"/>
     <property name="tptp.home" value="${git.home}/TPTP-ANTLR"/>
     <property name="build.home" value="build"/>
@@ -66,6 +67,7 @@
 
         <path id="compile.classpath">
             <fileset dir="lib">
+                <include name="${jedit.jar}"/>
                 <include name="*.jar"/>
                 <exclude name="junit*"/>
                 <exclude name="hamcrest*"/>
@@ -84,20 +86,20 @@
 
     <target name="init" depends="init-ivy">
         <!-- Builds the SigmaUtils and TPTP jars as part of SigmaKEE's init -->
-        <ant antfile="../sigmaAntlr/build.xml" inheritAll="false" target="all" />
-        <copy todir="lib" file="../sigmakee/build/sigmakee.jar" />
-        <copy todir="lib" file="../sigmaAntlr/sigmaAntlr.jar" />
+        <ant antfile="../sigmaAntlr/build.xml" inheritAll="false" target="all"/>
+        <copy todir="lib" file="../sigmakee/build/sigmakee.jar"/>
+        <copy todir="lib" file="../sigmaAntlr/sigmaAntlr.jar"/>
         <echo message="JEDIT_HOME is set to = ${jedit.home}"/>
     </target>
 
     <target name="TPTP" depends="init">
         <echo message="SIGMA_HOME is set to = ${env.SIGMA_HOME}"/>
         <echo message="TPTP is set to = ${tptp.home}"/>
-        <copy todir="${basedir}/lib" file="${tptp.home}/tptp.jar" />
-        <copy todir="${basedir}/lib" file="../SigmaUtils/sigmaUtils.jar" />
+        <copy todir="${basedir}/lib" file="${tptp.home}/tptp.jar"/>
+        <copy todir="${basedir}/lib" file="../SigmaUtils/sigmaUtils.jar"/>
     </target>
 
-    <target name="compile" depends="TPTP" description="Compile SUMOjEdit">
+    <target name="compile" depends="TPTP" description="Compile ${app.name}">
         <mkdir dir="build/classes"/>
         <javac destdir="build/classes"
                debug="on"
@@ -129,7 +131,7 @@
     </target>
 
     <target name="dist" depends="compile.test" description="Create the *.war file and place in build.">
-        <jar destfile="SUMOjEdit.jar">
+        <jar destfile="${app.name}.jar">
             <fileset dir="build/classes"/>
         </jar>
     </target>
@@ -161,7 +163,7 @@
         <copy todir="${jedit.home}/jars" file="${app.name}.jar" overwrite="true"/>
         <copy todir="${jedit.home}/jars" overwrite="true">
             <fileset dir="lib">
-                <exclude name="hamcrest*"/>
+                <exclude name="hamcrest-core*"/>
                 <exclude name="junit*"/>
                 <!-- including the jedit.jar in .jedit/jars causes strange problems -->
                 <exclude name="jedit.jar"/>
@@ -175,17 +177,19 @@
 
     <target name="append.bashrc" if="isUnixNotMac">
         <echo file="${user.home}/.bashrc" append="true">
-## SUMOjEdit
+# SUMOjEdit
 export JEDIT_HOME=~/.jedit
-alias jedit="java -Xmx10g -Xss1m -jar /usr/share/jedit/jedit.jar"
+export JEDIT_JAR=/usr/share/jedit/jedit.jar
+alias jedit=java -Xmx10g -Xss1m -jar $JEDIT_JAR
 </echo>
     </target>
 
     <target name="append.zshrc" unless="isUnixNotMac">
         <echo file="${user.home}/.zshrc" append="true">
-## SUMOjEdit
+# SUMOjEdit
 export JEDIT_HOME=~/Library/jEdit
-alias jedit="java -Xmx10g -Xss1m -jar /Applications/jEdit.app/Contents/Java/jedit.jar"
+export JEDIT_JAR=/Applications/jEdit.app/Contents/Java/jedit.jar
+alias jedit=java -Xmx10g -Xss1m -jar $JEDIT_JAR
 </echo>
     </target>
 

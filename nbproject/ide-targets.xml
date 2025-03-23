@@ -339,6 +339,9 @@
             <fileset dir="${dist.dir}"/>
         </delete>
     </target>
+    <target name="thorough.clean" depends="clean" description="Clean everything, KBs, translations, etc.">
+        <ant antfile="${sigma_src}/nbproject/ide-targets.xml" inheritAll="false" target="thorough.clean" />
+    </target>
     <target name="all" depends="clean,deploy">
         <echo message="System date/time is: ${TODAY_US}"/>
     </target>

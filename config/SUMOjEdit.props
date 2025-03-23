@@ -1,5 +1,5 @@
-# jEdit only needs to load the plugin the first time the user accesses it
-# the presence of this property also tells jEdit the plugin is using the new API
+# Set to startup to immediately start loading the KBs from serialized files, or
+# from scratch if it's the first time they been compiled
 plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.activate=startup
 
 # Even if you don't store additional files, this is a good idea to set:
@@ -11,7 +11,7 @@ plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.author=Adam Pease
 plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.description=A syntax aware editor for the Suggested Upper Merged Ontology (SUMO)
 plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.version=1.1.0
 
-# jars
+# Supporting libs
 plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.jars=\
     antlr4-runtime-4.9.3.jar \
     guava-19.0.jar \
@@ -29,7 +29,7 @@ plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.jars=\
 # online help
 plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.docs=index.html
 
-# Dependencies
+# Plugin dependencies
 # See jEdit.getBuild() to understand version numbering scheme.
 plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.depend.0=jedit 05.05.99.00
 plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.depend.1=jdk 11
