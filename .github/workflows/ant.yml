@@ -21,6 +21,7 @@ jobs:
       SIGMA_HOME: ${{ github.workspace }}/sigmakee-runtime
       SIGMA_SRC: ${{ github.workspace }}/sigmakee
       ONTOLOGYPORTAL_GIT: ${{ github.workspace }}
+      JEDIT_HOME: ${{ github.workspace }}/.jedit
 
     steps:
       - name: checkout SUMOjEdit
@@ -65,8 +66,6 @@ jobs:
           distribution: 'temurin'
 
       - name: Build with Ant
-        env:
-          JEDIT_HOME: $ONTOLOGYPORTAL_GIT/.jedit
         working-directory: ./SUMOjEdit
         run: ant
 
@@ -88,8 +87,6 @@ jobs:
           sed -i '/<kb name/,/<\/kb>/d' $SIGMA_HOME/KBs/config.xml
 
       - name: Setup KB config for tests
-        env:
-          SIGMA_HOME: ${{ github.workspace }}/sigmakee-runtime
         working-directory: ${{ github.workspace }}
         run: >
           sed -i '/<\/configuration>/i\
