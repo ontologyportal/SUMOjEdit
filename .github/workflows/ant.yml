@@ -107,6 +107,7 @@ jobs:
 #        run: ant test.integration
 
       - name: Upload sumojedit-base
+        working-directory: ${{ github.workspace }}
         uses: actions/upload-artifact@v4
         with:
           name: sumojedit-base
@@ -116,7 +117,7 @@ jobs:
             !./SUMOjEdit/lib/junit*.jar
             !./SUMOjEdit/lib/jedit.jar
             ./SUMOjEdit/SUMOjEdit.jar
-            ./jedit
+            ./.jedit
 
   build-sumojedit:
     runs-on: ubuntu-latest
