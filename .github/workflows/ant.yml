@@ -71,7 +71,6 @@ jobs:
         run: ant
 
       - name: Setup SIGMA_HOME
-        env:
         working-directory: ${{ github.workspace }}
         run: |
           echo "SIGMA_HOME: $SIGMA_HOME"
