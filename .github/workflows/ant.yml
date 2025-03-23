@@ -61,7 +61,7 @@ jobs:
         env:
           JEDIT_HOME: $ONTOLOGYPORTAL_GIT/.jedit
         working-directory: ./SUMOjEdit
-        run: ant
+        run: ant -noinput -buildfile build.xml all
 
       - name: Run unit tests
         working-directory: ./SUMOjEdit
