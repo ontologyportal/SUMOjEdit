@@ -38,8 +38,15 @@ public class SUMOjEditPlugin extends EditPlugin {
     @Override
     public void start() {
         sje = new SUMOjEdit(jEdit.getActiveView()); // view is null
+
         EditBus.addToBus(sje);
         super.start();
+
+        // Allow jEdit to start while the KBs are loading
+        Thread t = new Thread(((Runnable)sje));
+        t.setName(SUMOjEdit.class.getName() + " KB init");
+        t.setDaemon(true);
+        t.start();
     }
 
     @Override

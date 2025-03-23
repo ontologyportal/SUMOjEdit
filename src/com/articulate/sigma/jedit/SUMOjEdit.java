@@ -48,10 +48,7 @@ import tptp_parser.*;
  * ***************************************************************
  *
  */
-public class SUMOjEdit
-        implements
-        EBComponent,
-        SUMOjEditActions {
+public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
 
     private static boolean log = true;
     private static boolean darkMode = true;
@@ -83,20 +80,16 @@ public class SUMOjEdit
         fp = new FormulaPreprocessor();
         dw = new DefaultErrorSource.DefaultError(errsrc, ErrorSource.WARNING, kif.filename, 1, 0, 0, "Parse Warnings:");
         de = new DefaultErrorSource.DefaultError(errsrc, ErrorSource.ERROR, kif.filename, 1, 0, 0, "Parse Errors:");
+    }
+
+    @Override
+    public void run() {
 
         // Init the KBs
-        Runnable r = () -> {
-            KBmanager.getMgr().initializeOnce();
-            kb = KBmanager.getMgr().getKB(KBmanager.getMgr().getPref("sumokbname"));
-            Log.log(Log.MESSAGE, SUMOjEdit.this, ": kb: " + kb);
-            SUMOtoTFAform.initOnce();
-        };
-
-        // Allow jEdit to start while the KBs are loading
-        Thread t = new Thread(r);
-        t.setName(SUMOjEdit.class.getName() + " KB init");
-        t.setDaemon(true);
-        t.start();
+        KBmanager.getMgr().initializeOnce();
+        kb = KBmanager.getMgr().getKB(KBmanager.getMgr().getPref("sumokbname"));
+        Log.log(Log.MESSAGE, SUMOjEdit.this, ": kb: " + kb);
+        SUMOtoTFAform.initOnce();
     }
 
     /** Props at: https://www.jedit.org/api/org/gjt/sp/jedit/msg/package-summary.html
