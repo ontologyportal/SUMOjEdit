@@ -140,6 +140,8 @@ jobs:
         uses: actions/download-artifact@v4.1.7
         with:
           name: sumojedit-base
+      - name: Display structure
+        run: ls -R
 
       - name: Set image account name
         env:
