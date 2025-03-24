@@ -8,8 +8,10 @@ FROM tomcat:9.0.97-jdk21-temurin-noble AS runtime
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     graphviz \
-    x11-apps \
-    jedit
+    x11-apps
+
+# We want the jedit docs
+RUN apt-get install -y jedit
 
 ENV SIGMA_HOME=/root/sigmakee-runtime
 ENV LD_LIBRARY_PATH=/usr/local/bin:$LD_LIBRARY_PATH
