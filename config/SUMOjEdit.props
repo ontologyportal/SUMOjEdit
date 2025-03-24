@@ -1,6 +1,6 @@
 # Set to startup to immediately start loading the KBs from serialized files, or
 # compile from scratch if it's the first time they been compiled
-plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.activate=defer
+plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.activate=startup
 
 # Even if you don't store additional files, this is a good idea to set:
 plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.usePluginHome=true
