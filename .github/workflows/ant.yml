@@ -2,11 +2,7 @@
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-java-with-ant
 name: 'Java CI with Ant / Publish sumojedit'
 
-on:
-  push:
-    branches: [ "master", "main" ]
-  pull_request:
-    branches: [ "master", "main" ]
+on: [push, pull_request]
 
 env:
   DEFAULT_DOCKER_ACCOUNT: apease
@@ -164,4 +160,4 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-          repository: ${{ env.IMAGE_ACCOUNT }}/sumojedit:latest
+          repository: ${{ env.IMAGE_ACCOUNT }}/sumojedit
