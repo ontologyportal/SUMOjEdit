@@ -48,10 +48,7 @@ import tptp_parser.*;
  * ***************************************************************
  *
  */
-public class SUMOjEdit
-        implements
-        EBComponent,
-        SUMOjEditActions {
+public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
 
     private static boolean log = true;
     private static boolean darkMode = true;
@@ -71,6 +68,8 @@ public class SUMOjEdit
      */
     public SUMOjEdit(View view) {
 
+        initKBs();
+
         Log.log(Log.MESSAGE, SUMOjEdit.this, ": SUMOKBtoTPTPKB.rapidParsing==" + SUMOKBtoTPTPKB.rapidParsing);
         Log.log(Log.MESSAGE, SUMOjEdit.this, ": initializing");
 
@@ -83,20 +82,25 @@ public class SUMOjEdit
         fp = new FormulaPreprocessor();
         dw = new DefaultErrorSource.DefaultError(errsrc, ErrorSource.WARNING, kif.filename, 1, 0, 0, "Parse Warnings:");
         de = new DefaultErrorSource.DefaultError(errsrc, ErrorSource.ERROR, kif.filename, 1, 0, 0, "Parse Errors:");
+    }
 
-        // Init the KBs
-        Runnable r = () -> {
-            KBmanager.getMgr().initializeOnce();
-            kb = KBmanager.getMgr().getKB(KBmanager.getMgr().getPref("sumokbname"));
-            Log.log(Log.MESSAGE, SUMOjEdit.this, ": kb: " + kb);
-            SUMOtoTFAform.initOnce();
-        };
+    /** Starts the KB initialization process */
+    private void initKBs() {
 
         // Allow jEdit to start while the KBs are loading
-        Thread t = new Thread(r);
+        Thread t = new Thread(this);
         t.setName(SUMOjEdit.class.getName() + " KB init");
         t.setDaemon(true);
         t.start();
+    }
+
+    @Override
+    public void run() {
+
+        KBmanager.getMgr().initializeOnce();
+        kb = KBmanager.getMgr().getKB(KBmanager.getMgr().getPref("sumokbname"));
+        Log.log(Log.MESSAGE, SUMOjEdit.this, ": kb: " + kb);
+        SUMOtoTFAform.initOnce();
     }
 
     /** Props at: https://www.jedit.org/api/org/gjt/sp/jedit/msg/package-summary.html
@@ -169,7 +173,6 @@ public class SUMOjEdit
         clearErrors();
         errsrc.clear();
         ErrorSource.unregisterErrorSource(errsrc);
-        EditBus.removeFromBus(this);
     }
 
     /**
@@ -910,17 +913,26 @@ public class SUMOjEdit
      * ***************************************************************
      * Test method for this class.
      */
-    public static void main(String args[]) {
+    @SuppressWarnings("SleepWhileInLoop")
+    public static void main(String args[]) throws InterruptedException {
 
         System.out.println("INFO: In SUMOjEdit.main()");
-        SUMOjEdit sje = new SUMOjEdit(null);
-        //resultLimit = 0; // don't limit number of results on command line
-        KB kb = sje.kb;
+        SUMOjEdit sje = null;
+        KB kb = null;
+        if (args != null && args.length > 0 && args[0].equals("-h"))
+            showHelp();
+        else {
+            sje = new SUMOjEdit(null);
+            // wait for the KB to finish initializing
+            do
+                Thread.sleep(50L);
+            while (sje.kb == null);
+            kb = sje.kb;
+        }
+
         if (args != null && args.length > 1 && args[0].equals("-d")) {
             String contents = String.join("\n", FileUtil.readLines(args[1], false));
             sje.checkErrorsBody(contents, args[1]);
-        } else if (args != null && args.length > 0 && args[0].equals("-h")) {
-            showHelp();
         } else if (args != null && args.length > 0 && args[0].equals("-q")) {
             String contents = "(routeBetween ?X MenloParkCA MountainViewCA)";
             System.out.println("E input: " + contents);

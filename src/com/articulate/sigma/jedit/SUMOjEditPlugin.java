@@ -39,13 +39,11 @@ public class SUMOjEditPlugin extends EditPlugin {
     public void start() {
         sje = new SUMOjEdit(jEdit.getActiveView()); // view is null
         EditBus.addToBus(sje);
-        super.start();
     }
 
     @Override
     public void stop() {
         EditBus.removeFromBus(sje);
-        super.stop();
     }
 
     /** JavaBean accessor for the plugin component

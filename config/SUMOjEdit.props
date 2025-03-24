@@ -1,5 +1,5 @@
 # Set to startup to immediately start loading the KBs from serialized files, or
-# from scratch if it's the first time they been compiled
+# compile from scratch if it's the first time they been compiled
 plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.activate=startup
 
 # Even if you don't store additional files, this is a good idea to set:
@@ -37,18 +37,21 @@ plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.depend.2=plugin errorlist.Erro
 
 # plugin menu - a list of actions or separators
 plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.menu=\
-  sumojedit.show-stats \
+  sumojedit.browse-term \
   sumojedit.check-errors \
   sumojedit.format-select \
   sumojedit.goto-defn \
-  sumojedit.browse-term \
+  sumojedit.query-exp \
+  sumojedit.show-stats \
+  - \
   sumojedit.setFOF \
   sumojedit.setTFF \
-  sumojedit.chooseVamp \
+  - \
   sumojedit.chooseE \
-  sumojedit.query-exp \
-  sumojedit.to-tptp \
-  sumojedit.from-tptp
+  sumojedit.chooseVamp \
+  - \
+  sumojedit.from-tptp \
+  sumojedit.to-tptp
 
 # action labels for actions supplied by dockables.xml
 #sumojedit.label=SUMOjEdit
