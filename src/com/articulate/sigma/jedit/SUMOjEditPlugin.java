@@ -23,7 +23,6 @@ package com.articulate.sigma.jedit;
 import org.gjt.sp.jedit.EBComponent;
 import org.gjt.sp.jedit.EditBus;
 import org.gjt.sp.jedit.EditPlugin;
-import org.gjt.sp.jedit.jEdit;
 
 /**
  * The SUMOjEdit plugin
@@ -37,7 +36,8 @@ public class SUMOjEditPlugin extends EditPlugin {
 
     @Override
     public void start() {
-        sje = new SUMOjEdit(jEdit.getActiveView()); // view is null
+        sje = new SUMOjEdit();
+        ((SUMOjEdit)sje).initKBs();
         EditBus.addToBus(sje);
     }
 
