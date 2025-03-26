@@ -37,7 +37,9 @@ public class SUMOjEditPlugin extends EditPlugin {
     @Override
     public void start() {
         sje = new SUMOjEdit();
-        ((SUMOjEdit)sje).initKBs();
+
+        // Allow jEdit to start while the KBs are loading
+        ((SUMOjEdit)sje).startThread(((SUMOjEdit)sje), "KB init");
         EditBus.addToBus(sje);
     }
 
