@@ -2,8 +2,6 @@
 
 Started with the QuickNotepad tutorial and adapting bit by bit as a syntax checker for [SUMO](https://www.ontologyportal.org)
 
-This depends on proper installation/building of [SigmaKEE](https://github.com/ontologyportal/sigmakee).
-
 # Installation Instructions
 ## Container-based installation (Docker)
 ### For WIN
@@ -14,9 +12,28 @@ This depends on proper installation/building of [SigmaKEE](https://github.com/on
 - An X11 Server is already configured on *nix installations
 ### For macOS
 - Install [Docker Desktop](https://docs.docker.com/desktop/setup/install/mac-install/)
-- Configure an [X11 Server](https://github.com/saiccoumar/PX4_Docker_Config/#x11-forwarding)
-- When the xterm console comes up, type xhost +localhost vice xhost +local
-### Then from your respective O/S command shell:
+- Configure an [X11 Server](https://gist.github.com/devnoname120/ce02ef43da968e15340427c2f1c286a7)
+- When the xterm console comes up, type in xhost +localhost
+### Docker Desktop
+- From the Docker Hub tab search for sumojedit, select the link, then Run which\
+  will pull the image down. A 'Run a new container' dialog will appear. Under
+  Ports (Host port) - type 8080 and Run. The container page will show Tomcat \
+  startup on the Logs tab
+- To use SUMOjEdit, from the Exec tab of the running container:
+```sh
+bash
+jedit
+```
+- To run the SigmaKEE KB Browser, point your local browser to:
+```url
+http://localhost:8080/sigma/login.html
+```
+- Login with user:password -> admin:admin
+- Wait a minute for the enviroment to set up the KB for first time use.\
+  You can monitor KB initialization on the Container's Logs tab.
+- When SigmaKEE's Home page appears, navigate to the Browse page and type in a \
+  KB Term to search
+### For CLI from your respective O/S command shell:
 - Pull and run the sumojedit image:
 ```sh
 docker pull apease/sumojedit:latest
@@ -28,13 +45,13 @@ http://localhost:8080/sigma/login.html
 ```
 - Login with user:password -> admin:admin
 - Wait a minute for the enviroment to set up the KB for the first time use
-- Navigate to the Browse page and type in a term to search
+- Navigate to the Browse page and type in a KB Term to search
 - To use SUMOjEdit, first determine the running container id:
 ```sh
 docker ps
 ```
-- Then login log into a Bash instance on the running sumojedit container and \
-execute jedit:
+- Then login to a Bash instance on the running sumojedit container and \
+  execute jedit:
 ```sh
 docker exec -it <container_id> /bin/bash
 jedit
@@ -43,13 +60,15 @@ jedit
 - A lot of helpful info [here](https://medium.com/@saicoumar/running-linux-guis-in-a-docker-container-73fef186db30)
 
 ## Local installation
+This depends on proper installation/building of [SigmaKEE](https://github.com/ontologyportal/sigmakee).
+
 ### For WIN
 - Install [WSL2](https://github.com/ontologyportal/sigmakee/wiki/Windows-installation)
 - Then follow the instructions for *nix below
 ### For *nix
 =============================
 - You are free to use OpenJDK. Latest is JDK23
-- Install jEdit.  On Ubuntu this is:
+- Install jEdit. On Ubuntu this is:
 ```sh
 sudo apt-get install jedit
 ```
@@ -80,7 +99,7 @@ source ~/.bashrc
 ant
 ```
 - If you haven't yet run sigmakee for the first time, then it's recommended\
-  to build the KB with this command from the sigmakee directory:
+  to build the KB with this command:
 ```sh
 java -Xmx10g -Xss1m -cp $SIGMA_CP com.articulate.sigma.KB -l -R
 ```
@@ -101,7 +120,7 @@ jedit
   (Choose the Mac OS X package link)\
   After installing, you may need to go to System->Security&Privacy->Security and allow the jedit app
 - Note that your jEdit home directory on macOS is: /Users/myname/Library/jEdit or ~/Library/jEdit\
-Contents of your ~/.zshrc:
+  Contents of your ~/.zshrc:
 ```sh
 cd $HOME
 echo "# SUMOjEdit" >> .zshrc
@@ -183,7 +202,6 @@ jedit.jar=/Applications/jEdit.app/Contents/Java/jedit.jar
 user=${your.email.user.name}\
 my.email=${user}@${your.email.domain}\
 my.name=${your.name}
-
 
 ![screenshot](https://github.com/ontologyportal/SUMOjEdit/raw/master/screenshot.jpeg)
 ![screenshot](https://github.com/ontologyportal/SUMOjEdit/raw/master/screenshot-tp.jpeg)

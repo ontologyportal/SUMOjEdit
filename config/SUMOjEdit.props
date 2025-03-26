@@ -35,7 +35,10 @@ plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.depend.0=jedit 05.05.99.00
 plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.depend.1=jdk 11
 plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.depend.2=plugin errorlist.ErrorListPlugin 2.4.0
 
-# plugin menu - a list of actions or separators
+# View plugin single menu item (not used)
+#plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.menu-item=
+
+# View plugin sub-menu - a list of actions or separators
 plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.menu=\
   sumojedit.browse-term \
   sumojedit.check-errors \
@@ -53,9 +56,6 @@ plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.menu=\
   sumojedit.from-tptp \
   sumojedit.to-tptp
 
-# action labels for actions supplied by dockables.xml
-#sumojedit.label=SUMOjEdit
-
 # action labels for actions supplied by actions.xml
 sumojedit.show-stats.label=show statistics for buffer
 sumojedit.check-errors.label=check for syntax errors
@@ -70,13 +70,37 @@ sumojedit.query-exp.label=query on highlighted expression
 sumojedit.to-tptp.label=SUO-KIF to TPTP
 sumojedit.from-tptp.label=SUO-KIF from TPTP
 
-# plugin option pane
+# File system browser single menu item (not used)
+#plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.browser-menu-item=
+
+# File system browser sub-menu (not used)
+#plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.browser-menu=\
+#  sumojedit.browse-term \
+#  sumojedit.check-errors \
+#  sumojedit.format-select \
+#  sumojedit.goto-defn \
+#  sumojedit.query-exp \
+#  sumojedit.show-stats \
+#  - \
+#  sumojedit.setFOF \
+#  sumojedit.setTFF \
+#  - \
+#  sumojedit.chooseE \
+#  sumojedit.chooseVamp \
+#  - \
+#  sumojedit.from-tptp \
+#  sumojedit.to-tptp
+
+# action labels for actions supplied by dockables.xml (not used)
+#sumojedit.label=SUMOjEdit
+
+# plugin option pane (not used)
 #plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.option-pane=sumojedit
 
-# Option pane activation BeanShell snippet
+# Option pane activation BeanShell snippet (not used)
 #options.sumojedit.code=new SUMOjEditPluginOptionPane();
 
-# Option pane labels
+# Option pane labels (not used)
 #options.sumojedit.label=SUMOjEdit
 #options.sumojedit.file=File:
 #options.sumojedit.choose-file=Choose
@@ -84,19 +108,19 @@ sumojedit.from-tptp.label=SUO-KIF from TPTP
 #options.sumojedit.choose-font=Font:
 #options.sumojedit.show-filepath.title=Display file path
 
-# window title
+# window title (not used)
 #sumojedit.title=SUMOjEdit
 
 # window toolbar buttons
 # none
 
-# default settings
+# default settings (not used)
 #options.SUMOjEdit.show-filepath=true
 #options.SUMOjEdit.font=Monospaced
 #options.SUMOjEdit.fontstyle=0
 #options.SUMOjEdit.fontsize=14
 
-# Setting not defined but supplied for completeness
+# Setting not defined but supplied for completeness (not used)
 #options.sumojedit.filepath=
 
 # dependencies (not used)
