@@ -29,7 +29,7 @@ public class SUMOjEditTest extends Assert {
     public void beforeTest() {
 
         sje = new SUMOjEdit();
-        
+
         // Allow jEdit to start while the KBs are loading
         ((SUMOjEdit)sje).startThread(((SUMOjEdit)sje), "KB init");
     }
@@ -40,9 +40,9 @@ public class SUMOjEditTest extends Assert {
     }
 
     @Test // Will exercise SigmaAntlr parser
-    public void testDiagnostics() {
+    public void testCheckErrorsBody() {
 
-        System.out.println("============= SUMOjEditTest.testDiagnostics ==================");
+        System.out.println("============= SUMOjEditTest.testCheckErrorsBody ==================");
         String contents = String.join("\n", FileUtil.readLines(test, false));
         sje.checkErrorsBody(contents, test);
 
