@@ -28,8 +28,10 @@ public class SUMOjEditTest extends Assert {
     @Before
     public void beforeTest() {
 
-        // This will call KBmanager.getMgr().initializeOnce()
-        sje = new SUMOjEdit(null);
+        sje = new SUMOjEdit();
+        
+        // Allow jEdit to start while the KBs are loading
+        ((SUMOjEdit)sje).startThread(((SUMOjEdit)sje), "KB init");
     }
 
     @After
