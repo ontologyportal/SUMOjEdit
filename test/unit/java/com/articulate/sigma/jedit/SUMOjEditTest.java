@@ -1,5 +1,6 @@
 package com.articulate.sigma.jedit;
 
+import com.articulate.sigma.trans.SUMOtoTFAform;
 import com.articulate.sigma.utils.FileUtil;
 
 import errorlist.ErrorSource;
@@ -22,6 +23,7 @@ public class SUMOjEditTest extends Assert {
     @BeforeClass
     public static void beforeClass() {
 
+        SUMOtoTFAform.initOnce();
         test = System.getenv("ONTOLOGYPORTAL_GIT") + "/SUMOjEdit/test/unit/java/resources/test";
     }
 
@@ -29,9 +31,8 @@ public class SUMOjEditTest extends Assert {
     public void beforeTest() {
 
         sje = new SUMOjEdit();
-
-        // Allow jEdit to start while the KBs are loading
-        ((SUMOjEdit)sje).startThread(((SUMOjEdit)sje), "KB init");
+        sje.kb = SUMOtoTFAform.kb;
+        sje.fp = SUMOtoTFAform.fp;
     }
 
     @After

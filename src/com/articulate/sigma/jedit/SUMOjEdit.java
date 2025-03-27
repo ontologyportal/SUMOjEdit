@@ -41,7 +41,6 @@ import org.gjt.sp.jedit.msg.EditPaneUpdate;
 import org.gjt.sp.jedit.msg.EditorExiting;
 import org.gjt.sp.jedit.msg.VFSUpdate;
 import org.gjt.sp.jedit.msg.ViewUpdate;
-import org.gjt.sp.jedit.textarea.JEditTextArea;
 import org.gjt.sp.util.Log;
 
 import tptp_parser.*;
@@ -59,8 +58,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
     private final DefaultErrorSource.DefaultError dw;
     private final DefaultErrorSource.DefaultError de;
 
-    private FormulaPreprocessor fp;
-    private KB kb;
+    protected FormulaPreprocessor fp;
+    protected KB kb;
     private View view;
 
     boolean kbsInitialized;
@@ -515,18 +514,28 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
 
     /**
      * ***************************************************************
-     * Clear warnings and errors from the KIF instance
+     * Clears the KIF instance collections to include warnings and errors
      */
-    private void clearKifWarnAndErr() {
+    private void clearKif() {
 
-        kif.warningSet.clear();
         kif.errorSet.clear();
+        kif.filename = "";
+        kif.formulaMap.clear();
+        kif.formulas.clear();
+        kif.formulasOrdered.clear();
+        kif.termFrequency.clear();
+        kif.terms.clear();
+        kif.warningSet.clear();
     }
 
     private void clearErrors() {
 
-        clearKifWarnAndErr();
+        clearKif();
         KButilities.clearErrors();
+        kb.errors.clear();
+        kb.warnings.clear();
+        FormulaPreprocessor.errors.clear();
+        SUMOtoTFAform.errors.clear();
     }
 
     @Override
@@ -655,7 +664,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
             SuokifVisitor sv;
             int line, offset;
             for (Formula f : kif.formulaMap.values()) {
-                Log.log(Log.MESSAGE, this, ":checkErrorsBody(): check formula: " + f);
+                Log.log(Log.MESSAGE, this, ":checkErrorsBody(): check formula:\n " + f);
                 counter++;
                 if (counter > 1000) {
                     Log.log(Log.NOTICE, this, ".");
@@ -760,13 +769,13 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
     public void toTPTP() {
 
         Log.log(Log.MESSAGE, this, ":toTPTP(): starting");
-        //Log.log(Log.WARNING,this,"toTPTP Formula.isHigherOrder(): kb: " + kb);
-
         kif.filename = this.view.getBuffer().getPath();
         String contents = view.getEditPane().getTextArea().getText();
+        String selected = view.getEditPane().getTextArea().getSelectedText();
+        if (!StringUtil.emptyString(selected))
+            contents = selected;
         StringBuilder sb = new StringBuilder();
-        //kif.filename = "/home/apease/workspace/sumo/Merge.kif";
-        try (StringReader r = new StringReader(contents)) {
+        try (Reader r = new StringReader(contents)) {
             kif.parse(r);
             //Log.log(Log.WARNING,this,"toTPTP(): done reading kif file");
             java.util.List<Formula> ordered = kif.lexicalOrder();
@@ -784,24 +793,22 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
                 //	Log.log(Log.WARNING,this,"toTPTP Formula.isHigherOrder(): pred var cache: " + f.predVarCache);
                 if (f.isHigherOrder(kb) || (f.predVarCache != null && !f.predVarCache.isEmpty()))
                     continue;
-                tptpStr = "fof(kb_" + f.getSourceFile() + "_" + f.startLine + ",axiom," + SUMOformulaToTPTPformula.process(f, false) + ").";
+                tptpStr = "fof(f4434,axiom," + SUMOformulaToTPTPformula.process(f, false) + ",[file('kb_" + f.getSourceFile() + "_" + f.startLine + "',unknown)]).";
                 //Log.log(Log.WARNING,this,"toTPTP(): formatted as TPTP: " + tptpStr);
                 sv = new TPTPVisitor();
                 sv.parseString(tptpStr);
                 hm = sv.result;
-                for (String s : hm.keySet()) {
+                for (String s : hm.keySet())
                     sb.append(hm.get(s).formula).append("\n\n");
-                }
             }
             jEdit.newFile(view);
             view.getTextArea().setText(sb.toString());
         } catch (Exception e) {
-            Log.log(Log.ERROR, this, ":toTPTP()", e);
+            if (log)
+                Log.log(Log.ERROR, this, ":toTPTP()", e);
             try (Writer sw = new StringWriter();
                 PrintWriter pw = new PrintWriter(sw)) {
                 e.printStackTrace(pw);
-                if (log)
-                    Log.log(Log.ERROR, this, ":toTPTP(): error " + sw.toString());
                 de.addExtraMessage("error loading kif file with " + contents.length() + " characters ");
             } catch (IOException ex) {}
         } finally {
@@ -820,26 +827,26 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
         String path = view.getBuffer().getPath();
         try {
             TPTPVisitor sv = new TPTPVisitor();
-            sv.parseFile(path);
+            if (new File(path).exists())
+                sv.parseFile(path);
+            else
+                sv.parseString(contents);
             Map<String, TPTPFormula> hm = sv.result;
             jEdit.newFile(view);
             StringBuilder result = new StringBuilder();
-            for (String s : hm.keySet()) {
+            for (String s : hm.keySet())
                 result.append(hm.get(s).formula).append("\n\n");
-            }
             view.getTextArea().setText(result.toString());
-            if (StringUtil.emptyString(result)) {
+            if (StringUtil.emptyString(result))
                 Log.log(Log.WARNING, this, ":fromTPTP(): empty result");
-            } else {
+            else
                 Log.log(Log.MESSAGE, this, ":fromTPTP(): result.length: " + result.length());
-            }
         } catch (Exception e) {
-            Log.log(Log.ERROR, this, ":fromTPTP()", e);
+            if (log)
+                Log.log(Log.ERROR, this, ":fromTPTP()", e);
             try (Writer sw = new StringWriter();
                 PrintWriter pw = new PrintWriter(sw)) {
                 e.printStackTrace(pw);
-                if (log)
-                    Log.log(Log.ERROR, this, ":fromTPTP(): error " + sw.toString());
                 de.addExtraMessage("error loading kif file with " + contents.length() + " characters ");
             } catch (IOException ex) {}
         } finally {
