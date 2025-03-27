@@ -58,7 +58,7 @@ plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.menu=\
 
 # action labels for actions supplied by actions.xml
 sumojedit.show-stats.label=show statistics for buffer
-sumojedit.check-errors.label=check for syntax errors
+sumojedit.check-errors.label=check for SUO-KIF errors
 sumojedit.format-select.label=format axioms
 sumojedit.goto-defn.label=go to definition
 sumojedit.browse-term.label=browse term in Sigma
