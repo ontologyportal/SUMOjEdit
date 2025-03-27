@@ -41,7 +41,6 @@ import org.gjt.sp.jedit.msg.EditPaneUpdate;
 import org.gjt.sp.jedit.msg.EditorExiting;
 import org.gjt.sp.jedit.msg.VFSUpdate;
 import org.gjt.sp.jedit.msg.ViewUpdate;
-import org.gjt.sp.jedit.textarea.JEditTextArea;
 import org.gjt.sp.util.Log;
 
 import tptp_parser.*;
@@ -59,8 +58,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
     private final DefaultErrorSource.DefaultError dw;
     private final DefaultErrorSource.DefaultError de;
 
-    private FormulaPreprocessor fp;
-    private KB kb;
+    protected FormulaPreprocessor fp;
+    protected KB kb;
     private View view;
 
     boolean kbsInitialized;
