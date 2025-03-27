@@ -664,7 +664,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
             SuokifVisitor sv;
             int line, offset;
             for (Formula f : kif.formulaMap.values()) {
-                Log.log(Log.MESSAGE, this, ":checkErrorsBody(): check formula: " + f);
+                Log.log(Log.MESSAGE, this, ":checkErrorsBody(): check formula:\n " + f);
                 counter++;
                 if (counter > 1000) {
                     Log.log(Log.NOTICE, this, ".");
