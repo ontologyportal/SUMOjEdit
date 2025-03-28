@@ -85,7 +85,7 @@ cd $HOME
 echo "# SUMOjEdit" >> .bashrc
 echo "export JEDIT_HOME=/home/myname/.jedit" >> .bashrc
 echo "export JEDIT_JAR=/usr/share/jedit/jedit.jar" >> .bashrc
-echo "alias jedit=java -Xmx10g -Xss1m -jar \$JEDIT_JAR" >> .bashrc
+echo "alias jedit=\"java -Xmx10g -Xss1m -jar \$JEDIT_JAR\"" >> .bashrc
 ```
 - This can also be performed by executing the following on the command line in\
   the SUMOjEdit directory.
@@ -126,7 +126,7 @@ cd $HOME
 echo "# SUMOjEdit" >> .zshrc
 echo "export JEDIT_HOME=~/Library/jEdit" >> .zshrc
 echo "export JEDIT_JAR=/Applications/jEdit.app/Contents/Java/jedit.jar" >> .zshrc
-echo "alias jedit=java -Xmx10g -Xss1m -jar \$JEDIT_JAR" >> .zshrc
+echo "alias jedit=\"java -Xmx10g -Xss1m -jar \$JEDIT_JAR\"" >> .zshrc
 ```
 Or just execute:
 ```sh
