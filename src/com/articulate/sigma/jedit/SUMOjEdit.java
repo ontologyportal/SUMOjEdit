@@ -489,6 +489,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
             errsrc.addError(ErrorSource.WARNING, path, 1, 0, 0, msg);
             if (log)
                 Log.log(Log.WARNING, this, "formatSelectBody(contents): " + msg);
+            return null; // user fix before continuing
         }
         kif.filename = this.view.getBuffer().getPath();
         try (StringReader r = new StringReader(contents)) {
