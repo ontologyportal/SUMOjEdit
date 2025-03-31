@@ -113,6 +113,7 @@
         <copy todir="${build.home}/classes" file="config/actions.xml"/>
         <copy todir="${build.home}/classes" file="README.txt"/>
         <copy todir="${build.home}/classes" file="index.html"/>
+        <copy todir="${build.home}/classes" file="screenshot-errorlist-options.png"/>
         <copy todir="${build.home}/classes" file="toc.xml"/>
     </target>
 
@@ -183,7 +184,7 @@
 # SUMOjEdit
 export JEDIT_HOME=~/.jedit
 export JEDIT_JAR=/usr/share/jedit/jedit.jar
-alias jedit=java -Xmx10g -Xss1m -jar $JEDIT_JAR
+alias jedit="java -Xmx10g -Xss1m -jar $JEDIT_JAR"
 </echo>
     </target>
 
@@ -192,7 +193,7 @@ alias jedit=java -Xmx10g -Xss1m -jar $JEDIT_JAR
 # SUMOjEdit
 export JEDIT_HOME=~/Library/jEdit
 export JEDIT_JAR=/Applications/jEdit.app/Contents/Java/jedit.jar
-alias jedit=java -Xmx10g -Xss1m -jar $JEDIT_JAR
+alias jedit="java -Xmx10g -Xss1m -jar $JEDIT_JAR"
 </echo>
     </target>
 
