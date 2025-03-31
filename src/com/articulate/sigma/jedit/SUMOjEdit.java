@@ -338,12 +338,12 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
     private int getLineNum(String line) {
 
         int result = 0;
-        Pattern p = Pattern.compile("line (\\d+)");
+        Pattern p = Pattern.compile("line(:?) (\\d+)");
         Matcher m = p.matcher(line);
         if (m.find()) {
 //            Log.log(Log.MESSAGE, this, ":getLineNum(): found line number: " + m.group(1));
             try {
-                result = Integer.parseInt(m.group(1));
+                result = Integer.parseInt(m.group(2));
             } catch (NumberFormatException nfe) {}
         }
         if (result == 0) {
@@ -363,6 +363,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
 
     /**
      * ***************************************************************
+     * sigmaAntlr generates line offsets
      * @return the line offset of where the error/warning begins
      */
     private int getOffset(String line) {
