@@ -503,7 +503,6 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
                 if (log)
                     Log.log(Log.ERROR, this, ":formatSelect(): error loading kif file: "
                         + kif.errorSet);
-                return null; // user fix before continuing
             }
         }
         Log.log(Log.MESSAGE, this, ":formatSelect(): done reading kif file");
@@ -712,10 +711,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
             String msg = "error loading kif file: " + path + " with " + contents.length() + " characters";
             errsrc.addError( ErrorSource.ERROR, kif.filename, 1, 0, 0, msg);
         } finally {
-            if (!kif.warningSet.isEmpty() || !kif.errorSet.isEmpty()) {
-                logKifWarnAndErr();
-                return; // user fix before continuing
-            }
+            logKifWarnAndErr();
         }
 
         Log.log(Log.MESSAGE, this, ":checkErrorsBody(): success loading kif file with " + contents.length() + " characters");
@@ -745,7 +741,6 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
                         offset = getOffset(er);
                         errsrc.addError(ErrorSource.ERROR, kif.filename, line == 0 ? line : line-1, offset, offset+1, er);
                     }
-                    return; // user fix before continuing
                 }
                 //Log.log(Log.WARNING,this,"checking formula " + f.toString());
                 if (Diagnostics.quantifierNotInStatement(f))
