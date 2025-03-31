@@ -121,7 +121,8 @@
                     <ul class="itemizedlist" type="disc">
                         <li class="listitem">
                             <p><span class="guilabel"><strong>Startup SUMOjEdit</strong></span> - and wait a couple of minutes since
-                                it loads all the kif files specified in your Sigma config.xml, all of WordNet, VerbNet, etc.</p>
+                                it loads all the kif files specified in your Sigma config.xml, all of WordNet, VerbNet, etc.
+                                You may begin to use the editor even though plugin features will be disabled until this finishes.</p>
                         </li>
                         <li class="listitem">
                             <p><span class="guilabel"><strong>Choose a KIF or TPTP file</strong></span> -
@@ -132,8 +133,8 @@
                                 default SUMOjEdit file for future sessions.</p>
                         </li>
                         <li class="listitem">
-                            <p><span class="guilabel"><strong>SUMOjEdit plugin</strong></span> - Go to Plugins->SUMOjEdit Plugin->check for syntax errors.
-                            You can also highlight a SUO-KIF expression from Plugins->SUMOjEdit Plugin->query on highlighted expression.
+                            <p><span class="guilabel"><strong>SUMOjEdit plugin</strong></span> - Go to Plugins->SUMOjEdit Plugin->check for SUO-KIF errors.
+                            You can also highlight a SUO-KIF expression, then Plugins->SUMOjEdit Plugin->query on highlighted expression.
                             If you have Vampire installed and it finds a proof, a new buffer will be opened to display the proof.
                             It should work with Eprover too, but needs testing.</p>
                         </li>
@@ -146,7 +147,8 @@
                         </li>
                         <li class="listitem">
                             <p><span class="guilabel"><strong>Activity log</strong></span> - it's good to monitor SUMOjEdit from jEdit's
-                            activity log by Utilities->Troubleshooting->Activity Log. When the dialog is open, select tail to get continuous updates</p>
+                            activity log by Utilities->Troubleshooting->Activity Log. When the dialog is open, select tail to get continuous updates.
+                            Dock the dialog to the base area of jEdit to monitor continuously.</p>
                         </li>
                     </ul>
                 </div>
@@ -163,11 +165,16 @@
                     <ul class="itemizedlist" type="disc">
                         <li class="listitem">
                             <p>You may wish to customize by right clicking in the editor and selecting "Customize This Menu,"
-                            select the "Context Menu" under jedit, then the '+' symbol. First, add a seperator, then select
+                            select the "Context Menu" under jEdit, then the '+' symbol. First, add a seperator, then select
                             "Plugin: SUMOjEdit Plugin" from the Command or macro: dialog menu and add "format axioms",
                             "go to definition" and "query on highlighted expressions", which are handy to have on the context
                             menu as well as the main plugin menu. In later versions this may already be performed as part of
                             the configuration, but for now you'll need to add the menu items manually.</p>
+                        </li>
+                        <li class="listitem">
+                            Select the ErrorList from Plugins and dock the dialog to the base of jEdit.
+                            From the Plugin Manager, select ErrorList and select all available features.
+                            <img src="screenshot-errorlist-options.png" alt="errorlist options" width="400" height="300">
                         </li>
                         <li class="listitem">
                             <p>Install the EditorScheme plugin with Plugins->PluginManager->Install-EditorScheme then

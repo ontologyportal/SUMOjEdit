@@ -113,6 +113,7 @@
         <copy todir="${build.home}/classes" file="config/actions.xml"/>
         <copy todir="${build.home}/classes" file="README.txt"/>
         <copy todir="${build.home}/classes" file="index.html"/>
+        <copy todir="${build.home}/classes" file="screenshot-errorlist-options.png"/>
         <copy todir="${build.home}/classes" file="toc.xml"/>
     </target>
 

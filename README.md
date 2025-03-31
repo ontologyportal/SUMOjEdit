@@ -155,28 +155,32 @@ Use the Add Mode tab to
 
 ## Execution
 =============================
-- startup jEdit (and wait a couple of minutes since it loads all the kif files specified in your Sigma \
-  config.xml, all of WordNet, VerbNet, etc.)
+- startup jEdit and wait a moment since it loads all the kif files specified in your Sigma \
+  config.xml, all of WordNet, VerbNet, etc. You may begin to use the editor even though\
+  plugin features will be disabled until this finishes.
 - load a .kif or .tptp file
-- go to Plugins->SUMOjEdit Plugin->check for syntax errors
-- you can also highlight a SUO-KIF expression from Plugins->SUMOjEdit Plugin->query on highlighted expression.\
+- go to Plugins->SUMOjEdit Plugin->check for SUO-KIF errors
+- you can also highlight a SUO-KIF expression, then Plugins->SUMOjEdit Plugin->query on highlighted expression.\
   If you have Vampire installed and it finds a proof, a new buffer will be opened to display the proof.\
   It should work with Eprover too, but needs testing.
 - other functions are "format axioms" which will reformat a highlighted axiom with standard SUMO indentation.\
   "go to definition" will make a guess at where the definition for a selected term starts and put the cursor \
   at that point in the file.\
   "browse term in Sigma" will open the public Sigma site in your browser opened on the selected term.
-- Activity log - it's good to monitor SUMOjEdit from jEdit's activity log by selectingUtilities->Troubleshooting->Activity Log.
-  When the dialog is open, select tail to get continuous updates
+- Activity log - it's good to monitor SUMOjEdit from jEdit's activity log by selectingUtilities->Troubleshooting->Activity Log.\
+  When the dialog is open, select tail to get continuous updates. Dock the dialog to the base area of jEdit to monitor continuously.
 
 ## Customization
 =============================
 - you may wish to customize by right clicking in the editor and selecting "Customize This Menu,"\
-select the "Context Menu" under jedit, then the '+' symbol. First, add a seperator, then select\
+select the "Context Menu" under jEdit, then the '+' symbol. First, add a seperator, then select\
 "Plugin: SUMOjEdit Plugin" from the Command or macro: dialog menu and add "format axioms",\
 "go to definition" and "query on highlighted expressions", which are handy to have on the context\
 menu as well as the main plugin menu. In later versions this may already be performed as part of\
 the configuration, but for now you'll need to add the menu items manually.
+- select the ErrorList from Plugins and dock the dialog to the base of jEdit.\
+From the Plugin Manager, select ErrorList and select all available features.
+- ![screenshot](https://github.com/ontologyportal/SUMOjEdit/raw/master/screenshot-errorlist-options.png)
 - install the EditorScheme plugin with Plugins->PluginManager->Install-EditorScheme then\
 Plugins-EditorScheme->SchemeSelector. I like the Neon theme as the best "Dark mode" option
 - if you have a small screen or imperfect eyes you may wish to adjust the font size with\
