@@ -2,6 +2,7 @@ package com.articulate.sigma.jedit;
 
 import com.articulate.sigma.trans.SUMOtoTFAform;
 import com.articulate.sigma.utils.FileUtil;
+import errorlist.DefaultErrorSource;
 
 import errorlist.ErrorSource;
 
@@ -33,10 +34,14 @@ public class SUMOjEditTest extends Assert {
         sje = new SUMOjEdit();
         sje.kb = SUMOtoTFAform.kb;
         sje.fp = SUMOtoTFAform.fp;
+        sje.errsrc = new DefaultErrorSource(sje.getClass().getName(), null);
+        ErrorSource.registerErrorSource(sje.errsrc);
+        sje.kif.filename = test;
     }
 
     @After
     public void afterTest() {
+        ErrorSource.unregisterErrorSource(sje.errsrc);
         sje = null;
     }
 
@@ -45,13 +50,12 @@ public class SUMOjEditTest extends Assert {
 
         System.out.println("============= SUMOjEditTest.testCheckErrorsBody ==================");
         String contents = String.join("\n", FileUtil.readLines(test, false));
-        sje.checkErrorsBody(contents, test);
+        sje.checkErrorsBody(contents);
 
         ErrorSource[] errsrcs = ErrorSource.getErrorSources();
         assertTrue(errsrcs.length > 0);
 
-        ErrorSource errsrc = errsrcs[0];
-        String msg = errsrc.getAllErrors()[0].getErrorMessage();
+        String msg = errsrcs[0].getFileErrors(test)[2].getErrorMessage();
         assertTrue(msg.contains("mismatched input ')'"));
     }
 
