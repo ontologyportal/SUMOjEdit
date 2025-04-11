@@ -59,20 +59,18 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
 
     public static boolean log = true;
 
-    protected FormulaPreprocessor fp;
     protected KB kb;
-
-    private final KIF kif;
-
-    private DefaultErrorSource errsrc;
-
-    // Not currently used, but good framework to have
-    private DefaultErrorSource.DefaultError dw;
+    protected FormulaPreprocessor fp;
+    protected DefaultErrorSource errsrc;
+    protected final KIF kif;
 
     // Not currently used, but good framework to have
     private DefaultErrorSource.DefaultError de;
-    private View view;
+
+    // Not currently used, but good framework to have
+    private DefaultErrorSource.DefaultError dw;
     private boolean kbsInitialized;
+    private View view;
 
     /**
      * ***************************************************************
@@ -573,7 +571,9 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
      */
     private FileSpec findDefn(String term) {
 
-        kif.filename = view.getBuffer().getPath();
+        if (StringUtil.emptyString(kif.filename))
+            kif.filename = view.getBuffer().getPath();
+
         String currentFName = FileUtil.noPath(kif.filename);
         java.util.List<Formula> forms = kb.askWithRestriction(0, "instance", 1, term);
         if (forms != null && !forms.isEmpty())
@@ -625,7 +625,9 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
         if (!checkEditorContents(contents, "Please fully highlight a term for definition"))
             return;
 
-        kif.filename = view.getBuffer().getPath();
+        if (StringUtil.emptyString(kif.filename))
+            kif.filename = view.getBuffer().getPath();
+
         String currentFName = FileUtil.noPath(kif.filename);
         if (!StringUtil.emptyString(contents) && Formula.atom(contents)
                 && kb.terms.contains(contents)) {
@@ -660,8 +662,9 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
             return null;
         if (!parseKif(contents))
             return null;
+        if (StringUtil.emptyString(kif.filename))
+            kif.filename = view.getBuffer().getPath();
 
-        kif.filename = view.getBuffer().getPath();
         StringBuilder result = new StringBuilder();
         for (Formula f : kif.formulasOrdered.values())
             result.append(f);
@@ -768,7 +771,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
 
         clearWarnAndErr();
         Log.log(Log.MESSAGE, this, ":showStats(): starting");
-        kif.filename = view.getBuffer().getPath();
+        if (StringUtil.emptyString(kif.filename))
+            kif.filename = view.getBuffer().getPath();
         String contents = view.getEditPane().getTextArea().getText();
         if (!parseKif(contents))
             return;
@@ -844,7 +848,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
 
         clearWarnAndErr();
         Log.log(Log.MESSAGE, this, ":checkErrors(): starting");
-        kif.filename = view.getBuffer().getPath();
+        if (StringUtil.emptyString(kif.filename))
+            kif.filename = view.getBuffer().getPath();
         String contents = view.getEditPane().getTextArea().getText();
 
         Runnable r = () -> {
@@ -1011,7 +1016,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
 
         clearWarnAndErr();
         Log.log(Log.MESSAGE, this, ":toTPTP(): starting");
-        kif.filename = view.getBuffer().getPath();
+        if (StringUtil.emptyString(kif.filename))
+            kif.filename = view.getBuffer().getPath();
         String contents = view.getEditPane().getTextArea().getText();
 
         if (!parseKif(contents))
@@ -1069,7 +1075,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
         String selected = view.getEditPane().getTextArea().getSelectedText();
         if (!StringUtil.emptyString(selected))
             contents = selected;
-        kif.filename = view.getBuffer().getPath();
+        if (StringUtil.emptyString(kif.filename))
+            kif.filename = view.getBuffer().getPath();
         try {
             TPTPVisitor sv = new TPTPVisitor();
             if (new File(kif.filename).exists())
@@ -1128,6 +1135,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
             sje = new SUMOjEdit();
             kb = sje.kb = SUMOtoTFAform.kb;
             sje.fp = SUMOtoTFAform.fp;
+            sje.errsrc = new DefaultErrorSource(sje.getClass().getName(), null);
+            ErrorSource.registerErrorSource(sje.errsrc);
         }
 
         if (args != null && args.length > 1 && args[0].equals("-d")) {
