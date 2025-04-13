@@ -26,6 +26,8 @@ import com.articulate.sigma.tp.*;
 import com.articulate.sigma.trans.*;
 import com.articulate.sigma.utils.*;
 
+import com.google.common.io.Files;
+
 import errorlist.DefaultErrorSource;
 import errorlist.ErrorListPanel;
 import errorlist.ErrorSource;
@@ -42,31 +44,29 @@ import org.gjt.sp.jedit.gui.RolloverButton;
 import org.gjt.sp.jedit.io.VFSManager;
 import org.gjt.sp.jedit.msg.BufferUpdate;
 import org.gjt.sp.jedit.msg.EditPaneUpdate;
-import org.gjt.sp.jedit.msg.EditorExiting;
-import org.gjt.sp.jedit.msg.VFSUpdate;
-import org.gjt.sp.jedit.msg.ViewUpdate;
 import org.gjt.sp.util.Log;
 
 import tptp_parser.*;
 
 /**
  * ***************************************************************
- *
+ * A SUO-KIF editor and error checker
  */
 public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
 
     public static boolean log = true;
 
-    protected FormulaPreprocessor fp;
+    protected final KIF kif;
     protected KB kb;
+    protected FormulaPreprocessor fp;
+    protected DefaultErrorSource errsrc;
 
-    private final KIF kif;
-
-    private DefaultErrorSource errsrc;
-    private DefaultErrorSource.DefaultError dw;
+    // These DefaultErrors are not currently used, but good framework to have
+    // in case of extra messages
     private DefaultErrorSource.DefaultError de;
+    private DefaultErrorSource.DefaultError dw;
+
     private View view;
-    private boolean kbsInitialized;
 
     /**
      * ***************************************************************
@@ -74,27 +74,11 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
      */
     public SUMOjEdit() {
 
-        kbsInitialized = false;
-
         Log.log(Log.MESSAGE, SUMOjEdit.this, ": SUMOKBtoTPTPKB.rapidParsing==" + SUMOKBtoTPTPKB.rapidParsing);
         Log.log(Log.MESSAGE, SUMOjEdit.this, ": initializing");
 
         kif = new KIF();
         kif.filename = "";
-    }
-
-    /**
-     * ***************************************************************
-     * Starts the given named Runnable
-     * @param r the Runnable to start
-     * @param desc a short description to give the Thread instance
-     */
-    public void startThread(Runnable r, String desc) {
-
-        Thread t = new Thread(r);
-        t.setName(SUMOjEdit.class.getSimpleName() + ": " + desc);
-        t.setDaemon(true);
-        t.start();
     }
 
     /* Starts the KB initialization process for UI use only. Must only be
@@ -111,31 +95,112 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
                 Thread.sleep(50L);
             } catch (InterruptedException ex) {System.err.println(ex);}
         while (view == null);
-        view.getJMenuBar().getSubElements()[8].menuSelectionChanged(true); // toggle the Plugins menu to populate all Plugin items
+        view.getJMenuBar().getSubElements()[8].menuSelectionChanged(true); // force population of all Plugin items
+        togglePluginMenus(false);
+        SUMOtoTFAform.initOnce(); // will first initialize the KB
+        view.getJMenuBar().getSubElements()[8].menuSelectionChanged(false);
+        kb = SUMOtoTFAform.kb;
+        fp = SUMOtoTFAform.fp;
+        errsrc = new DefaultErrorSource(getClass().getName(), this.view);
+        processLoadedKifOrTptp();
+        Log.log(Log.MESSAGE, SUMOjEdit.this, ": kb: " + kb);
+    }
 
-        // Disable the plugin's menus
+    /**
+     * ***************************************************************
+     * Handles the UI while a KIF or TPTP file is being processed
+     */
+    private void processLoadedKifOrTptp() {
+
+        Runnable r = () -> {
+            boolean isKif = Files.getFileExtension(view.getBuffer().getPath()).equalsIgnoreCase("kif");
+            boolean isTptp = Files.getFileExtension(view.getBuffer().getPath()).equalsIgnoreCase("tptp");
+            if (isKif || isTptp) {
+                togglePluginMenus(true);
+                ErrorSource.registerErrorSource(errsrc);
+                if (isKif) {
+                    kif.filename = view.getBuffer().getPath();
+                    if (!kb.constituents.contains(kif.filename) /*&& !KBmanager.getMgr().infFileOld()*/) {
+                        tellTheKbAboutLoadedKif(); // loads a new kif into the KB
+                        checkErrors();
+                        // TODO: remove loaded KIF from KB?
+                    }
+                }
+            } else {
+                togglePluginMenus(false);
+                clearWarnAndErr();
+                unload();
+            }
+        };
+        KButilities.EXECUTOR_SERVICE.submit(r);
+    }
+
+    /**
+     * ***************************************************************
+     * Disables the SUMOjEdit menu items during processing of KIF or TPTP.
+     * Re-enables post processing. Thread safe
+     */
+    private void togglePluginMenus(boolean enabled) {
+
         // Top view menu bar / Enhanced menu item / Plugins menu / SUMOjEdit plugin menu
-        view.getJMenuBar().getSubElements()[8].getSubElements()[0].getSubElements()[3].getComponent().setEnabled(kbsInitialized);
+        view.getJMenuBar().getSubElements()[8].getSubElements()[0].getSubElements()[3].getComponent().setEnabled(enabled);
 
         // Now, the right click context menu of the editor's text area in the case of customized SUMOjEdit actions
-        view.getEditPane().getTextArea().setRightClickPopupEnabled(kbsInitialized);
+        view.getEditPane().getTextArea().setRightClickPopupEnabled(enabled);
+    }
 
-        // Will first initialize the KB
-        SUMOtoTFAform.initOnce();
-        kb = SUMOtoTFAform.kb;
-        kbsInitialized = (kb != null);
-        view.getJMenuBar().getSubElements()[8].menuSelectionChanged(false);
+    /**
+     * ***************************************************************
+     * Adds a loaded KIF as a constituent to the KB so that all terms
+     * can be recognized. If constituent already loaded, will just
+     * return.
+     */
+    private void tellTheKbAboutLoadedKif() {
 
-        // Now, re-enable the plugin's menus
-        view.getJMenuBar().getSubElements()[8].getSubElements()[0].getSubElements()[3].getComponent().setEnabled(kbsInitialized);
-        view.getEditPane().getTextArea().setRightClickPopupEnabled(kbsInitialized);
+        long start = System.currentTimeMillis();
+        togglePluginMenus(false);
+        java.util.List<String> constituentsToAdd = new ArrayList<>();
+        File newKbFile = new File(kif.filename);
+        try {
+            constituentsToAdd.add(newKbFile.getCanonicalPath());
+        }
+        catch (IOException ioe) {
+            Log.log(Log.ERROR, this, ":tellTheKbAboutLoadedKif(): ", ioe);
+            errsrc.addError( ErrorSource.ERROR, kif.filename, 1, 0, 0, ioe.getMessage());
+            togglePluginMenus(true);
+            return;
+        }
 
-        fp = SUMOtoTFAform.fp;
-        Log.log(Log.MESSAGE, SUMOjEdit.this, ": kb: " + kb);
-
-        // Initialize error plugin sources
-        errsrc = new DefaultErrorSource(getClass().getName(), this.view);
-        errorlist.ErrorSource.registerErrorSource(errsrc);
+        // Patterns after KBmanager.kbsFromXML()
+        SimpleElement configuration = KBmanager.getMgr().readConfiguration(KButilities.SIGMA_HOME + File.separator + "KBs");
+        String kbName = null, filename;
+        boolean useCacheFile;
+        for (SimpleElement element : configuration.getChildElements()) {
+            if (element.getTagName().equals("kb")) {
+                kbName = element.getAttribute("name");
+                KBmanager.getMgr().addKB(kbName);
+                useCacheFile = KBmanager.getMgr().getPref("cache").equalsIgnoreCase("yes");
+                for (SimpleElement kbConst : element.getChildElements()) {
+                    if (!kbConst.getTagName().equals("constituent"))
+                        System.err.println("Error in KBmanager.kbsFromXML(): Bad tag: " + kbConst.getTagName());
+                    filename = kbConst.getAttribute("filename");
+                    if (!filename.startsWith((File.separator)))
+                        filename = KBmanager.getMgr().getPref("kbDir") + File.separator + filename;
+                    if (!StringUtil.emptyString(filename)) {
+                        if (KButilities.isCacheFile(filename)) {
+                            if (useCacheFile)
+                                constituentsToAdd.add(filename);
+                        }
+                        else
+                            constituentsToAdd.add(filename);
+                    }
+                }
+                KBmanager.getMgr().loadKB(kbName, constituentsToAdd);
+            }
+        }
+        kb = KBmanager.getMgr().getKB(kbName);
+        togglePluginMenus(true);
+        Log.log(Log.MESSAGE, this, ":tellTheKbAboutLoadedKif() took " + (System.currentTimeMillis() - start) + " m/s");
     }
 
     /**
@@ -148,68 +213,102 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
 
         if (msg instanceof BufferUpdate)
             bufferUpdate((BufferUpdate)msg);
-        else if (msg instanceof VFSUpdate)
-            vfsUpdate((VFSUpdate)msg);
-        else if (msg instanceof ViewUpdate)
-            viewUpdate((ViewUpdate)msg);
-        else if (msg instanceof EditorExiting)
-            editorExiting((EditorExiting)msg);
-        else if (msg instanceof EditPaneUpdate)
+//        if (msg instanceof EditorExiting)
+//            editorExiting((EditorExiting)msg);
+        if (msg instanceof EditPaneUpdate)
             editPaneUpdate((EditPaneUpdate)msg);
+//        if (msg instanceof VFSUpdate)
+//            vfsUpdate((VFSUpdate)msg);
+//        if (msg instanceof ViewUpdate)
+//            viewUpdate((ViewUpdate)msg);
     }
 
     /**
      * ***************************************************************
+     * Handler for BufferUpdate CLOSED and LOADED events
      */
     private void bufferUpdate(BufferUpdate bu) {
 
-        if (bu.getView() == view)
-            if (bu.getWhat() == BufferUpdate.DIRTY_CHANGED)
-                System.out.println("DIRTY_CHANGED"); // file saved, or changed
+        if (view == null) return;
+        if (bu.getView() == view) {
+//            if (bu.getWhat() == BufferUpdate.CLOSED)
+//                System.out.println("BufferUpdate.CLOSED");
+//            if (bu.getWhat() == BufferUpdate.CREATED)
+//                System.out.println("BufferUpdate.CREATED");
+//            if (bu.getWhat() == BufferUpdate.DIRTY_CHANGED)
+//                System.out.println("BufferUpdate.DIRTY_CHANGED");
+//            if (bu.getWhat() == BufferUpdate.LOADED)
+//                System.out.println("BufferUpdate.LOADED");
+//            if (bu.getWhat() == BufferUpdate.MARKERS_CHANGED)
+//                System.out.println("BufferUpdate.MARKERS_CHANGED");
+//            if (bu.getWhat() == BufferUpdate.PROPERTIES_CHANGED)
+//                System.out.println("BufferUpdate.PROPERTIES_CHANGED");
+            if (bu.getWhat() == BufferUpdate.SAVED) { // file saved
+//                System.out.println("BufferUpdate.SAVED");
+                processLoadedKifOrTptp();
+            }
+        }
     }
 
     /**
      * ***************************************************************
      */
-    private void vfsUpdate(VFSUpdate vu) {
-
-        System.out.println("VFS update"); // file saved
-    }
-
-    private void viewUpdate(ViewUpdate vu) {
-        if (vu.getView() == view)
-            if (vu.getWhat() == ViewUpdate.CLOSED)
-                System.out.println("ViewUpdate.CLOSED, unloading"); // file saved, or changed
-
-    }
-
-    /**
-     * ***************************************************************
-     */
-    private void editorExiting(EditorExiting ee) {
-
-        System.out.println("Editor exiting, unloading");
-        unload();
-    }
+//    private void editorExiting(EditorExiting ee) {
+//
+//        System.out.println(getClass().getName() + " exiting");
+//    }
 
     /**
      * ***************************************************************
      */
     private void editPaneUpdate(EditPaneUpdate eu) {
 
-        if (eu.getWhat() == EditPaneUpdate.BUFFERSET_CHANGED)
-            System.out.println("BUFFERSET_CHANGED");
-        else if (eu.getWhat() == EditPaneUpdate.BUFFER_CHANGED)
-            System.out.println("BUFFER_CHANGED"); // switching between files or panes and closing panes
+        if (view == null) return;
+//        if (eu.getWhat() == EditPaneUpdate.BUFFERSET_CHANGED)
+//            System.out.println("EditPaneUpdate.BUFFERSET_CHANGED");
+        if (eu.getWhat() == EditPaneUpdate.BUFFER_CHANGED) { // switching between files or panes and closing panes
+//            System.out.println("EditPaneUpdate.BUFFER_CHANGED");
+            processLoadedKifOrTptp();
+        }
+//        if (eu.getWhat() == EditPaneUpdate.CREATED)
+//            System.out.println("EditPaneUpdate.CREATED");
+        if (eu.getWhat() == EditPaneUpdate.DESTROYED) { // jEdit exit
+//            System.out.println("EditPaneUpdate.DESTROYED");
+            unload();
+        }
     }
 
     /**
      * ***************************************************************
-     * Clean up resources upon shutdown
+     * Clean up resources when not needed
      */
     private void unload() {
+
         ErrorSource.unregisterErrorSource(errsrc);
     }
+
+    /**
+     * ***************************************************************
+     */
+//    private void vfsUpdate(VFSUpdate vu) {
+//
+//        System.out.println("VFS update"); // file saved
+//    }
+
+//    private void viewUpdate(ViewUpdate vu) {
+//
+//        if (view == null) return;
+//        if (vu.getView() == view) {
+//            if (vu.getWhat() == ViewUpdate.ACTIVATED)
+//                System.out.println("ViewUpdate.ACTIVATED");
+//            if (vu.getWhat() == ViewUpdate.CREATED)
+//                System.out.println("ViewUpdate.CREATED");
+//            if (vu.getWhat() == ViewUpdate.CLOSED) // jEdit exit
+//                System.out.println("ViewUpdate.CLOSED");
+//            if (vu.getWhat() == ViewUpdate.EDIT_PANE_CHANGED)
+//                System.out.println("ViewUpdate.EDIT_PANE_CHANGED");
+//        }
+//    }
 
     @Override
     public void setFOF() {
@@ -280,43 +379,53 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
     public void queryExp() {
 
         String contents = view.getEditPane().getTextArea().getSelectedText();
-        Log.log(Log.MESSAGE, this, ":queryExp(): query with: " + contents);
-        System.out.println("queryExp(): query with: " + contents);
-        String dir = KBmanager.getMgr().getPref("kbDir") + File.separator;
-        String type = "tptp";
-        String outfile = dir + "temp-comb." + type;
-        System.out.println("queryExp(): query on file: " + outfile);
-        Log.log(Log.MESSAGE, this, ":queryExp(): query on file: " + outfile);
-        Vampire vamp;
-        EProver eprover;
-        StringBuilder qlist = null;
-        TPTP3ProofProcessor tpp = new TPTP3ProofProcessor();
-        if (KBmanager.getMgr().prover == KBmanager.Prover.VAMPIRE) {
-            vamp = kb.askVampire(contents, 30, 1);
-            tpp.parseProofOutput(vamp.output, contents, kb, vamp.qlist);
-            qlist = vamp.qlist;
-            //System.out.println("queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(vamp.output));
-            //Log.log(Log.WARNING,this,"queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(vamp.output));
-        }
-        if (KBmanager.getMgr().prover == KBmanager.Prover.EPROVER) {
-            eprover = kb.askEProver(contents, 30, 1);
-            try {
-                //System.out.println("queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(eprover.output));
-                //Log.log(Log.WARNING,this,"queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(eprover.output));
-                tpp.parseProofOutput(eprover.output, contents, kb, eprover.qlist);
-                qlist = eprover.qlist;
-            } catch (Exception e) {
-                Log.log(Log.ERROR, this, ":queryExp(): error " + Arrays.toString(e.getStackTrace()));
+        if (!checkEditorContents(contents, "Please fully highlight an atom for query"))
+            return;
+        Runnable r = () -> {
+            togglePluginMenus(false);
+            Log.log(Log.MESSAGE, this, ":queryExp(): query with: " + contents);
+            System.out.println("queryExp(): query with: " + contents);
+            String dir = KBmanager.getMgr().getPref("kbDir") + File.separator;
+            String type = "tptp";
+            String outfile = dir + "temp-comb." + type;
+            System.out.println("queryExp(): query on file: " + outfile);
+            Log.log(Log.MESSAGE, this, ":queryExp(): query on file: " + outfile);
+            Vampire vamp;
+            EProver eprover;
+            StringBuilder qlist = null;
+            TPTP3ProofProcessor tpp = new TPTP3ProofProcessor();
+            if (KBmanager.getMgr().prover == KBmanager.Prover.VAMPIRE) {
+                vamp = kb.askVampire(contents, 30, 1);
+                tpp.parseProofOutput(vamp.output, contents, kb, vamp.qlist);
+                qlist = vamp.qlist;
+                //System.out.println("queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(vamp.output));
+                //Log.log(Log.WARNING,this,"queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(vamp.output));
             }
-        }
-        tpp.processAnswersFromProof(qlist, contents);
-        view.getTextArea().setText(queryResultString(tpp));
+            if (KBmanager.getMgr().prover == KBmanager.Prover.EPROVER) {
+                eprover = kb.askEProver(contents, 30, 1);
+                try {
+                    //System.out.println("queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(eprover.output));
+                    //Log.log(Log.WARNING,this,"queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(eprover.output));
+                    tpp.parseProofOutput(eprover.output, contents, kb, eprover.qlist);
+                    qlist = eprover.qlist;
+                } catch (Exception e) {
+                    Log.log(Log.ERROR, this, ":queryExp(): error " + Arrays.toString(e.getStackTrace()));
+                }
+            }
+            tpp.processAnswersFromProof(qlist, contents);
+            view.getTextArea().setText(queryResultString(tpp));
+        };
+        KButilities.EXECUTOR_SERVICE.submit(r); // spawn this to get out if the EDT
     }
 
     @Override
     public void browseTerm() {
 
+        clearWarnAndErr();
         String contents = view.getEditPane().getTextArea().getSelectedText();
+        if (!checkEditorContents(contents, "Please fully highlight a term to browse"))
+            return;
+
         if (!StringUtil.emptyString(contents) && Formula.atom(contents)
                 && kb.terms.contains(contents)) {
             String urlString = "http://sigma.ontologyportal.org:8443/sigma/Browse.jsp?kb=SUMO&lang=EnglishLanguage&flang=SUO-KIF&term="
@@ -341,7 +450,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
         Pattern p = Pattern.compile("line(:?) (\\d+)");
         Matcher m = p.matcher(line);
         if (m.find()) {
-//            Log.log(Log.MESSAGE, this, ":getLineNum(): found line number: " + m.group(1));
+//            Log.log(Log.MESSAGE, this, ":getLineNum(): found line number: " + m.group(2));
             try {
                 result = Integer.parseInt(m.group(2));
             } catch (NumberFormatException nfe) {}
@@ -425,8 +534,10 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
      */
     private FileSpec findDefn(String term) {
 
-        String currentPath = view.getBuffer().getPath();
-        String currentFName = FileUtil.noPath(currentPath);
+        if (StringUtil.emptyString(kif.filename))
+            kif.filename = view.getBuffer().getPath();
+
+        String currentFName = FileUtil.noPath(kif.filename);
         java.util.List<Formula> forms = kb.askWithRestriction(0, "instance", 1, term);
         if (forms != null && !forms.isEmpty())
             return(filespecFromForms(forms, currentFName));
@@ -445,15 +556,42 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
         forms = kb.askWithRestriction(0, "documentation", 1, term);
         if (forms != null && !forms.isEmpty())
             return(filespecFromForms(forms, currentFName));
-        return new FileSpec(); // nothing found
+        return null; // nothing found
+    }
+
+    /** ***************************************************************
+     * Warn the user about fully highlighting a term or formula
+     *
+     * @param contents the editor contents to check
+     * @param msg the warning message to convey
+     * @return indication of check pass/fail
+     */
+    private boolean checkEditorContents(String contents, String msg) {
+
+        boolean retVal = true;
+        if (contents == null || contents.isBlank() || contents.length() < 2) {
+
+            errsrc.addError(ErrorSource.WARNING, kif.filename, 1, 0, 0, msg);
+            if (log)
+                Log.log(Log.WARNING, this, "checkEditorContents(): " + msg);
+            retVal = false;
+            // user fix before continuing
+        }
+        return retVal;
     }
 
     @Override
     public void gotoDefn() {
 
-        String currentPath = view.getBuffer().getPath();
-        String currentFName = FileUtil.noPath(currentPath);
+        clearWarnAndErr();
         String contents = view.getEditPane().getTextArea().getSelectedText();
+        if (!checkEditorContents(contents, "Please fully highlight a term for definition"))
+            return;
+
+        if (StringUtil.emptyString(kif.filename))
+            kif.filename = view.getBuffer().getPath();
+
+        String currentFName = FileUtil.noPath(kif.filename);
         if (!StringUtil.emptyString(contents) && Formula.atom(contents)
                 && kb.terms.contains(contents)) {
             FileSpec result = findDefn(contents);
@@ -478,34 +616,18 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
     /**
      * ***************************************************************
      * Performs the actual formula formatting
+     *
      * @param contents the content (formula) to format
-     * @param path the path of the file containing the formula
      */
-    private String formatSelectBody(String contents, String path) {
+    private String formatSelectBody(String contents) {
 
-        if (contents == null || contents.isBlank() || contents.length() < 2) {
-
-            String msg = "Please highlight a formula, or CNTL+A";
-            errsrc.addError(ErrorSource.WARNING, path, 1, 0, 0, msg);
-            if (log)
-                Log.log(Log.WARNING, this, "formatSelectBody(contents): " + msg);
-            return null; // user fix before continuing
-        }
-        kif.filename = this.view.getBuffer().getPath();
-        try (StringReader r = new StringReader(contents)) {
-            kif.parse(r);
-        } catch (Exception e) {
-            Log.log(Log.ERROR, this, ":formatSelect()", e);
+        if (!checkEditorContents(contents, "Please highlight a formula, or CNTL+A"))
             return null;
-        } finally {
-            if (!kif.warningSet.isEmpty() || !kif.errorSet.isEmpty()) {
-                logKifWarnAndErr();
-                if (log)
-                    Log.log(Log.ERROR, this, ":formatSelect(): error loading kif file: "
-                        + kif.errorSet);
-            }
-        }
-        Log.log(Log.MESSAGE, this, ":formatSelect(): done reading kif file");
+        if (!parseKif(contents))
+            return null;
+        if (StringUtil.emptyString(kif.filename))
+            kif.filename = view.getBuffer().getPath();
+
         StringBuilder result = new StringBuilder();
         for (Formula f : kif.formulasOrdered.values())
             result.append(f);
@@ -517,8 +639,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
 
         clearWarnAndErr();
         String contents = view.getEditPane().getTextArea().getSelectedText();
-        String path = view.getBuffer().getPath();
-        String result = formatSelectBody(contents, path);
+        String result = formatSelectBody(contents);
         if (!StringUtil.emptyString(result))
             view.getEditPane().getTextArea().setSelectedText(result);
     }
@@ -567,6 +688,11 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
         kif.warningSet.clear();
     }
 
+    /**
+     * ***************************************************************
+     * Clears out all warnings and errors in both the ErrorList and
+     * SigmaKEE trees.
+     */
     private void clearWarnAndErr() {
 
         if (!StringUtil.emptyString(kif.filename))
@@ -584,11 +710,11 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
         FormulaPreprocessor.errors.clear();
         SUMOtoTFAform.errors.clear();
 
-        // Toggles the ErrorList sweep (clean) button to clear errors
-        // Components of the ErrorListPanel:
-        // a Box on top of a JScrollPane. We want the Box
+        // Components of the ErrorListPanel: a Box on top of a JScrollPane.
+        // We want the Box
         Container c = view.getDockableWindowManager().getDockable("error-list");
 
+        // Toggles the ErrorList sweep (clean) button to clear errors from the UI
         if (c != null) { // can happen if ErrorList is not visible (selected)
             ErrorListPanel elp = (ErrorListPanel) c.getComponents()[0];
 
@@ -613,14 +739,16 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
 
         clearWarnAndErr();
         Log.log(Log.MESSAGE, this, ":showStats(): starting");
-        kif.filename = view.getBuffer().getPath();
+        if (StringUtil.emptyString(kif.filename))
+            kif.filename = view.getBuffer().getPath();
         String contents = view.getEditPane().getTextArea().getText();
-        String path = kif.filename;
-        Log.log(Log.MESSAGE, this, ":showStats(): path: " + path);
-        String filename = FileUtil.noPath(path);
+        if (!parseKif(contents))
+            return;
+
+        Log.log(Log.MESSAGE, this, ":showStats(): path: " + kif.filename);
+        String filename = FileUtil.noPath(kif.filename);
         StringBuilder stats = new StringBuilder();
-        try (Reader r = new StringReader(contents)) {
-            kif.parse(r);
+        try {
             int termCount = 0;
             int otherTermCount = 0;
             FileSpec defn;
@@ -632,10 +760,14 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
                 }
                 defn = findDefn(t);
                 if (defn == null) {
-                    Log.log(Log.WARNING, this, ":showStats(): no definition found for: " + t);
-                    continue;
+                    if (!Formula.isLogicalOperator(t)) {
+                        Log.log(Log.WARNING, this, ":showStats(): no definition found for: " + t);
+                        continue;
+                    } else
+                        thisNoPath = "";
                 }
-                thisNoPath = FileUtil.noPath(defn.filepath);
+                else
+                    thisNoPath = FileUtil.noPath(defn.filepath);
                 //Log.log(Log.WARNING, this, " ");
                 //Log.log(Log.WARNING, this, "showStats(): filename: " + filename);
                 //Log.log(Log.WARNING, this, "showStats(): this no path: " + thisNoPath);
@@ -673,8 +805,6 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
                 String msg = "error loading kif file with " + contents.length() + " characters";
                 errsrc.addError(ErrorSource.ERROR, kif.filename, 1, 0, 0, msg);
             } catch (IOException ex) {}
-        } finally {
-            logKifWarnAndErr();
         }
         jEdit.newFile(view);
         view.getEditPane().getTextArea().setSelectedText(stats.toString());
@@ -686,138 +816,167 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
 
         clearWarnAndErr();
         Log.log(Log.MESSAGE, this, ":checkErrors(): starting");
-        String path = view.getBuffer().getPath();
-        kif.filename = path;
+        if (StringUtil.emptyString(kif.filename))
+            kif.filename = view.getBuffer().getPath();
         String contents = view.getEditPane().getTextArea().getText();
-        checkErrorsBody(contents, path);
-        Log.log(Log.MESSAGE, this, ":checkErrors(): complete");
+
+        Runnable r = () -> {
+            checkErrorsBody(contents);
+    //        errorListRefreshHack(); // do not want to do this, it disrupts UI threading
+            Log.log(Log.MESSAGE, this, ":checkErrors(): complete");
+        };
+        KButilities.EXECUTOR_SERVICE.submit(r); // spawn this to get out if the EDT
+    }
+
+    /**
+     * ***************************************************************
+     * Hack to get the ErrorList to show all errors with multiple results mode on.
+     * Should not have to do this, ErrorList refresh bug?
+     */
+//    private void errorListRefreshHack() {
+//
+//        ErrorSource.unregisterErrorSource(errsrc);
+//        view.getBuffer().reload(view);
+//        ErrorSource.registerErrorSource(errsrc);
+//    }
+
+    /** Utility method to parse KIF
+     *
+     * @param contents the contents of a KIF file to parse
+     * @return true if successful parse, no error or warnings
+     */
+    private boolean parseKif(String contents) {
+
+        boolean retVal = false;
+        try (Reader r = new StringReader(contents)) {
+            kif.parse(r);
+            Log.log(Log.MESSAGE, this, ":parseKif(): done reading kif file");
+            retVal = true;
+        } catch (Exception e) {
+            if (log)
+                Log.log(Log.ERROR, this, ":checkErrorsBody()", e);
+            String msg = "error loading kif file: " + kif.filename + " with " + contents.length() + " characters";
+            errsrc.addError( ErrorSource.ERROR, kif.filename, 1, 0, 0, msg);
+        } finally {
+            logKifWarnAndErr();
+        }
+        return retVal;
     }
 
     /**
      * ***************************************************************
      * Check for a variety of syntactic and semantic errors and warnings in a
      * given buffer
+     *
      * @param contents the content (SUO-KIF) to check
-     * @param path the path of the file containing SUO-KIF to check
      */
-    protected void checkErrorsBody(String contents, String path) {
+    protected void checkErrorsBody(String contents) {
 
-        try (Reader r = new StringReader(contents)) {
-            kif.parse(r);
-            Log.log(Log.MESSAGE, this, ":checkErrorsBody(): done reading kif file");
-        } catch (Exception e) {
-            if (log)
-                Log.log(Log.ERROR, this, ":checkErrorsBody()", e);
-            String msg = "error loading kif file: " + path + " with " + contents.length() + " characters";
-            errsrc.addError( ErrorSource.ERROR, kif.filename, 1, 0, 0, msg);
-        } finally {
-            logKifWarnAndErr();
-        }
+        if (!parseKif(contents))
+            return;
 
         Log.log(Log.MESSAGE, this, ":checkErrorsBody(): success loading kif file with " + contents.length() + " characters");
-        Log.log(Log.MESSAGE, this, ":checkErrorsBody(): filename: " + path);
+        Log.log(Log.MESSAGE, this, ":checkErrorsBody(): filename: " + kif.filename);
 
-            int counter = 0;
-            Set<String> nbeTerms = new HashSet<>();
-            Set<String> unkTerms = new HashSet<>();
-            Set<String> result, unquant, terms;
-            Set<Formula> processed;
-            String err, term, msg;
-            java.util.List<Formula> forms;
-            SuokifVisitor sv;
-            for (Formula f : kif.formulaMap.values()) {
-                Log.log(Log.MESSAGE, this, ":checkErrorsBody(): check formula:\n " + f);
-                counter++;
-                if (counter > 1000) {
-                    Log.log(Log.NOTICE, this, ".");
-                    counter = 0;
-                }
-                // Check for syntax errors that KIF parse didn't catch
-                sv = SuokifApp.process(Formula.textFormat(f.getFormula()));
-                if (!sv.errors.isEmpty()) {
-                    int line, offset;
-                    for (String er : sv.errors) {
-                        line = getLineNum(er);
-                        offset = getOffset(er);
-                        errsrc.addError(ErrorSource.ERROR, kif.filename, line == 0 ? line : line-1, offset, offset+1, er);
-                    }
-                }
-                //Log.log(Log.WARNING,this,"checking formula " + f.toString());
-                if (Diagnostics.quantifierNotInStatement(f))
-                    errsrc.addError(ErrorSource.ERROR, path, f.startLine-1, f.endLine-1,0,"Quantifier not in statement");
-                result = Diagnostics.singleUseVariables(f);
-                if (result != null && !result.isEmpty())
-                    errsrc.addError(ErrorSource.WARNING, path, f.startLine-1, f.endLine-1,0, "Variable(s) only used once: " + result.toString());
-                processed = fp.preProcess(f, false, kb);
-                if (f.errors != null && !f.errors.isEmpty()) {
-                    for (String er : f.errors)
-                        errsrc.addError(ErrorSource.ERROR, path, f.startLine-1, f.endLine-1, 0, er);
-                    for (String w : f.warnings)
-                        errsrc.addError(ErrorSource.WARNING, path, f.startLine-1, f.endLine-1,0,w);
-                }
-                //Log.log(Log.WARNING,this,"checking variables in formula ");
-                if (!KButilities.isValidFormula(kb, f.toString())) {
-                    for (String er : KButilities.errors) {
-                        errsrc.addError(ErrorSource.ERROR, path, f.startLine-1, f.endLine-1, 0, er);
-                        if (log)
-                            Log.log(Log.ERROR, this, er);
-                    }
-                }
-                //Log.log(Log.WARNING,this,"done checking var types ");
-
-                unquant = Diagnostics.unquantInConsequent(f);
-                if (!unquant.isEmpty()) {
-                    err = "Unquantified var(s) " + unquant + " in consequent";
-                    errsrc.addError(ErrorSource.ERROR, path, f.startLine-1, f.endLine-1, 0, err);
-                    if (log)
-                        Log.log(Log.WARNING, this, err);
-                }
-
-                // note that predicate variables can result in many relations being tried that don't
-                // fit because of type inconsistencies, which then are rejected and not a formalization error
-                // so ignore those cases (of size()>1)
-                if (SUMOtoTFAform.errors != null && !f.errors.isEmpty() && processed.size() == 1) {
-                    for (String er : SUMOtoTFAform.errors) { // <- We might already have these from KButilities (tdn)
-                        errsrc.addError(ErrorSource.ERROR, path, f.startLine-1, f.endLine-1, 0, er);
-                        if (log)
-                            Log.log( Log.ERROR, this, er);
-                    }
-                }
-                term = PredVarInst.hasCorrectArity(f, kb);
-                if (!StringUtil.emptyString(term)) {
-                    msg = ("Arity error of predicate " + term);
-                    errsrc.addError(ErrorSource.ERROR, path, f.startLine-1, f.endLine-1, 0, msg);
-                    if (log)
-                        Log.log(Log.ERROR, this, msg);
-                }
-                terms = f.collectTerms();
-                Log.log(Log.MESSAGE, this, ":checkErrorsBody(): # terms in formula: " + terms.size());
-                for (String t : terms) {
-                    if (Diagnostics.LOG_OPS.contains(t) || t.equals("Entity")
-                            || Formula.isVariable(t) || StringUtil.isNumeric(t) || StringUtil.isQuotedString(t)) {
-                        continue;
-                    } else {
-                        forms = kb.askWithRestriction(0, "instance", 1, t);
-                        if (forms == null || forms.isEmpty()) {
-                            forms = kb.askWithRestriction(0, "subclass", 1, t);
-                            if (forms == null || forms.isEmpty()) {
-                                forms = kb.askWithRestriction(0, "subAttribute", 1, t);
-                                if (forms == null || forms.isEmpty()) {
-                                    if (!unkTerms.contains(t))
-                                        errsrc.addError(ErrorSource.WARNING, path, f.startLine-1, f.endLine-1, 0, "unknown term: " + t);
-                                    unkTerms.add(t);
-                                    if (log)
-                                        Log.log(Log.WARNING, this, "unknown term: " + t);
-                                }
-                            }
-                        }
-                    }
-                    if (Diagnostics.termNotBelowEntity(t, kb) && !nbeTerms.contains(t)) {
-                        errsrc.addError(ErrorSource.ERROR, path, f.startLine-1, f.endLine-1, 0, "term not below entity: " + t);
-                        nbeTerms.add(t);
-                    }
+        int counter = 0;
+        Set<String> nbeTerms = new HashSet<>();
+        Set<String> unkTerms = new HashSet<>();
+        Set<String> result, unquant, terms;
+        Set<Formula> processed;
+        String err, term, msg;
+        FileSpec defn;
+        SuokifVisitor sv;
+        for (Formula f : kif.formulaMap.values()) {
+            Log.log(Log.MESSAGE, this, ":checkErrorsBody(): check formula:\n " + f);
+            counter++;
+            if (counter > KButilities.ONE_K) {
+                Log.log(Log.NOTICE, this, ".");
+                counter = 0;
+            }
+            // Check for syntax errors that KIF parse didn't catch
+            sv = SuokifApp.process(Formula.textFormat(f.getFormula()));
+            if (!sv.errors.isEmpty()) {
+                int line, offset;
+                for (String er : sv.errors) {
+                    line = getLineNum(er);
+                    offset = getOffset(er);
+                    errsrc.addError(ErrorSource.ERROR, kif.filename, line == 0 ? line : line-1, offset, offset+1, er);
                 }
             }
+            //Log.log(Log.WARNING,this,"checking formula " + f.toString());
+            if (Diagnostics.quantifierNotInStatement(f))
+                errsrc.addError(ErrorSource.ERROR, kif.filename, f.startLine-1, f.endLine-1,0,"Quantifier not in statement");
+            result = Diagnostics.singleUseVariables(f);
+            if (result != null && !result.isEmpty())
+                errsrc.addError(ErrorSource.WARNING, kif.filename, f.startLine-1, f.endLine-1,0, "Variable(s) only used once: " + result.toString());
+            processed = fp.preProcess(f, false, kb);
+            if (f.errors != null && !f.errors.isEmpty()) {
+                for (String er : f.errors)
+                    errsrc.addError(ErrorSource.ERROR, kif.filename, f.startLine-1, f.endLine-1, 0, er);
+                for (String w : f.warnings)
+                    errsrc.addError(ErrorSource.WARNING, kif.filename, f.startLine-1, f.endLine-1,0,w);
+            }
+            //Log.log(Log.WARNING,this,"checking variables in formula ");
+            if (!KButilities.isValidFormula(kb, f.toString())) {
+                for (String er : KButilities.errors) {
+                    errsrc.addError(ErrorSource.ERROR, kif.filename, f.startLine-1, f.endLine-1, 0, er);
+                    if (log)
+                        Log.log(Log.ERROR, this, er);
+                }
+            }
+            //Log.log(Log.WARNING,this,"done checking var types ");
+
+            unquant = Diagnostics.unquantInConsequent(f);
+            if (!unquant.isEmpty()) {
+                err = "Unquantified var(s) " + unquant + " in consequent";
+                errsrc.addError(ErrorSource.ERROR, kif.filename, f.startLine-1, f.endLine-1, 0, err);
+                if (log)
+                    Log.log(Log.ERROR, this, err);
+            }
+
+            // note that predicate variables can result in many relations being tried that don't
+            // fit because of type inconsistencies, which then are rejected and not a formalization error
+            // so ignore those cases (of size()>1)
+            if (SUMOtoTFAform.errors != null && !f.errors.isEmpty() && processed.size() == 1) {
+                for (String er : SUMOtoTFAform.errors) { // <- We might already have these from KButilities (tdn)
+                    errsrc.addError(ErrorSource.ERROR, kif.filename, f.startLine-1, f.endLine-1, 0, er);
+                    if (log)
+                        Log.log(Log.ERROR, this, er);
+                }
+            }
+            term = PredVarInst.hasCorrectArity(f, kb);
+            if (!StringUtil.emptyString(term)) {
+                msg = ("Arity error of predicate " + term);
+                errsrc.addError(ErrorSource.ERROR, kif.filename, f.startLine-1, f.endLine-1, 0, msg);
+                if (log)
+                    Log.log(Log.ERROR, this, msg);
+            }
+            terms = f.collectTerms();
+            Log.log(Log.MESSAGE, this, ":checkErrorsBody(): # terms in formula: " + terms.size());
+            for (String t : terms) {
+                if (Diagnostics.LOG_OPS.contains(t) || t.equals("Entity")
+                        || Formula.isVariable(t) || StringUtil.isNumeric(t)
+                        || StringUtil.isQuotedString(t)) {
+                    continue;
+                } else {
+                    defn = findDefn(t);
+                    if (defn == null) {
+                        if (!unkTerms.contains(t)) {
+                            unkTerms.add(t);
+                            errsrc.addError(ErrorSource.WARNING, kif.filename, f.startLine-1, f.endLine-1, 0, "unknown term: " + t);
+                            if (log)
+                                Log.log(Log.WARNING, this, "unknown term: " + t);
+                        }
+                    }
+                }
+                if (Diagnostics.termNotBelowEntity(t, kb) && !nbeTerms.contains(t)) {
+                    nbeTerms.add(t);
+                    errsrc.addError(ErrorSource.ERROR, kif.filename, f.startLine-1, f.endLine-1, 0, "term not below Entity: " + t);
+                    if (log)
+                        Log.log(Log.ERROR, this, "term not below Entity: " + t);
+                }
+            }
+        }
     }
 
     @Override
@@ -825,14 +984,18 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
 
         clearWarnAndErr();
         Log.log(Log.MESSAGE, this, ":toTPTP(): starting");
-        kif.filename = this.view.getBuffer().getPath();
+        if (StringUtil.emptyString(kif.filename))
+            kif.filename = view.getBuffer().getPath();
         String contents = view.getEditPane().getTextArea().getText();
+
+        if (!parseKif(contents))
+            return;
+
         String selected = view.getEditPane().getTextArea().getSelectedText();
         if (!StringUtil.emptyString(selected))
             contents = selected;
         StringBuilder sb = new StringBuilder();
-        try (Reader r = new StringReader(contents)) {
-            kif.parse(r);
+        try {
             //Log.log(Log.WARNING,this,"toTPTP(): done reading kif file");
             java.util.List<Formula> ordered = kif.lexicalOrder();
             String pred, tptpStr;
@@ -868,8 +1031,6 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
                 String msg = "error loading kif file with " + contents.length() + " characters";
                 errsrc.addError(ErrorSource.ERROR, kif.filename, 1, 0, 0, msg);
             } catch (IOException ex) {}
-        } finally {
-            logKifWarnAndErr();
         }
     }
 
@@ -882,11 +1043,12 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
         String selected = view.getEditPane().getTextArea().getSelectedText();
         if (!StringUtil.emptyString(selected))
             contents = selected;
-        String path = view.getBuffer().getPath();
+        if (StringUtil.emptyString(kif.filename))
+            kif.filename = view.getBuffer().getPath();
         try {
             TPTPVisitor sv = new TPTPVisitor();
-            if (new File(path).exists())
-                sv.parseFile(path);
+            if (new File(kif.filename).exists())
+                sv.parseFile(kif.filename);
             else
                 sv.parseString(contents);
             Map<String, TPTPFormula> hm = sv.result;
@@ -941,11 +1103,14 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
             sje = new SUMOjEdit();
             kb = sje.kb = SUMOtoTFAform.kb;
             sje.fp = SUMOtoTFAform.fp;
+            sje.errsrc = new DefaultErrorSource(sje.getClass().getName(), null);
+            ErrorSource.registerErrorSource(sje.errsrc);
         }
 
         if (args != null && args.length > 1 && args[0].equals("-d")) {
             String contents = String.join("\n", FileUtil.readLines(args[1], false));
-            sje.checkErrorsBody(contents, args[1]);
+            sje.kif.filename = args[1];
+            sje.checkErrorsBody(contents);
         } else if (args != null && args.length > 0 && args[0].equals("-q")) {
             String contents = "(routeBetween ?X MenloParkCA MountainViewCA)";
             System.out.println("E input: " + contents);
