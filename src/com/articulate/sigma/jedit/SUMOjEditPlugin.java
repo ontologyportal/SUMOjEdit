@@ -20,6 +20,8 @@ package com.articulate.sigma.jedit;
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
+import com.articulate.sigma.KButilities;
+
 import org.gjt.sp.jedit.EBComponent;
 import org.gjt.sp.jedit.EditBus;
 import org.gjt.sp.jedit.EditPlugin;
@@ -36,15 +38,17 @@ public class SUMOjEditPlugin extends EditPlugin {
 
     @Override
     public void start() {
+
         sje = new SUMOjEdit();
 
         // Allow jEdit to start while the KBs are loading
-        ((SUMOjEdit)sje).startThread(((SUMOjEdit)sje), "KB init");
+        KButilities.EXECUTOR_SERVICE.submit(((Runnable)sje));
         EditBus.addToBus(sje);
     }
 
     @Override
     public void stop() {
+        
         EditBus.removeFromBus(sje);
     }
 
