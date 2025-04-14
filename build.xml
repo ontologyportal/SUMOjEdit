@@ -130,7 +130,7 @@
         <mkdir dir="${reports.dir}"/>
     </target>
 
-    <target name="dist" depends="compile.test" description="Create the *.war file and place in build.">
+    <target name="dist" depends="compile.test" description="Create the ${app.name}.jar file and place in ${basedir}">
         <jar destfile="${app.name}.jar">
             <fileset dir="build/classes"/>
         </jar>
@@ -143,20 +143,11 @@
     -->
 
     <target name="clean">
-        <delete includeemptydirs="true" failonerror="false">
-            <fileset dir="${build.home}"/>
-        </delete>
+        <delete dir="${build.home}"/>
         <delete file="${app.name}.jar"/>
 
         <!-- for dep updates, clean ${jedit.home}/jars -->
         <delete includeemptydirs="true" failonerror="false">
-            <fileset dir="${jedit.home}/jars">
-                <include name="${app.name}.jar"/>
-            </fileset>
-            <fileset dir="${jedit.home}/modes">
-                <include name="*.xml"/>
-                <include name="catalog"/>
-            </fileset>
             <fileset dir="lib">
                 <exclude name="ErrorList.jar"/>
                 <exclude name="jedit.jar"/>

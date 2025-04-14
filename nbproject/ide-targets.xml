@@ -334,9 +334,7 @@
         <echo>deploying ${app.name}.jar, supporting files and supporting jars</echo>
     </target>
     <target name="clean" depends="SUMOjEdit.clean" description="Delete old build, lib artifacts">
-        <delete includeemptydirs="true" failonerror="false">
-            <fileset dir="${dist.dir}"/>
-        </delete>
+        <delete dir="${dist.dir}"/>
     </target>
     <target name="thorough.clean" depends="clean" description="Clean everything, KBs, translations, etc.">
         <ant antfile="${sigma_src}/nbproject/ide-targets.xml" inheritAll="false" target="thorough.clean" />
