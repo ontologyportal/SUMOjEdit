@@ -151,7 +151,7 @@
         <!-- for dep updates, clean ${jedit.home}/jars -->
         <delete includeemptydirs="true" failonerror="false">
             <fileset dir="${jedit.home}/jars">
-                <include name="*.jar"/>
+                <include name="${app.name}.jar"/>
             </fileset>
             <fileset dir="${jedit.home}/modes">
                 <include name="*.xml"/>
