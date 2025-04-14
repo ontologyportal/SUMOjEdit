@@ -38,10 +38,12 @@ import javax.swing.Box;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.swing.MenuElement;
 
 import org.gjt.sp.jedit.*;
 import org.gjt.sp.jedit.gui.RolloverButton;
 import org.gjt.sp.jedit.io.VFSManager;
+import org.gjt.sp.jedit.menu.EnhancedMenu;
 import org.gjt.sp.jedit.msg.BufferUpdate;
 import org.gjt.sp.jedit.msg.EditPaneUpdate;
 import org.gjt.sp.util.Log;
@@ -143,7 +145,15 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
     private void togglePluginMenus(boolean enabled) {
 
         // Top view menu bar / Enhanced menu item / Plugins menu / SUMOjEdit plugin menu
-        view.getJMenuBar().getSubElements()[8].getSubElements()[0].getSubElements()[3].getComponent().setEnabled(enabled);
+        MenuElement[] elems = view.getJMenuBar().getSubElements()[8].getSubElements()[0].getSubElements();
+        for (MenuElement elem : elems) {
+            if (elem instanceof EnhancedMenu)
+                if (((EnhancedMenu) elem).getText().toLowerCase().equals(SUMOjEditPlugin.NAME)) {
+                    elem.getComponent().setEnabled(enabled);
+                    break;
+                }
+
+        }
 
         // Now, the right click context menu of the editor's text area in the case of customized SUMOjEdit actions
         view.getEditPane().getTextArea().setRightClickPopupEnabled(enabled);
@@ -203,11 +213,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
         Log.log(Log.MESSAGE, this, ":tellTheKbAboutLoadedKif() took " + (System.currentTimeMillis() - start) + " m/s");
     }
 
-    /**
-     * ***************************************************************
-     * Props at: https://www.jedit.org/api/org/gjt/sp/jedit/msg/package-summary.html
-     * @param msg the Edit Bus message to handle
-     */
+    /* Props at: https://www.jedit.org/api/org/gjt/sp/jedit/msg/package-summary.html */
     @Override
     public void handleMessage(EBMessage msg) {
 
