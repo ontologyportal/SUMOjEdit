@@ -23,10 +23,9 @@ package com.articulate.sigma.jedit;
 import org.gjt.sp.jedit.EBComponent;
 import org.gjt.sp.jedit.EditBus;
 import org.gjt.sp.jedit.EditPlugin;
-import org.gjt.sp.util.Log;
 
 /**
- * The SUMOjEdit plugin
+ * The SUMOjEdit plugin launcher
  * @author Adam Pease
  */
 public class SUMOjEditPlugin extends EditPlugin {
