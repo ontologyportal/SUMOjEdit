@@ -41,7 +41,7 @@ public class SUMOjEditPlugin extends EditPlugin {
         sje = new SUMOjEdit();
 
         // Allow jEdit to start while the KBs are loading
-        ((SUMOjEdit)sje).startThread(((SUMOjEdit)sje), "KB init");
+        ((SUMOjEdit)sje).startThread(((SUMOjEdit)sje), "SUMOjEditPlugin.start()");
         EditBus.addToBus(sje);
     }
 
