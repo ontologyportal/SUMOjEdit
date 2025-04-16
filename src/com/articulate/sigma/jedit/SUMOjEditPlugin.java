@@ -44,7 +44,6 @@ public class SUMOjEditPlugin extends EditPlugin {
         // Allow jEdit to start while the KBs are loading
         ((SUMOjEdit)sje).startThread(((SUMOjEdit)sje), "KB init");
         EditBus.addToBus(sje);
-        Log.log(Log.MESSAGE, this, ":start(): complete");
     }
 
     @Override
