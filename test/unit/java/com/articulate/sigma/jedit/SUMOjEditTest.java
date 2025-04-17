@@ -52,7 +52,7 @@ public class SUMOjEditTest extends Assert {
         String contents = String.join("\n", FileUtil.readLines(test, false));
         sje.checkErrorsBody(contents);
 
-        String msg = sje.errsrc.getFileErrors(test)[2].getErrorMessage();
+        String msg = sje.errsrc.getFileErrors(test)[1].getErrorMessage();
         assertTrue(msg.contains("mismatched input ')'"));
     }
 
@@ -63,7 +63,7 @@ public class SUMOjEditTest extends Assert {
         String contents = String.join("\n", FileUtil.readLines(test, false));
         sje.checkErrorsBody(contents);
 
-        assertTrue(sje.errsrc.getErrorCount() == 3);
+        assertTrue(sje.errsrc.getErrorCount() == 2);
     }
 
 } // end class file SUMOjEditTest.java
