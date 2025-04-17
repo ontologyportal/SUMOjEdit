@@ -167,7 +167,7 @@ Use the Add Mode tab to
   "go to definition" will make a guess at where the definition for a selected term starts and put the cursor \
   at that point in the file.\
   "browse term in Sigma" will open the public Sigma site in your browser opened on the selected term.
-- Activity log - it's good to monitor SUMOjEdit from jEdit's activity log by selectingUtilities->Troubleshooting->Activity Log.\
+- Activity log - it's good to monitor SUMOjEdit from jEdit's activity log by selecting Utilities->Troubleshooting->Activity Log.\
   When the dialog is open, select tail to get continuous updates. Dock the dialog to the base area of jEdit to monitor continuously.
 
 ## Customization
