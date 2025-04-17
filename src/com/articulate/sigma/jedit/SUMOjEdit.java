@@ -29,19 +29,19 @@ import com.articulate.sigma.utils.*;
 import com.google.common.io.Files;
 
 import errorlist.DefaultErrorSource;
-import errorlist.ErrorListPanel;
+//import errorlist.ErrorListPanel;
 import errorlist.ErrorSource;
 
 import java.awt.*;
 import java.io.*;
-import javax.swing.Box;
+//import javax.swing.Box;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.swing.MenuElement;
 
 import org.gjt.sp.jedit.*;
-import org.gjt.sp.jedit.gui.RolloverButton;
+//import org.gjt.sp.jedit.gui.RolloverButton;
 import org.gjt.sp.jedit.io.VFSManager;
 import org.gjt.sp.jedit.menu.EnhancedMenu;
 import org.gjt.sp.jedit.msg.BufferUpdate;
@@ -76,11 +76,28 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
      */
     public SUMOjEdit() {
 
+        // We want all STD out and err messages to go to the console, easier to read and observe
+        Log.init(false, 1);
         Log.log(Log.MESSAGE, SUMOjEdit.this, ": SUMOKBtoTPTPKB.rapidParsing==" + SUMOKBtoTPTPKB.rapidParsing);
         Log.log(Log.MESSAGE, SUMOjEdit.this, ": initializing");
 
         kif = new KIF();
         kif.filename = "";
+    }
+
+    /**
+     * ***************************************************************
+     * Starts the given named Runnable
+     *
+     * @param r the Runnable to start
+     * @param desc a short description to give the Thread instance
+     */
+    public void startThread(Runnable r, String desc) {
+
+        Thread t = new Thread(r);
+        t.setName(SUMOjEdit.class.getSimpleName() + ": " + desc);
+        t.setDaemon(true);
+        t.start();
     }
 
     /* Starts the KB initialization process for UI use only. Must only be
@@ -107,6 +124,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
         errsrc = new DefaultErrorSource(getClass().getName(), this.view);
         processLoadedKifOrTptp();
         Log.log(Log.MESSAGE, this, ": kb: " + kb);
+        Log.log(Log.MESSAGE, SUMOjEditPlugin.class, ":start(): complete");
     }
 
     /**
@@ -120,24 +138,32 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
             boolean isTptp = Files.getFileExtension(view.getBuffer().getPath()).equalsIgnoreCase("tptp");
             if (isKif || isTptp) {
                 togglePluginMenus(true);
-                ErrorSource.registerErrorSource(errsrc); // just returns if already registered
                 if (isKif) {
                     kif.filename = view.getBuffer().getPath();
-                    if (!kb.constituents.contains(kif.filename) /*&& !KBmanager.getMgr().infFileOld()*/) {
+                    if (kb != null && !kb.constituents.contains(kif.filename) /*&& !KBmanager.getMgr().infFileOld()*/) {
                         togglePluginMenus(false);
+                        Color clr = view.getStatus().getBackground();
+                        view.getStatus().setBackground(Color.GREEN);
+                        view.getStatus().setMessage("processing " + kif.filename);
                         tellTheKbAboutLoadedKif(); // adds kif as a constituent into the KB
                         checkErrors();
+                        view.getStatus().setBackground(clr);
+                        view.getStatus().setMessageAndClear("processing " + kif.filename + " complete");
                         togglePluginMenus(true);
                         // TODO: remove loaded KIF from KB?
                     }
                 }
+                ErrorSource.registerErrorSource(errsrc); // just returns if already registered
             } else {
                 togglePluginMenus(false);
-                clearWarnAndErr();
-                unload();
+                if (errsrc != null) {
+                    clearWarnAndErr();
+                    unload();
+                }
             }
+            Log.log(Log.MESSAGE, this, ":processLoadedKifOrTptp(): complete");
         };
-        KButilities.EXECUTOR_SERVICE.submit(r);
+        startThread(r, "");
     }
 
     /**
@@ -180,7 +206,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
         }
         catch (IOException ioe) {
             Log.log(Log.ERROR, this, ":tellTheKbAboutLoadedKif(): ", ioe);
-            errsrc.addError( ErrorSource.ERROR, kif.filename, 1, 0, 0, ioe.getMessage());
+            System.err.println(ioe);
             return;
         }
 
@@ -417,13 +443,14 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
                     tpp.parseProofOutput(eprover.output, contents, kb, eprover.qlist);
                     qlist = eprover.qlist;
                 } catch (Exception e) {
-                    Log.log(Log.ERROR, this, ":queryExp(): error " + Arrays.toString(e.getStackTrace()));
+                    Log.log(Log.ERROR, this, ":queryExp(): ", e);
                 }
             }
             tpp.processAnswersFromProof(qlist, contents);
             view.getTextArea().setText(queryResultString(tpp));
+            Log.log(Log.MESSAGE, this, ":queryExp: complete");
         };
-        KButilities.EXECUTOR_SERVICE.submit(r); // spawn this to get out if the EDT
+        startThread(r, "");
     }
 
     @Override
@@ -442,7 +469,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
                 try {
                     Desktop.getDesktop().browse(java.net.URI.create(urlString));
                 } catch (IOException e) {
-                    Log.log(Log.ERROR, this, ":browseTerm(): error " + Arrays.toString(e.getStackTrace()));
+                    Log.log(Log.ERROR, this, ":browseTerm(): ", e);
                 }
             }
         }
@@ -664,12 +691,16 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
 
             line = getLineNum(warn);
             offset = getOffset(warn);
+            if (offset == 0)
+                offset = 1;
             errsrc.addError(ErrorSource.WARNING, kif.filename, line == 0 ? line : line-1, offset, offset+1, warn);
         }
         for (String err : kif.errorSet) {
 
             line = getLineNum(err);
             offset = getOffset(err);
+            if (offset == 0)
+                offset = 1;
             errsrc.addError(ErrorSource.ERROR, kif.filename, line == 0 ? line : line-1, offset, offset+1, err);
         }
 
@@ -686,6 +717,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
      */
     private void clearKif() {
 
+        kif.warningSet.clear();
         kif.errorSet.clear();
         kif.filename = "";
         kif.formulaMap.clear();
@@ -693,7 +725,6 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
         kif.formulasOrdered.clear();
         kif.termFrequency.clear();
         kif.terms.clear();
-        kif.warningSet.clear();
     }
 
     /**
@@ -720,26 +751,26 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
 
         // Components of the ErrorListPanel: a Box on top of a JScrollPane.
         // We want the Box
-        Container c = view.getDockableWindowManager().getDockable("error-list");
-
-        // Toggles the ErrorList sweep (clean) button to clear errors from the UI
-        if (c != null) { // can happen if ErrorList is not visible (selected)
-            ErrorListPanel elp = (ErrorListPanel) c.getComponents()[0];
-
-            // Get ErrorListPanel dimensions
-            double elpWidth = elp.getWidth();
-            double elpHeight = elp.getHeight();
-
-            // Scale the coordinates. ErrorListPanel's (0, 0) starts at upper left corner
-            // ELP dimensions are 1055x236 - Box coords are 1055x36
-            double scaledX = ((elpWidth/2) * elpWidth) / elp.getBounds().width;
-            double scaledY = ((36/2) * elpHeight) / elp.getBounds().height;
-
-            // Get the Box at the scaled coordinates
-            Box box = (Box) elp.getComponentAt((int) scaledX, (int) scaledY);
-            RolloverButton btn = (RolloverButton) box.getComponents()[13];
-            btn.doClick(); // click the clear btn
-        }
+//        Container c = view.getDockableWindowManager().getDockable("error-list");
+//
+//        // Toggles the ErrorList sweep (clean) button to clear errors from the UI
+//        if (c != null) { // can happen if ErrorList is not visible (selected)
+//            ErrorListPanel elp = (ErrorListPanel) c.getComponents()[0];
+//
+//            // Get ErrorListPanel dimensions
+//            double elpWidth = elp.getWidth();
+//            double elpHeight = elp.getHeight();
+//
+//            // Scale the coordinates. ErrorListPanel's (0, 0) starts at upper left corner
+//            // ELP dimensions are 1055x236 - Box coords are 1055x36
+//            double scaledX = ((elpWidth/2) * elpWidth) / elp.getBounds().width;
+//            double scaledY = ((36/2) * elpHeight) / elp.getBounds().height;
+//
+//            // Get the Box at the scaled coordinates
+//            Box box = (Box) elp.getComponentAt((int) scaledX, (int) scaledY);
+//            RolloverButton btn = (RolloverButton) box.getComponents()[13];
+//            btn.doClick(); // click the clear btn
+//        }
     }
 
     @Override
@@ -805,14 +836,10 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
             stats.append("# rules: ").append(ruleCount).append('\n');
             Log.log(Log.MESSAGE, this, ":showStats(): done reading kif file");
         } catch (Exception e) {
-            try (Writer sw = new StringWriter();
-                PrintWriter pw = new PrintWriter(sw)) {
-                e.printStackTrace(pw);
-                if (log)
-                    Log.log(Log.ERROR, this, ":showStats()",e);
-                String msg = "error loading kif file with " + contents.length() + " characters";
-                errsrc.addError(ErrorSource.ERROR, kif.filename, 1, 0, 0, msg);
-            } catch (IOException ex) {}
+            if (log)
+                Log.log(Log.ERROR, this, ":showStats()",e);
+            String msg = "Error in SUMOjEdit.showStats() with: " + kif.filename + ": " + e;
+            System.err.println(msg);
         }
         jEdit.newFile(view);
         view.getEditPane().getTextArea().setSelectedText(stats.toString());
@@ -833,7 +860,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
     //        errorListRefreshHack(); // do not want to do this, it disrupts message handling
             Log.log(Log.MESSAGE, this, ":checkErrors(): complete");
         };
-        KButilities.EXECUTOR_SERVICE.submit(r); // spawn this to get out if the EDT
+        startThread(r, "");
     }
 
     /**
@@ -863,8 +890,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
         } catch (Exception e) {
             if (log)
                 Log.log(Log.ERROR, this, ":checkErrorsBody()", e);
-            String msg = "error loading kif file: " + kif.filename + " with " + contents.length() + " characters";
-            errsrc.addError( ErrorSource.ERROR, kif.filename, 1, 0, 0, msg);
+            String msg = "Error in SUMOjEdit.parseKif() with: " + kif.filename + ": " + e;
+            System.err.print(msg);
         } finally {
             logKifWarnAndErr();
         }
@@ -876,7 +903,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
      * Check for a variety of syntactic and semantic errors and warnings in a
      * given buffer
      *
-     * @param contents the content (SUO-KIF) to check
+     * @param contents the SUO-KIF to check
      */
     protected void checkErrorsBody(String contents) {
 
@@ -886,7 +913,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
         Log.log(Log.MESSAGE, this, ":checkErrorsBody(): success loading kif file with " + contents.length() + " characters");
         Log.log(Log.MESSAGE, this, ":checkErrorsBody(): filename: " + kif.filename);
 
-        int counter = 0, idx;
+        int counter = 0, idx, line, offset;
         Set<String> nbeTerms = new HashSet<>();
         Set<String> unkTerms = new HashSet<>();
         Set<String> result, unquant, terms;
@@ -902,10 +929,9 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
                 Log.log(Log.NOTICE, this, ".");
                 counter = 0;
             }
-            // Check for syntax errors that KIF parse didn't catch
+            // Check for syntax errors that KIF.parse didn't catch
             sv = SuokifApp.process(Formula.textFormat(f.getFormula()));
             if (!sv.errors.isEmpty()) {
-                int line, offset;
                 for (String er : sv.errors) {
                     line = getLineNum(er);
                     offset = getOffset(er);
@@ -923,7 +949,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
             }
             result = Diagnostics.singleUseVariables(f);
             if (result != null && !result.isEmpty())
-                for (String res :result) {
+                for (String res : result) {
                     err = "Variable(s) only used once: " + res;
                     idx = f.toString().indexOf(res);
                     errsrc.addError(ErrorSource.ERROR, kif.filename, f.startLine-1, idx, idx+res.length(), err);
@@ -943,26 +969,6 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
                         Log.log(Log.WARNING, this, w);
                 }
             }
-            //Log.log(Log.WARNING,this,"checking variables in formula ");
-            if (!KButilities.isValidFormula(kb, f.toString())) {
-                for (String er : KButilities.errors) {
-                    errsrc.addError(ErrorSource.ERROR, kif.filename, f.startLine-1, f.endLine-1, 0, er);
-                    if (log)
-                        Log.log(Log.ERROR, this, er);
-                }
-            }
-            //Log.log(Log.WARNING,this,"done checking var types ");
-
-            unquant = Diagnostics.unquantInConsequent(f);
-            if (unquant != null && !unquant.isEmpty()) {
-                for (String unquan : unquant) {
-                    err = "Unquantified var(s) " + unquan + " in consequent";
-                    idx = f.toString().indexOf(unquan);
-                    errsrc.addError(ErrorSource.ERROR, kif.filename, f.startLine-1, idx, idx+unquan.length(), err);
-                    if (log)
-                        Log.log(Log.ERROR, this, err);
-                }
-            }
 
             // note that predicate variables can result in many relations being tried that don't
             // fit because of type inconsistencies, which then are rejected and not a formalization error
@@ -972,6 +978,27 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
                     errsrc.addError(ErrorSource.ERROR, kif.filename, f.startLine-1, f.endLine-1, 0, er);
                     if (log)
                         Log.log(Log.ERROR, this, er);
+                }
+                SUMOtoTFAform.errors.clear();
+            }
+            //Log.log(Log.WARNING,this,"checking variables in formula ");
+            if (!KButilities.isValidFormula(kb, f.toString())) {
+                for (String er : KButilities.errors) {
+                    errsrc.addError(ErrorSource.ERROR, kif.filename, f.startLine-1, f.endLine-1, 0, er);
+                    if (log)
+                        Log.log(Log.ERROR, this, er);
+                }
+                KButilities.errors.clear();
+            }
+            //Log.log(Log.WARNING,this,"done checking var types ");
+            unquant = Diagnostics.unquantInConsequent(f);
+            if (unquant != null && !unquant.isEmpty()) {
+                for (String unquan : unquant) {
+                    err = "Unquantified var(s) " + unquan + " in consequent";
+                    idx = f.toString().indexOf(unquan);
+                    errsrc.addError(ErrorSource.ERROR, kif.filename, f.startLine-1, idx, idx+unquan.length(), err);
+                    if (log)
+                        Log.log(Log.ERROR, this, err);
                 }
             }
             term = PredVarInst.hasCorrectArity(f, kb);
@@ -1002,7 +1029,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
                 if (defn == null && !unkTerms.contains(t)) {
                     unkTerms.add(t);
                     err = "unknown term: " + t;
-                    ders = errsrc.getLineErrors(kif.filename, f.startLine-1, idx+t.length());
+                    ders = errsrc.getFileErrors(kif.filename);
                     if (ders != null && ders[0] != null) {
                         for (ErrorSource.Error drs : ders)
                             if (drs.getErrorMessage().contains(t))
@@ -1037,12 +1064,12 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
         try {
             //Log.log(Log.WARNING,this,"toTPTP(): done reading kif file");
             java.util.List<Formula> ordered = kif.lexicalOrder();
-            String pred, tptpStr;
+            String /*pred,*/ tptpStr;
             TPTPVisitor sv;
             Map<String, TPTPFormula> hm;
             for (Formula f : ordered) {
                 //Log.log(Log.WARNING,this,"toTPTP(): SUO-KIF: " + f.getFormula());
-                pred = f.car();
+//                pred = f.car();
                 //Log.log(Log.WARNING,this,"toTPTP pred: " + pred);
                 //Log.log(Log.WARNING,this,"toTPTP kb: " + kb);
                 //Log.log(Log.WARNING,this,"toTPTP kb cache: " + kb.kbCache);
@@ -1064,12 +1091,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
         } catch (Exception e) {
             if (log)
                 Log.log(Log.ERROR, this, ":toTPTP()", e);
-            try (Writer sw = new StringWriter();
-                PrintWriter pw = new PrintWriter(sw)) {
-                e.printStackTrace(pw);
-                String msg = "error loading kif file with " + contents.length() + " characters";
-                errsrc.addError(ErrorSource.ERROR, kif.filename, 1, 0, 0, msg);
-            } catch (IOException ex) {}
+            String msg = "Error in SUMOjEdit.toTPTP() with " + kif.filename + ": " + e;
+            System.err.println(msg);
         }
         Log.log(Log.MESSAGE, this, ":toTPTP(): complete");
     }
@@ -1104,12 +1127,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
         } catch (Exception e) {
             if (log)
                 Log.log(Log.ERROR, this, ":fromTPTP()", e);
-            try (Writer sw = new StringWriter();
-                PrintWriter pw = new PrintWriter(sw)) {
-                e.printStackTrace(pw);
-                String msg = "error loading kif file with " + contents.length() + " characters";
-                errsrc.addError( ErrorSource.ERROR, kif.filename, 1, 0, 0, msg);
-            } catch (IOException ex) {}
+            String msg = "Error in SUMOjEdit.fromTPTP() with " + kif.filename + ": " + e;
+            System.err.println(msg);
         }
         Log.log(Log.MESSAGE, this, ":fromTPTP(): complete");
     }
