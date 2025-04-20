@@ -90,12 +90,11 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
      * Starts the given named Runnable
      *
      * @param r the Runnable to start
-     * @param desc a short description to give the Thread instance
      */
-    public void startThread(Runnable r, String desc) {
+    public void startThread(Runnable r) {
 
         Thread t = new Thread(r);
-        t.setName(SUMOjEdit.class.getSimpleName() + ": " + desc);
+        t.setName(SUMOjEdit.class.getSimpleName());
         t.setDaemon(true);
         t.start();
     }
@@ -163,7 +162,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
             }
             Log.log(Log.MESSAGE, this, ":processLoadedKifOrTptp(): complete");
         };
-        startThread(r, "");
+        startThread(r);
     }
 
     /**
@@ -415,42 +414,41 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
         String contents = view.getEditPane().getTextArea().getSelectedText();
         if (!checkEditorContents(contents, "Please fully highlight an atom for query"))
             return;
-        Runnable r = () -> {
-            togglePluginMenus(false);
-            Log.log(Log.MESSAGE, this, ":queryExp(): query with: " + contents);
-            System.out.println("queryExp(): query with: " + contents);
-            String dir = KBmanager.getMgr().getPref("kbDir") + File.separator;
-            String type = "tptp";
-            String outfile = dir + "temp-comb." + type;
-            System.out.println("queryExp(): query on file: " + outfile);
-            Log.log(Log.MESSAGE, this, ":queryExp(): query on file: " + outfile);
-            Vampire vamp;
-            EProver eprover;
-            StringBuilder qlist = null;
-            TPTP3ProofProcessor tpp = new TPTP3ProofProcessor();
-            if (KBmanager.getMgr().prover == KBmanager.Prover.VAMPIRE) {
-                vamp = kb.askVampire(contents, 30, 1);
-                tpp.parseProofOutput(vamp.output, contents, kb, vamp.qlist);
-                qlist = vamp.qlist;
-                //System.out.println("queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(vamp.output));
-                //Log.log(Log.WARNING,this,"queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(vamp.output));
+//        Runnable r = () -> { // TODO: For a longer query, may have to send to the KButilities.EXECUTOR thread
+        togglePluginMenus(false);
+        Log.log(Log.MESSAGE, this, ":queryExp(): query with: " + contents);
+        System.out.println("queryExp(): query with: " + contents);
+        String dir = KBmanager.getMgr().getPref("kbDir") + File.separator;
+        String type = "tptp";
+        String outfile = dir + "temp-comb." + type;
+        System.out.println("queryExp(): query on file: " + outfile);
+        Log.log(Log.MESSAGE, this, ":queryExp(): query on file: " + outfile);
+        Vampire vamp;
+        EProver eprover;
+        StringBuilder qlist = null;
+        TPTP3ProofProcessor tpp = new TPTP3ProofProcessor();
+        if (KBmanager.getMgr().prover == KBmanager.Prover.VAMPIRE) {
+            vamp = kb.askVampire(contents, 30, 1);
+            tpp.parseProofOutput(vamp.output, contents, kb, vamp.qlist);
+            qlist = vamp.qlist;
+            //Log.log(Log.MESSAGE,this,"queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(vamp.output));
+        }
+        if (KBmanager.getMgr().prover == KBmanager.Prover.EPROVER) {
+            eprover = kb.askEProver(contents, 30, 1);
+            try {
+                //Log.log(Log.MESSAGE,this,"queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(eprover.output));
+                tpp.parseProofOutput(eprover.output, contents, kb, eprover.qlist);
+                qlist = eprover.qlist;
+            } catch (Exception e) {
+                Log.log(Log.ERROR, this, ":queryExp(): ", e);
             }
-            if (KBmanager.getMgr().prover == KBmanager.Prover.EPROVER) {
-                eprover = kb.askEProver(contents, 30, 1);
-                try {
-                    //System.out.println("queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(eprover.output));
-                    //Log.log(Log.WARNING,this,"queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(eprover.output));
-                    tpp.parseProofOutput(eprover.output, contents, kb, eprover.qlist);
-                    qlist = eprover.qlist;
-                } catch (Exception e) {
-                    Log.log(Log.ERROR, this, ":queryExp(): ", e);
-                }
-            }
-            tpp.processAnswersFromProof(qlist, contents);
-            view.getTextArea().setText(queryResultString(tpp));
-            Log.log(Log.MESSAGE, this, ":queryExp: complete");
-        };
-        startThread(r, "");
+        }
+        tpp.processAnswersFromProof(qlist, contents);
+        view.getTextArea().setText(queryResultString(tpp));
+        Log.log(Log.MESSAGE, this, ":queryExp(): complete");
+//        };
+//        startThread(r);
+
     }
 
     @Override
@@ -860,7 +858,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
     //        errorListRefreshHack(); // do not want to do this, it disrupts message handling
             Log.log(Log.MESSAGE, this, ":checkErrors(): complete");
         };
-        startThread(r, "");
+        startThread(r);
     }
 
     /**
@@ -1053,13 +1051,13 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
         if (StringUtil.emptyString(kif.filename))
             kif.filename = view.getBuffer().getPath();
         String contents = view.getEditPane().getTextArea().getText();
+        String selected = view.getEditPane().getTextArea().getSelectedText();
+        if (!StringUtil.emptyString(selected))
+            contents = selected;
 
         if (!parseKif(contents))
             return;
 
-        String selected = view.getEditPane().getTextArea().getSelectedText();
-        if (!StringUtil.emptyString(selected))
-            contents = selected;
         StringBuilder sb = new StringBuilder();
         try {
             //Log.log(Log.WARNING,this,"toTPTP(): done reading kif file");
