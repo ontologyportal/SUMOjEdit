@@ -82,7 +82,7 @@ cd ~/workspace
 git clone https://github.com/ontologyportal/SUMOjEdit.git
 git clone https://github.com/ontologyportal/sigmaAntlr.git
 ```
-- Add to your ~/.bashrc editing "myname" to conform to your machine home.
+- Add to your ~/.bashrc editing "myname" to conform to your machine's home.
 ```sh
 cd $HOME
 echo "# SUMOjEdit" >> .bashrc
