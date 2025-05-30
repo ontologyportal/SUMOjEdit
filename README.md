@@ -17,6 +17,7 @@ Started with the QuickNotepad tutorial and adapting bit by bit as a syntax check
 ```
 xhost +localhost
 ```
+This allows localhost to be added to the access control list
 ### Docker Desktop
 - From the Docker Hub tab search for sumojedit, select the link, then Run which\
   will pull the image down. A 'Run a new container' dialog will appear. Under
