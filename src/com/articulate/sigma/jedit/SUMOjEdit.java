@@ -182,7 +182,6 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
                     elem.getComponent().setEnabled(enabled);
                     break;
                 }
-
         }
 
         // Now, the right click context menu of the editor's text area in the case of customized SUMOjEdit actions
@@ -950,9 +949,9 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
                 for (String res : result) {
                     err = "Variable(s) only used once: " + res;
                     idx = f.toString().indexOf(res);
-                    errsrc.addError(ErrorSource.ERROR, kif.filename, f.startLine-1, idx, idx+res.length(), err);
+                    errsrc.addError(ErrorSource.WARNING, kif.filename, f.startLine-1, idx, idx+res.length(), err);
                     if (log)
-                        Log.log(Log.ERROR, this, err);
+                        Log.log(Log.WARNING, this, err);
                 }
             processed = fp.preProcess(f, false, kb);
             if (f.errors != null && !f.errors.isEmpty()) {
