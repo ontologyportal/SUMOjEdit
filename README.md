@@ -13,7 +13,10 @@ Started with the QuickNotepad tutorial and adapting bit by bit as a syntax check
 ### For macOS
 - Install [Docker Desktop](https://docs.docker.com/desktop/setup/install/mac-install/)
 - Configure an [X11 Server](https://gist.github.com/devnoname120/ce02ef43da968e15340427c2f1c286a7)
-- When the xterm console comes up, type in xhost +localhost
+- When the xterm console comes up, type in:
+```
+xhost +localhost
+```
 ### Docker Desktop
 - From the Docker Hub tab search for sumojedit, select the link, then Run which\
   will pull the image down. A 'Run a new container' dialog will appear. Under
