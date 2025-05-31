@@ -12,12 +12,29 @@ Started with the QuickNotepad tutorial and adapting bit by bit as a syntax check
 - An X11 Server is already configured on *nix installations
 ### For macOS
 - Install [Docker Desktop](https://docs.docker.com/desktop/setup/install/mac-install/)
-- Configure an [X11 Server](https://gist.github.com/devnoname120/ce02ef43da968e15340427c2f1c286a7)
-- When the xterm console comes up, type in:
+```sh
+brew install --cask --no-quarantine docker
 ```
+- Install and configure [XQuartz](https://www.xquartz.org)
+```sh
+brew install --cask --no-quarantine xquartz
+defaults write org.xquartz.X11 nolisten_tcp -bool false
+defaults write org.xquartz.X11 no_auth -bool false
+defaults write org.xquartz.X11 enable_iglx -bool true
+```
+To add each host to the access control list, add to your ~/.zshrc
+```sh
+# For running SUMOjEdit from Docker image via XQuartz
+# adds each host to the access control list
+xhost +127.0.0.1
 xhost +localhost
+xhost +$(hostname)
 ```
-This allows localhost to be added to the access control list
+If Windows have a black background instead of white when they are focused\
+Run the following, then restart XQuartz:
+```sh
+defaults write org.xquartz.X11 enable_render_extension -bool false
+```
 ### Docker Desktop
 - From the Docker Hub tab search for sumojedit, select the link, then Run which\
   will pull the image down. A 'Run a new container' dialog will appear. Under
