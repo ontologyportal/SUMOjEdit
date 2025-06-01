@@ -22,14 +22,8 @@ defaults write org.xquartz.X11 nolisten_tcp -bool false
 defaults write org.xquartz.X11 no_auth -bool false
 defaults write org.xquartz.X11 enable_iglx -bool true
 ```
-To add each host to the access control list, add to your ~/.zshrc
-```sh
-# For running SUMOjEdit from Docker image via XQuartz
-# adds each host to the access control list
-xhost +127.0.0.1
-xhost +localhost
-xhost +$(hostname)
-```
+In XQuartz's preferences, ensure that "Allow connections from network clients"\
+is enabled.\
 If Windows have a black background instead of white when they are focused\
 Run the following, then restart XQuartz:
 ```sh
