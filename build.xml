@@ -92,11 +92,11 @@
 
     <target name="sigma.antlr" depends="init">
         <!-- Builds the SigmaUtils and TPTP jars as part of SigmaKEE's init -->
-        <ant antfile="../sigmaAntlr/build.xml" inheritAll="false" target="all"/>
-        <copy todir="lib" file="../sigmakee/build/sigmakee.jar"/>
+        <ant antfile="../sigmakee/build.xml" inheritAll="false" target="all"/>
         <copy todir="lib" file="../sigmaAntlr/sigmaAntlr.jar"/>
         <copy todir="lib" file="${tptp.home}/tptp.jar"/>
         <copy todir="lib" file="../SigmaUtils/sigmaUtils.jar"/>
+        <copy todir="lib" file="../sigmakee/build/sigmakee.jar"/>
     </target>
 
     <target name="compile" depends="sigma.antlr" description="Compile ${app.name}">
