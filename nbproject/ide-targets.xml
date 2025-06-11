@@ -318,21 +318,6 @@
         </jar>
         <copy todir="${basedir}" file="${dist.jar}" overwrite="true"/>
     </target>
-    <target name="deploy" depends="dist">
-        <copy todir="${jedit.home}/jars" file="${app.name}.jar" overwrite="true"/>
-        <copy todir="${jedit.home}/jars" overwrite="true">
-            <fileset dir="lib">
-                <exclude name="hamcrest-core-1.3.jar"/>
-                <exclude name="junit-4.13.2.jar"/>
-                <!-- including the jedit.jar in .jedit/jars causes strange problems -->
-                <exclude name="jedit.jar"/>
-            </fileset>
-        </copy>
-        <copy todir="${jedit.home}/modes" file="catalog" overwrite="true"/>
-        <copy todir="${jedit.home}/modes" file="kif.xml" overwrite="true"/>
-        <copy todir="${jedit.home}/modes" file="TPTP.xml" overwrite="true"/>
-        <echo>deploying ${app.name}.jar, supporting files and supporting jars</echo>
-    </target>
     <target name="clean" depends="SUMOjEdit.clean" description="Delete old build, lib artifacts">
         <delete dir="${dist.dir}"/>
     </target>
