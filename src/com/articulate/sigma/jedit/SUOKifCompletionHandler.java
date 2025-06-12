@@ -1,15 +1,16 @@
 package com.articulate.sigma.jedit;
 
 import com.articulate.sigma.Formula;
-import java.awt.Point;
+
 import org.gjt.sp.jedit.*;
 import org.gjt.sp.jedit.msg.BufferUpdate;
 import org.gjt.sp.jedit.msg.EditorStarted;
 import org.gjt.sp.jedit.textarea.*;
 
-import javax.swing.*;
 import java.awt.event.*;
+import java.awt.Point;
 import java.util.*;
+import javax.swing.*;
 
 /** A Lightweight SUO-KIF code completion handler for SUMOjEdit
  *
@@ -33,6 +34,7 @@ public class SUOKifCompletionHandler extends TextAreaExtension implements EBComp
 
     @Override
     public void handleMessage(EBMessage msg) {
+
         if (msg instanceof EditorStarted) {
             for (View v : jEdit.getViews()) {
                 attach(v.getTextArea());
@@ -46,18 +48,43 @@ public class SUOKifCompletionHandler extends TextAreaExtension implements EBComp
         }
     }
 
-    private void attach(JEditTextArea textArea) {
-        textArea.getPainter().addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseReleased(MouseEvent e) {
-                if (SwingUtilities.isRightMouseButton(e)) {
-                    showCompletionPopup(jEdit.getActiveView());
-                }
+    class myTabKeyListener extends KeyAdapter {
+
+        private View v;
+
+        public myTabKeyListener(View view) {
+            v = view;
+        }
+
+        @Override
+        public void keyPressed(KeyEvent e) {
+
+            if (!v.getBuffer().getPath().contains(".kif")) return;
+
+            // Trigger on Ctrl+Space universally (avoid Cmd+Space)
+            if (e.getKeyCode() == KeyEvent.VK_SPACE && e.isControlDown()) {
+                showCompletionPopup(v);
+                e.consume(); // prevent tab char from being inserted
             }
-        });
+
+            // Optional: Tab trigger if it works
+            if (e.getKeyCode() == KeyEvent.VK_TAB && !e.isShiftDown()) {
+                showCompletionPopup(v);
+                e.consume(); // prevent tab char from being inserted
+            }
+        }
     }
 
-    public void showCompletionPopup(View view) {
+    private void attach(JEditTextArea textArea) {
+
+        for (KeyListener kl : textArea.getKeyListeners())
+            if (kl instanceof myTabKeyListener) return;
+
+        textArea.addKeyListener(new myTabKeyListener(textArea.getView()));
+    }
+
+    private void showCompletionPopup(View view) {
+
         JEditTextArea textArea = view.getTextArea();
         int caret = textArea.getCaretPosition();
         String prefix = getCurrentPrefix(textArea);
