@@ -21,23 +21,30 @@ brew install --cask --no-quarantine xquartz
 defaults write org.xquartz.X11 nolisten_tcp -bool false
 defaults write org.xquartz.X11 no_auth -bool false
 defaults write org.xquartz.X11 enable_iglx -bool true
+open -a XQuartz
 ```
-In XQuartz's preferences, ensure that "Allow connections from network clients"\
-is enabled.\
-If Windows have a black background instead of white when they are focused\
-Run the following, then restart XQuartz:
+- In XQuartz's preferences, ensure that "Allow connections from network clients"\
+is enabled.
+- In the xterm window/console run:
 ```sh
-defaults write org.xquartz.X11 enable_render_extension -bool false
+xhost +localhost
 ```
+to add SUMOjEdit's running Docker container to the access control list.
 ### Docker Desktop
 - From the Docker Hub tab search for sumojedit, select the link, then Run which\
   will pull the image down. A 'Run a new container' dialog will appear. Under
   Ports (Host port) - type 8080 and Run. The container page will show Tomcat \
   startup on the Logs tab
+- NOTE: If you are running a firewall, you may need to add Docker to that list
 - To use SUMOjEdit, from the Exec tab of the running container:
 ```sh
 bash
 jedit
+```
+- If the SUMOjEdit UI has a black background instead of white when it is focused:\
+Run the following, then restart XQuartz and SUMOjEdit:
+```sh
+defaults write org.xquartz.X11 enable_render_extension -bool false
 ```
 - To run the SigmaKEE KB Browser, point your local browser to:
 ```url
