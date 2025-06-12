@@ -186,11 +186,13 @@ Use the Add Mode tab to
   If you have Vampire installed and it finds a proof, a new buffer will be opened to display the proof.\
   It should work with Eprover too, but needs testing.
 - other functions are "format axioms" which will reformat a highlighted axiom with standard SUMO indentation.\
-  "go to definition" will make a guess at where the definition for a selected term starts and put the cursor \
-  at that point in the file.\
+  "go to definition" will make a guess at where the definition for a selected term starts, open the source file\
+  and put the cursor at that point in the source file.\
   "browse term in Sigma" will open the public Sigma site in your browser opened on the selected term.
+- when typing SUO-KIF in the editor, use either Cntl+Space (universal), or Opt+Tab (macOS) to activate the completion menu.
 - Activity log - it's good to monitor SUMOjEdit from jEdit's activity log by selecting Utilities->Troubleshooting->Activity Log.\
-  When the dialog is open, select tail to get continuous updates. Dock the dialog to the base area of jEdit to monitor continuously.
+  When the dialog is open, select tail to get continuous updates.\
+  Dock the dialog to the base area of jEdit to monitor continuously. Same with the ErrorList Dialog
 
 ## Customization
 =============================
