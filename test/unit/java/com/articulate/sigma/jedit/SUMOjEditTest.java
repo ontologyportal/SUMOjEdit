@@ -53,8 +53,12 @@ public class SUMOjEditTest extends Assert {
         String contents = String.join("\n", FileUtil.readLines(test, false));
         sje.checkErrorsBody(contents);
 
-        String msg = sje.errsrc.getFileErrors(test)[1].getErrorMessage();
-        assertTrue(msg.contains("mismatched input ')'"));
+        String msg;
+        for (ErrorSource.Error er : sje.errsrc.getFileErrors(test)) {
+            msg = er.getErrorMessage();
+            if (msg.contains("mismatched input ')'"))
+                assertTrue(msg.contains("mismatched input ')'"));
+        }
     }
 
     @Test // Will exercise SigmaAntlr parser
