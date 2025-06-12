@@ -34,6 +34,7 @@ public class SUMOjEditPlugin extends EditPlugin {
     public static final String OPTION_PREFIX = "options." + NAME + ".";
 
     private EBComponent sje;
+    private EBComponent sjech;
 
     @Override
     public void start() {
@@ -41,14 +42,18 @@ public class SUMOjEditPlugin extends EditPlugin {
         sje = new SUMOjEdit();
 
         // Allow jEdit to start while the KBs are loading
-        ((SUMOjEdit)sje).startThread(((SUMOjEdit)sje));
+        ((SUMOjEdit)sje).startThread(((SUMOjEdit) sje));
         EditBus.addToBus(sje);
+
+        sjech = new SUOKifCompletionHandler();
+        EditBus.addToBus(sjech);
     }
 
     @Override
     public void stop() {
 
         EditBus.removeFromBus(sje);
+        EditBus.removeFromBus(sjech);
     }
 
     /** JavaBean accessor for the plugin component
@@ -56,4 +61,6 @@ public class SUMOjEditPlugin extends EditPlugin {
      * @return an EBComponent (the plugin)
      */
     public EBComponent getSje() {return sje;}
+
+//    public EBComponent getSjech() {return sjech;}
 }
