@@ -478,16 +478,30 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
      */
     private int getLineNum(String line) {
 
-        int result = 0;
-        Pattern p = Pattern.compile("line(:?) (\\d+)");
+        int result = -1;
+
+        /* SigmaAntlr error output */
+        Pattern p = Pattern.compile("(\\d+):");
         Matcher m = p.matcher(line);
         if (m.find()) {
-//            Log.log(Log.MESSAGE, this, ":getLineNum(): found line number: " + m.group(2));
+//                Log.log(Log.MESSAGE, this, ":getLineNum(): found line number: " + m.group(1));
             try {
-                result = Integer.parseInt(m.group(2));
+                result = Integer.parseInt(m.group(1));
             } catch (NumberFormatException nfe) {}
         }
-        if (result == 0) {
+        /* End SigmaAntlr error output */
+        /* Kif parse error output */
+        if (result < 0) {
+            p = Pattern.compile("line(:?) (\\d+)");
+            m = p.matcher(line);
+            if (m.find()) {
+//            Log.log(Log.MESSAGE, this, ":getLineNum(): found line number: " + m.group(2));
+                try {
+                    result = Integer.parseInt(m.group(2));
+                } catch (NumberFormatException nfe) {}
+            }
+        }
+        if (result < 0 ) {
             p = Pattern.compile("line&#58; (\\d+)");
             m = p.matcher(line);
             if (m.find()) {
@@ -497,6 +511,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
                 } catch (NumberFormatException nfe) {}
             }
         }
+        /* End Kif parse error output */
         if (result < 0)
             result = 0;
         return result;
@@ -509,7 +524,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
      */
     private int getOffset(String line) {
 
-        int result = 0;
+        int result = -1;
         Pattern p = Pattern.compile("\\:(\\d+)\\:");
         Matcher m = p.matcher(line);
         if (m.find()) {
@@ -904,20 +919,34 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
      */
     protected void checkErrorsBody(String contents) {
 
+        /* Syntax errors */
+        int counter = 0, idx, line, offset;
+        SuokifVisitor sv = SuokifApp.process(contents);
+        if (!sv.errors.isEmpty()) {
+            for (String er : sv.errors) {
+                line = getLineNum(er);
+                offset = getOffset(er);
+                errsrc.addError(ErrorSource.ERROR, kif.filename, line == 0 ? line : line - 1, offset, offset + 1, er);
+                if (log) {
+                    Log.log(Log.ERROR, this, er);
+                }
+            }
+            return; // fix these first
+        }
+
         if (!parseKif(contents))
-            return;
+            return; // fix these also before continuing error checks
+        /* End syntax errors */
 
         Log.log(Log.MESSAGE, this, ":checkErrorsBody(): success loading kif file with " + contents.length() + " characters");
         Log.log(Log.MESSAGE, this, ":checkErrorsBody(): filename: " + kif.filename);
 
-        int counter = 0, idx, line, offset;
         Set<String> nbeTerms = new HashSet<>();
         Set<String> unkTerms = new HashSet<>();
         Set<String> result, unquant, terms;
         Set<Formula> processed;
         String err, term;
         FileSpec defn;
-        SuokifVisitor sv;
         ErrorSource.Error[] ders;
         for (Formula f : kif.formulaMap.values()) {
             Log.log(Log.MESSAGE, this, ":checkErrorsBody(): check formula:\n " + f);
@@ -926,18 +955,6 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
                 Log.log(Log.NOTICE, this, ".");
                 counter = 0;
             }
-            // Check for syntax errors that KIF.parse didn't catch
-            sv = SuokifApp.process(Formula.textFormat(f.getFormula()));
-            if (!sv.errors.isEmpty()) {
-                for (String er : sv.errors) {
-                    line = getLineNum(er);
-                    offset = getOffset(er);
-                    errsrc.addError(ErrorSource.ERROR, kif.filename, line == 0 ? line : line-1, offset, offset+1, er);
-                    if (log)
-                        Log.log(Log.ERROR, this, er);
-                }
-            }
-            //Log.log(Log.WARNING,this,"checking formula " + f.toString());
             if (Diagnostics.quantifierNotInStatement(f)) {
                 err = "Quantifier not in statement";
                 errsrc.addError(ErrorSource.ERROR, kif.filename, f.startLine-1, f.endLine-1,0,err);
