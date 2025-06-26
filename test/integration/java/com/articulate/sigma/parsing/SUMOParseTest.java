@@ -23,23 +23,23 @@ public class SUMOParseTest {
             paths.filter(f -> f.toString().endsWith(".kif")).sorted().forEach(f ->  {
                 System.out.printf("Parsing: %s%n", f.toFile());
                 switch(FileUtil.noExt(f.toFile().getName())) {
-                    case "ComputerInput":
-                    case "Facebook":
-                    case "FinancialOntology":
-                    case "Geography":
-                    case "Government":
-                    case "Media":
-                    case "MilitaryDevices":
-                    case "MilitaryPersons":
-                    case "MilitaryProcesses":
-                    case "Transportation":
-                    case "UXExperimentalTerms":
-                    case "Weather":
-                    case "Enumerations":
-                    case "GDPRTerms":
-                    case "MedReason":
-                    case "modals":
-                        break;
+//                    case "ComputerInput":
+//                    case "Facebook":
+//                    case "FinancialOntology":
+//                    case "Geography":
+//                    case "Government":
+//                    case "Media":
+//                    case "MilitaryDevices":
+//                    case "MilitaryPersons":
+//                    case "MilitaryProcesses":
+//                    case "Transportation":
+//                    case "UXExperimentalTerms":
+//                    case "Weather":
+//                    case "Enumerations":
+//                    case "GDPRTerms":
+//                    case "MedReason":
+//                    case "modals":
+//                        break;
                     default:
                         SuokifApp.process(f.toFile());
                         assertFalse(SuokifVisitor.result.isEmpty());
