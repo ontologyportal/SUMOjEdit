@@ -35,6 +35,12 @@ auxiliary.show.customizer.message=<message>
                     <location>test/unit/java</location>
                     <encoding>UTF-8</encoding>
                 </source-folder>
+                <source-folder>
+                    <label>Test Integration</label>
+                    <type>java</type>
+                    <location>test/integration/java</location>
+                    <encoding>UTF-8</encoding>
+                </source-folder>
             </folders>
             <ide-actions>
                 <action name="build">
@@ -56,7 +62,7 @@ auxiliary.show.customizer.message=<message>
                 </action>
                 <action name="test">
                     <script>${ant.script}</script>
-                    <target>test.unit</target>
+                    <target>test</target>
                 </action>
                 <action name="debug">
                     <script>${ant.script}</script>
@@ -90,7 +96,20 @@ auxiliary.show.customizer.message=<message>
                 </action>
                 <action name="test.single">
                     <script>${ant.script}</script>
-                    <target>run-selected-test-in-unit</target>
+                    <target>run-selected-test</target>
+                    <context>
+                        <property>test.class</property>
+                        <folder>test/integration/java</folder>
+                        <pattern>\.java$</pattern>
+                        <format>java-name</format>
+                        <arity>
+                            <one-file-only/>
+                        </arity>
+                    </context>
+                </action>
+                <action name="test.single">
+                    <script>${ant.script}</script>
+                    <target>run-selected-test</target>
                     <context>
                         <property>test.class</property>
                         <folder>test/unit/java</folder>
@@ -103,7 +122,20 @@ auxiliary.show.customizer.message=<message>
                 </action>
                 <action name="run.single.method">
                     <script>${ant.script}</script>
-                    <target>run-single-test-method-in-unit</target>
+                    <target>run-single-test-method</target>
+                    <context>
+                        <property>test.class</property>
+                        <folder>test/integration/java</folder>
+                        <pattern>\.java$</pattern>
+                        <format>java-name</format>
+                        <arity>
+                            <one-file-only/>
+                        </arity>
+                    </context>
+                </action>
+                <action name="run.single.method">
+                    <script>${ant.script}</script>
+                    <target>run-single-test-method</target>
                     <context>
                         <property>test.class</property>
                         <folder>test/unit/java</folder>
@@ -116,7 +148,20 @@ auxiliary.show.customizer.message=<message>
                 </action>
                 <action name="debug.test.single">
                     <script>${ant.script}</script>
-                    <target>debug-selected-test-in-unit</target>
+                    <target>debug-selected-test</target>
+                    <context>
+                        <property>test.class</property>
+                        <folder>test/integration/java</folder>
+                        <pattern>\.java$</pattern>
+                        <format>java-name</format>
+                        <arity>
+                            <one-file-only/>
+                        </arity>
+                    </context>
+                </action>
+                <action name="debug.test.single">
+                    <script>${ant.script}</script>
+                    <target>debug-selected-test</target>
                     <context>
                         <property>test.class</property>
                         <folder>test/unit/java</folder>
@@ -129,7 +174,20 @@ auxiliary.show.customizer.message=<message>
                 </action>
                 <action name="debug.single.method">
                     <script>${ant.script}</script>
-                    <target>debug-single-test-method-in-unit</target>
+                    <target>debug-single-test-method</target>
+                    <context>
+                        <property>test.class</property>
+                        <folder>test/integration/java</folder>
+                        <pattern>\.java$</pattern>
+                        <format>java-name</format>
+                        <arity>
+                            <one-file-only/>
+                        </arity>
+                    </context>
+                </action>
+                <action name="debug.single.method">
+                    <script>${ant.script}</script>
+                    <target>debug-single-test-method</target>
                     <context>
                         <property>test.class</property>
                         <folder>test/unit/java</folder>
@@ -147,6 +205,12 @@ auxiliary.show.customizer.message=<message>
                 <script>${ant.script}</script>
                 <build-target>deploy</build-target>
             </export>
+            <export>
+                <type>folder</type>
+                <location>build/test/classes</location>
+                <script>${ant.script}</script>
+                <build-target>deploy</build-target>
+            </export>
             <view>
                 <items>
                     <source-folder style="packages">
@@ -156,6 +220,10 @@ auxiliary.show.customizer.message=<message>
                     <source-folder style="packages">
                         <label>Test Unit</label>
                         <location>test/unit/java</location>
+                    </source-folder>
+                    <source-folder style="packages">
+                        <label>Test Integration</label>
+                        <location>test/integration/java</location>
                     </source-folder>
                     <source-file>
                         <location>${ant.script}</location>
@@ -183,7 +251,14 @@ auxiliary.show.customizer.message=<message>
                 <package-root>test/unit/java</package-root>
                 <unit-tests/>
                 <classpath mode="compile">${javac.test.classpath}</classpath>
-                <built-to>build/test/classes</built-to>
+                <built-to>${build.test.classes.dir}</built-to>
+                <source-level>11</source-level>
+            </compilation-unit>
+            <compilation-unit>
+                <package-root>test/integration/java</package-root>
+                <unit-tests/>
+                <classpath mode="compile">${javac.test.classpath}</classpath>
+                <built-to>${build.test.classes.dir}</built-to>
                 <source-level>11</source-level>
             </compilation-unit>
         </java-data>
