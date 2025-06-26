@@ -18,7 +18,9 @@
     <property name="build.home" value="build"/>
     <property name="build.test.classes" value="${build.home}/test/classes"/>
     <property name="unit.test.suite" value="com.articulate.sigma.UnitTestSuite"/>
+    <property name="integration.test.suite" value="com.articulate.sigma.IntegrationTestSuite"/>
     <property name="test.unit.dir" value="test/unit/java"/>
+    <property name="test.integration.dir" value="test/integration/java"/>
     <property name="reports.dir" value="${build.home}/reports"/>
     <property name="report.html" value="file:${basedir}/${reports.dir}/html/index.html"/>
 
@@ -31,6 +33,7 @@
 
     <path id="test.sourcepath">
         <pathelement path="${test.unit.dir}/com/articulate/sigma"/>
+        <pathelement path="${test.integration.dir}/com/articulate/sigma"/>
     </path>
 
     <condition property="isUnixNotMac">
@@ -132,7 +135,7 @@
 
     <target name="dist" depends="compile.test" description="Create the ${app.name}.jar file and place in ${basedir}">
         <jar destfile="${app.name}.jar">
-            <fileset dir="build/classes"/>
+            <fileset dir="${build.home}/classes"/>
         </jar>
     </target>
 
@@ -224,7 +227,7 @@ alias jedit="java -Xmx10g -Xss1m -jar $JEDIT_JAR"
     ===================
     -->
 
-    <target name="test" depends="test.unit"/>
+    <target name="test" depends="test.unit,test.integration"/>
     <target name="test.unit" depends="compile.test" description="Runs the UnitTestSuite">
         <junit printsummary="yes"
                haltonfailure="yes"
@@ -236,6 +239,22 @@ alias jedit="java -Xmx10g -Xss1m -jar $JEDIT_JAR"
                 <path refid="run.test.classpath"/>
             </classpath>
             <test name="${unit.test.suite}" haltonfailure="no" todir="${reports.dir}">
+                <formatter type="xml"/>
+            </test>
+        </junit>
+        <antcall target="junit.report"/>
+    </target>
+    <target name="test.integration" depends="compile.test" description="Runs the IntegrationTestSuite">
+        <junit printsummary="yes"
+               haltonfailure="yes"
+               showoutput="yes"
+               fork="yes">
+            <jvmarg line="${run.jvmargs}"/>
+            <formatter type="plain" usefile="false"/>
+            <classpath>
+                <path refid="run.test.classpath"/>
+            </classpath>
+            <test name="${integration.test.suite}" haltonfailure="no" todir="${reports.dir}">
                 <formatter type="xml"/>
             </test>
         </junit>
