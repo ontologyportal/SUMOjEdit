@@ -23,21 +23,13 @@ public class SUMOParseTest {
             paths.filter(f -> f.toString().endsWith(".kif")).sorted().forEach(f ->  {
                 System.out.printf("Parsing: %s%n", f.toFile());
                 switch(FileUtil.noExt(f.toFile().getName())) {
-                    case "ComputerInput":
-                    case "Facebook":
-                    case "FinancialOntology":
-                    case "Geography":
-                    case "Government":
-                    case "Media":
                     case "MilitaryDevices":
-                    case "MilitaryPersons":
-                    case "MilitaryProcesses":
                     case "Transportation":
                     case "UXExperimentalTerms":
-                    case "Weather":
                     case "Enumerations":
                     case "GDPRTerms":
                     case "MedReason":
+                    case "Useful-terms_2023":
                     case "modals":
                         break;
                     default:
@@ -54,7 +46,7 @@ public class SUMOParseTest {
         try {
             parsePath(System.getenv("SIGMA_HOME") + "/KBs");
         } catch (IOException ex) {
-            fail();
+            fail(ex.getMessage());
         }
     }
 
