@@ -21,7 +21,6 @@ public class SUMOParseTest {
         Path inPath = Paths.get(path);
         try (Stream<Path> paths = Files.walk(inPath)) {
             paths.filter(f -> f.toString().endsWith(".kif")).sorted().forEach(f ->  {
-                System.out.printf("Parsing: %s%n", f.toFile());
                 switch(FileUtil.noExt(f.toFile().getName())) {
                     case "MilitaryDevices":
                     case "Transportation":
@@ -33,6 +32,7 @@ public class SUMOParseTest {
                     case "modals":
                         break;
                     default:
+                        System.out.printf("Parsing: %s%n", f.toFile());
                         SuokifApp.process(f.toFile());
                         assertFalse(SuokifVisitor.result.isEmpty());
                         break;
