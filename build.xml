@@ -21,7 +21,7 @@
     <property name="integration.test.suite" value="com.articulate.sigma.IntegrationTestSuite"/>
     <property name="test.unit.dir" value="test/unit/java"/>
     <property name="test.integration.dir" value="test/integration/java"/>
-    <property name="reports.dir" value="${build.home}/reports"/>
+    <property name="reports.dir" value="${build.home}/test/results"/>
     <property name="report.html" value="file:${basedir}/${reports.dir}/html/index.html"/>
 
     <property name="javac.release" value="11"/>
