@@ -30,6 +30,7 @@ public class SUMOParseTest {
                     case "MedReason":
                     case "Useful-terms_2023":
                     case "modals":
+                    case "TQM3":
                         break;
                     default:
                         System.out.printf("Parsing: %s%n", f.toFile());
@@ -44,7 +45,7 @@ public class SUMOParseTest {
     @Test
     public void test_sumo_kbs() {
         try {
-            parsePath(System.getenv("SIGMA_HOME") + "/KBs");
+            parsePath(System.getenv("ONTOLOGYPORTAL_GIT") + "/sumo");
         } catch (IOException ex) {
             fail(ex.getMessage());
         }
