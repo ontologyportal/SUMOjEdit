@@ -8,7 +8,8 @@ FROM tomcat:9.0.97-jdk21-temurin-noble AS runtime
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     graphviz \
-    x11-apps
+    x11-apps \
+    nano
 
 # We want the jedit docs
 RUN apt-get install -y jedit
@@ -24,7 +25,7 @@ ENV DISPLAY=host.docker.internal:0
 RUN rm -f /usr/bin/jedit
 RUN echo "" >> ~/.bashrc
 RUN echo "# SUMOjEDIT" >> ~/.bashrc
-RUN echo 'alias jedit="java -Xmx10g -Xss1m -jar $JEDIT_JAR"' >> ~/.bashrc
+RUN echo 'alias jedit="java $CATALINA_OPS -jar $JEDIT_JAR"' >> ~/.bashrc
 
 COPY --from=builder \
     /usr/local/bin/e_ltb_runner /usr/local/bin/e_ltb_runner
