@@ -31,8 +31,8 @@ xhost +localhost
 ```
 to add SUMOjEdit's running Docker container to the access control list.
 ### Docker Desktop
-- From the Docker Hub tab search for sumojedit, select the link, then Run which\
-  will pull the image down. A 'Run a new container' dialog will appear. Under
+- From the Docker Hub tab search for sumojedit, select the link, then Run which \
+  will pull the image down. A 'Run a new container' dialog will appear. Under \
   Ports (Host port) - type 8080 and Run. The container page will show Tomcat \
   startup on the Logs tab
 - NOTE: If you are running a firewall, you may need to add Docker to that list
