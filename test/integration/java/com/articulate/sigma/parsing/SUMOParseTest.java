@@ -51,4 +51,13 @@ public class SUMOParseTest {
         }
     }
 
+    @Test
+    public void test_individual_kb() {
+        try {
+            parsePath(System.getenv("ONTOLOGYPORTAL_GIT") + "/sumo/Geography.kif");
+        } catch (IOException ex) {
+            fail(ex.getMessage());
+        }
+    }
+
 } // end class file SUMOParseTest.java
