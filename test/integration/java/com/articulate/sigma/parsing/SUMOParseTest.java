@@ -74,9 +74,9 @@ public class SUMOParseTest {
     public static void main(String[] args) {
 
         if (args != null && !args[0].isEmpty())
-            relPath = args[0]; // $ONTOLOGYPORTAL_GIT/sumo
+            relPath = args[0]; // $ONTOLOGYPORTAL_GIT/sumo or $ONTOLOGYPORTAL_GIT/sumo/Geography.kif
         else {
-            System.err.println("Usage: ant -Dtest.file={full path to a *.kif file or directory of *.kif files} test.kif");
+            System.err.println("Usage: ant -Dtest.path={full path to a *.kif file or directory of *.kif files} test.kif");
             return;
         }
 
