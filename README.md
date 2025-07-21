@@ -2,7 +2,7 @@
 
 Started with the QuickNotepad tutorial and adapting bit by bit as a syntax checker for [SUMO](https://www.ontologyportal.org)
 
-# Installation Instructions
+# Installation Instructions (at least 16GB RAM required)
 ## Container-based installation (Docker)
 ### For WIN
 - Install [Docker Desktop](https://docs.docker.com/desktop/setup/install/windows-install)
