@@ -23,7 +23,7 @@ plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.jars=\
     sigmaAntlr.jar \
     sigmaUtils.jar \
     sigmakee.jar \
-    tomcat-servlet-api-9.0.97.jar \
+    tomcat-servlet-api-9.0.107.jar \
     tptp.jar
 
 # online help

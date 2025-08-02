@@ -31,9 +31,7 @@ public class SUMOParseTest {
         try (Stream<Path> paths = Files.walk(inPath)) {
             paths.filter(f -> f.toString().endsWith(".kif")).sorted().forEach(f ->  {
                 switch(FileUtil.noExt(f.toFile().getName())) {
-                    case "UXExperimentalTerms":
                     case "Useful-terms_2023":
-                    case "modals":
                         break;
                     default:
                         System.out.printf("Parsing: %s%n", f.toFile());
