@@ -4,7 +4,7 @@ FROM $IMAGE_ACCOUNT/sigmakee:latest AS builder
 
 #################################################
 # runtime image.
-FROM tomcat:9.0.97-jdk21-temurin-noble AS runtime
+FROM tomcat:9.0.107-jdk21-temurin-noble AS runtime
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     graphviz \
@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN apt-get install -y jedit
 
 ENV SIGMA_HOME=/root/sigmakee-runtime
+ENV SIGMA_CP=/root/sumojedit/*
 ENV LD_LIBRARY_PATH=/usr/local/bin:$LD_LIBRARY_PATH
 ENV CATALINA_OPTS="-Xmx10g -Xss1m"
 ENV JEDIT_HOME=~/.jedit
@@ -24,7 +25,7 @@ ENV DISPLAY=host.docker.internal:0
 # We want the alias to start jedit vice the installed script
 RUN rm -f /usr/bin/jedit
 RUN echo "" >> ~/.bashrc
-RUN echo "# SUMOjEDIT" >> ~/.bashrc
+RUN echo "# SUMOjEdit" >> ~/.bashrc
 RUN echo 'alias jedit="java $CATALINA_OPS -jar $JEDIT_JAR"' >> ~/.bashrc
 
 COPY --from=builder \

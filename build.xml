@@ -27,6 +27,8 @@
     <property name="javac.release" value="11"/>
     <property name="run.jvmargs" value="-Xmx10g -Xss1m"/>
 
+    <property name="test.path" value="${git.home}/sumo"/>
+
     <path id="core.sourcepath">
         <pathelement path="src"/>
     </path>
@@ -280,6 +282,15 @@ alias jedit="java -Xmx10g -Xss1m -jar $JEDIT_JAR"
         <exec executable="sh" osfamily="unix">
             <arg value="xdg-open ${report.html}"/>
         </exec>
+    </target>
+
+    <target name="test.kif" depends="compile.test" description="Syntax check an individual *.kif file or directory of *.kif files">
+        <java classname="com.articulate.sigma.parsing.SUMOParseTest"
+              classpathref="run.test.classpath"
+              fork="true">
+            <jvmarg line="${run.jvmargs}"/>
+            <arg line="${test.path}"/>
+        </java>
     </target>
 
 </project>
