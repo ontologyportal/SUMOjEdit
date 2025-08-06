@@ -98,6 +98,21 @@ interface SUMOjEditActions {
 
     /**
      * ***************************************************************
+     * Give user the option to have the plugin automatically complete
+     * terms in the buffer. If the user chooses to do this, then the plugin
+     * will automatically complete terms in the buffer as the user types.
+     * Note that this does not do full pre-processing, just a syntax translation
+     * and completion of terms that are already in the KB.
+     * If the user chooses not to do this, then the plugin will
+     * automatically complete terms in the buffer only when the user
+     * explicitly requests it, e.g. by pressing a key combination.
+     * Note that this does not do full pre-processing, just a syntax translation
+     * and completion of terms that are already in the KB.
+     */
+    void autoComplete();
+
+    /**
+     * ***************************************************************
      * Convert a buffer or selection from TPTP to SUO-KIF. Note that this does
      * not do full pre-processing, just a syntax translation
      */
