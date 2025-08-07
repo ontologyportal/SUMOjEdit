@@ -60,4 +60,9 @@
             jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.fromTPTP();
         </CODE>
     </ACTION>
+    <ACTION NAME="sumojedit.autoComplete">
+        <CODE>
+            jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.autoComplete();
+        </CODE>
+    </ACTION>
 </ACTIONS>
