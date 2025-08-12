@@ -79,10 +79,10 @@
             <arg line="${run.args}"/>
         </java>
     </target>
-    <target name="run-selected-file-in-java" depends="compile">
+    <target name="run-selected-file-in-java" depends="compile.test">
         <fail unless="run.class">Must set property 'run.class'</fail>
         <java classname="${run.class}"
-              classpathref="rcp"
+              classpathref="tcp"
               fork="true">
             <jvmarg line="${run.jvmargs}"/>
             <env key="SIGMA_HOME" value="${sigma_home}"/>

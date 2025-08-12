@@ -198,6 +198,19 @@ auxiliary.show.customizer.message=<message>
                         </arity>
                     </context>
                 </action>
+                <action name="run.single">
+                    <script>${ant.script}</script>
+                    <target>run-selected-file-in-java</target>
+                    <context>
+                        <property>run.class</property>
+                        <folder>test/integration/java</folder>
+                        <pattern>\.java$</pattern>
+                        <format>java-name</format>
+                        <arity>
+                            <one-file-only/>
+                        </arity>
+                    </context>
+                </action>
             </ide-actions>
             <export>
                 <type>folder</type>
