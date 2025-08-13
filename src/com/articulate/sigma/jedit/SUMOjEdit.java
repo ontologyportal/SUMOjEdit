@@ -56,6 +56,9 @@ import tptp_parser.*;
  */
 public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
 
+    // at top-level fields
+    private AutoCompleteManager autoComplete;
+
     public static boolean log = true;
 
     protected final KIF kif;
@@ -120,6 +123,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
         view.getJMenuBar().getSubElements()[8].menuSelectionChanged(false);
         kb = SUMOtoTFAform.kb;
         fp = SUMOtoTFAform.fp;
+        autoComplete = new AutoCompleteManager(view, kb);
         errsrc = new DefaultErrorSource(getClass().getName(), this.view);
         processLoadedKifOrTptp();
         Log.log(Log.MESSAGE, this, ": kb: " + kb);
@@ -302,6 +306,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
 //            System.out.println("EditPaneUpdate.BUFFER_CHANGED");
             processLoadedKifOrTptp();
         }
+        if (autoComplete != null) autoComplete.refreshIndexOnBufferChange();
 //        if (eu.getWhat() == EditPaneUpdate.CREATED)
 //            System.out.println("EditPaneUpdate.CREATED");
         if (eu.getWhat() == EditPaneUpdate.DESTROYED) { // jEdit exit
@@ -317,6 +322,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
     private void unload() {
 
         ErrorSource.unregisterErrorSource(errsrc);
+        if (autoComplete != null) autoComplete.dispose();
     }
 
     /**
@@ -1147,6 +1153,14 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
         Log.log(Log.MESSAGE, this, ":fromTPTP(): complete");
     }
 
+  @Override
+    public void autoComplete() {
+
+        String kbName = KBmanager.getMgr().getPref("sumokbname");
+        KB kb = KBmanager.getMgr().getKB(kbName);
+        System.err.println("check back soon");
+    }
+    
     /**
      * ***************************************************************
      */

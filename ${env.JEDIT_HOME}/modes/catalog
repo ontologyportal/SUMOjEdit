@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+
+<!-- This is a mode catalog. Edit modes must be listed here, -->
+<!-- otherwise they will not be available to jEdit. -->
+
+<!DOCTYPE MODES SYSTEM "catalog.dtd">
+
+<MODES>
+    <MODE NAME="kif"		FILE="kif.xml"
+          FILE_NAME_GLOB="*.kif" />
+    <MODE NAME="tptp"		FILE="TPTP.xml"
+          FILE_NAME_GLOB="*.tptp" />
+</MODES>
