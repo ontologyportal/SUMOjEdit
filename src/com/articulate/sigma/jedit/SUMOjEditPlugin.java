@@ -24,6 +24,9 @@ import org.gjt.sp.jedit.EBComponent;
 import org.gjt.sp.jedit.EditBus;
 import org.gjt.sp.jedit.EditPlugin;
 
+// >>> ADD: fast autocomplete bootstrap
+import com.articulate.sigma.jedit.fastac.FastACBootstrap;
+
 /**
  * The SUMOjEdit plugin launcher
  * @author Adam Pease
@@ -47,6 +50,10 @@ public class SUMOjEditPlugin extends EditPlugin {
 
         sjech = new SUOKifCompletionHandler();
         EditBus.addToBus(sjech);
+
+        // >>> ADD: Kick off fast autocomplete once UI is up.
+        // Safe to call multiple times; internally guarded to run only once.
+        FastACBootstrap.runOnce();
     }
 
     @Override
