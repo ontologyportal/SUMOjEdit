@@ -54,7 +54,9 @@ plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.menu=\
   sumojedit.chooseVamp \
   - \
   sumojedit.from-tptp \
-  sumojedit.to-tptp
+  sumojedit.to-tptp \
+  - \
+  sumojedit.autoComplete
 
 # action labels for actions supplied by actions.xml
 sumojedit.show-stats.label=show statistics for buffer
@@ -69,6 +71,7 @@ sumojedit.chooseE.label=select EProver
 sumojedit.query-exp.label=query on highlighted expression
 sumojedit.to-tptp.label=SUO-KIF to TPTP
 sumojedit.from-tptp.label=SUO-KIF from TPTP
+sumojedit.autoComplete.label=autocomplete (predictive text)
 
 # Code completion (doesn't seem necessary as we're just adding functionality)
 #plugin.com.articulate.sigma.jedit.SUOKifCompletionHandler.name=SUO-KIF Completion
@@ -96,7 +99,9 @@ sumojedit.from-tptp.label=SUO-KIF from TPTP
 #  sumojedit.chooseVamp \
 #  - \
 #  sumojedit.from-tptp \
-#  sumojedit.to-tptp
+#  sumojedit.to-tptp \
+#  - \
+#  sumojedit.autoComplete
 
 # action labels for actions supplied by dockables.xml (not used)
 #sumojedit.label=SUMOjEdit
