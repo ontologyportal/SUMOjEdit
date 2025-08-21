@@ -30,6 +30,8 @@ import com.articulate.sigma.KB;
  */
 public class AutoCompleteManager {
 
+    private static final boolean ENABLE_SUO_POPUP = false;
+
     private final View view;
     private final JEditTextArea textArea;
     private final KB kb; // used to seed SUMO/SUO-KIF symbols
@@ -110,6 +112,9 @@ public class AutoCompleteManager {
         this.textArea = view.getEditPane().getTextArea();
         this.kb = kb;
 
+        // ⛔ Disable this dropdown manager entirely
+        if (!ENABLE_SUO_POPUP) return;
+
         list.setModel(listModel);
         list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         list.setVisibleRowCount(Math.min(maxSuggestions, 12));
@@ -187,6 +192,9 @@ public class AutoCompleteManager {
     // === Core UI logic ===
 
     private void maybeShow() {
+        // 🔴 Kill switch: disables SUO popup entirely
+        if (!ENABLE_SUO_POPUP) return;
+
         String prefix = currentWordPrefix();
         if (prefix.length() < minPrefix) { hidePopup(); return; }
         List<String> sugg = index.startsWith(prefix, maxSuggestions, caseSensitive);

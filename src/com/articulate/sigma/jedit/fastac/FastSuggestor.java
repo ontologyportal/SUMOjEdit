@@ -17,6 +17,10 @@ import java.util.concurrent.Executors;
  */
 public class FastSuggestor {
 
+    // === Kill-switch for the old dropdown popup ===
+    // Leave FALSE to disable popup everywhere. Set TRUE if you ever want it back.
+    private static final boolean ENABLE_POPUP = false;
+
     private final JTextComponent editor;
     private final PrefixIndex index;
     private final JPopupMenu popup;
@@ -59,6 +63,7 @@ public class FastSuggestor {
     }
 
     private void onChange(DocumentEvent e) {
+        if (!ENABLE_POPUP) return; // disabled: never compute/show
         String prefix = currentWordPrefix();
         boolean isDelete = prefix.length() < lastPrefix.length();
 
@@ -95,6 +100,7 @@ public class FastSuggestor {
 
     /** Compute full results off the EDT, then swap in on EDT. */
     private void refreshFullAsync() {
+        if (!ENABLE_POPUP) return;
         final String prefixSnapshot = lastPrefix;
         if (prefixSnapshot == null || prefixSnapshot.isEmpty()) {
             SwingUtilities.invokeLater(() -> showSuggestions(Collections.emptyList()));
@@ -141,6 +147,7 @@ public class FastSuggestor {
 
     /** Render the popup. Keep this light — actual data is prepared elsewhere. */
     private void showSuggestions(List<String> items) {
+        if (!ENABLE_POPUP) return;
         popup.setVisible(false);
         popup.removeAll();
 
@@ -198,9 +205,14 @@ public class FastSuggestor {
     // Create a FastSuggestor by building an index from words and wiring it to this editor.
     public static FastSuggestor attach(javax.swing.text.JTextComponent editor,
                                        java.util.List<String> words) {
+        if (!ENABLE_POPUP) {
+            System.out.println("[FastAC] Popup disabled (ENABLE_POPUP=false) — FastSuggestor.attach(editor,words) no-op.");
+            return null;
+        }
+
         PrefixIndex idx = new PrefixIndex();
         idx.build(words);
-        
+
         FastSuggestor fs = new FastSuggestor(editor, idx);
 
         // Optional: hide popup on focus loss so it doesn't linger
@@ -217,6 +229,10 @@ public class FastSuggestor {
     public static FastSuggestor attach(java.awt.Window owner,
                                        javax.swing.text.JTextComponent editor,
                                        java.util.List<String> words) {
+        if (!ENABLE_POPUP) {
+            System.out.println("[FastAC] Popup disabled (ENABLE_POPUP=false) — FastSuggestor.attach(owner,editor,words) no-op.");
+            return null;
+        }
         return attach(editor, words);
     }
 }

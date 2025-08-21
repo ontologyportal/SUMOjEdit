@@ -27,6 +27,9 @@ import org.gjt.sp.jedit.EditPlugin;
 // >>> ADD: fast autocomplete bootstrap
 import com.articulate.sigma.jedit.fastac.FastACBootstrap;
 
+// >>> ADD: ghost-text autocomplete bootstrap
+import com.articulate.sigma.jedit.fastac.smartcompose.SmartComposeBootstrap;
+
 /**
  * The SUMOjEdit plugin launcher
  * @author Adam Pease
@@ -54,6 +57,9 @@ public class SUMOjEditPlugin extends EditPlugin {
         // >>> ADD: Kick off fast autocomplete once UI is up.
         // Safe to call multiple times; internally guarded to run only once.
         FastACBootstrap.runOnce();
+
+        // >>> ADD: Kick off ghost-text autocomplete overlay
+        SmartComposeBootstrap.start();
     }
 
     @Override
@@ -61,6 +67,9 @@ public class SUMOjEditPlugin extends EditPlugin {
 
         EditBus.removeFromBus(sje);
         EditBus.removeFromBus(sjech);
+
+        // >>> ADD: Stop ghost-text autocomplete overlay
+        SmartComposeBootstrap.stop();
     }
 
     /** JavaBean accessor for the plugin component
