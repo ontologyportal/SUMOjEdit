@@ -71,7 +71,7 @@ sumojedit.chooseE.label=select EProver
 sumojedit.query-exp.label=query on highlighted expression
 sumojedit.to-tptp.label=SUO-KIF to TPTP
 sumojedit.from-tptp.label=SUO-KIF from TPTP
-sumojedit.autoComplete.label=autocomplete (predictive text)
+sumojedit.autoComplete.label=AutoComplete
 
 # Code completion (doesn't seem necessary as we're just adding functionality)
 #plugin.com.articulate.sigma.jedit.SUOKifCompletionHandler.name=SUO-KIF Completion
