@@ -1,5 +1,7 @@
 package com.articulate.sigma.jedit.fastac;
 
+import org.gjt.sp.jedit.jEdit;
+
 import javax.swing.*;
 import javax.swing.text.JTextComponent;
 import java.awt.*;
@@ -7,17 +9,18 @@ import java.util.List;
 
 public final class FastACAutoAttach {
 
-    // === Kill-switch for the old dropdown popup ===
-    // Set this to true if you ever want to re-enable the popup.
-    private static final boolean ENABLE_POPUP = false;
+    private static boolean popupEnabled() {
+        String mode = jEdit.getProperty("sumo.autocomplete.mode", "both");
+        return "popup".equalsIgnoreCase(mode) || "both".equalsIgnoreCase(mode);
+    }
 
     private FastACAutoAttach() {}
 
     /** Scans all frames/windows and attaches the popup suggestor to text editors.
      *  With ENABLE_POPUP=false, this method is a no-op. */
     public static void attachEverywhere(List<String> words) {
-        if (!ENABLE_POPUP) {
-            System.out.println("[FastAC] Popup disabled (ENABLE_POPUP=false) — skipping attachEverywhere().");
+        if (!popupEnabled()) {
+            System.out.println("[FastAC] Popup disabled by sumo.autocomplete.mode — skipping attachEverywhere().");
             return;
         }
 
@@ -39,7 +42,7 @@ public final class FastACAutoAttach {
 
     /** Recursively attach popup suggestor in a container tree. No-op if disabled. */
     private static void attachInContainer(Container c, List<String> words) {
-        if (!ENABLE_POPUP) return;
+        if (!popupEnabled()) return;
 
         Component[] comps = c.getComponents();
         for (Component comp : comps) {

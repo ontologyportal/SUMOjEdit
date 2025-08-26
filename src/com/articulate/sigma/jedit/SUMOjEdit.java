@@ -1095,7 +1095,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
                 //Log.log(Log.WARNING,this,"toTPTP kb cache: " + kb.kbCache);
                 //Log.log(Log.WARNING,this,"toTPTP gather pred vars: " + PredVarInst.gatherPredVars(kb,f));
                 //if (f.predVarCache != null && f.predVarCache.size() > 0)
-                //	Log.log(Log.WARNING,this,"toTPTP Formula.isHigherOrder(): pred var cache: " + f.predVarCache);
+                //  Log.log(Log.WARNING,this,"toTPTP Formula.isHigherOrder(): pred var cache: " + f.predVarCache);
                 if (f.isHigherOrder(kb) || (f.predVarCache != null && !f.predVarCache.isEmpty()))
                     continue;
                 tptpStr = "fof(f4434,axiom," + SUMOformulaToTPTPformula.process(f, false) + ",[file('kb_" + f.getSourceFile() + "_" + f.startLine + "',unknown)]).";
@@ -1147,20 +1147,163 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
         } catch (Exception e) {
             if (log)
                 Log.log(Log.ERROR, this, ":fromTPTP()", e);
-            String msg = "Error in SUMOjEdit.fromTPTP() with " + kif.filename + ": " + e;
+            String msg = "Error in SUMOjEdit.fromTPTP() with: " + kif.filename + ": " + e;
             System.err.println(msg);
         }
         Log.log(Log.MESSAGE, this, ":fromTPTP(): complete");
     }
 
-  @Override
-    public void autoComplete() {
+    // === BEGIN: Drop-down AutoComplete (self-contained, Java 11 compatible) ===
 
-        String kbName = KBmanager.getMgr().getPref("sumokbname");
-        KB kb = KBmanager.getMgr().getKB(kbName);
-        System.err.println("check back soon");
+    /** Menu action entrypoint. Called by actions.xml via SUMOjEditPlugin.sje.autoComplete() */
+    @Override
+    public void autoComplete() {
+        // Respect AC mode: only show drop-down in DROPDOWN_ONLY or BOTH
+        String mode = jEdit.getProperty("sumojedit.ac.mode", "BOTH");
+        boolean dropdownEnabled = "DROPDOWN_ONLY".equals(mode) || "BOTH".equals(mode);
+        if (!dropdownEnabled) return;
+
+        final View v = jEdit.getActiveView();
+        if (v == null) return;
+        final org.gjt.sp.jedit.textarea.JEditTextArea ta = v.getTextArea();
+        if (ta == null) return;
+
+        SimpleCompletionPopup.show(ta);
     }
-    
+
+    /** Minimal, reliable completion popup that reads tokens from the current buffer. */
+    private static final class SimpleCompletionPopup {
+        private static javax.swing.JPopupMenu active;
+
+        static void show(final org.gjt.sp.jedit.textarea.JEditTextArea ta) {
+            try {
+                final int caret = ta.getCaretPosition();
+                final java.awt.Point p = ta.offsetToXY(caret);
+                if (p == null) return;
+
+                final String prefix = currentPrefix(ta);
+                if (prefix.isEmpty()) return;
+
+                final java.util.LinkedHashSet<String> cands = new java.util.LinkedHashSet<>();
+                collectTokens(ta.getBuffer(), cands, 128_000);
+
+                final java.util.ArrayList<String> list = new java.util.ArrayList<>();
+                final String preLower = prefix.toLowerCase();
+                for (String s : cands) {
+                    if (s == null || s.length() <= prefix.length()) continue;
+                    if (s.toLowerCase().startsWith(preLower)) list.add(s);
+                    if (list.size() >= 200) break;
+                }
+                if (list.isEmpty()) return;
+                java.util.Collections.sort(list, String.CASE_INSENSITIVE_ORDER);
+
+                final javax.swing.JList<String> jlist = new javax.swing.JList<>(list.toArray(new String[0]));
+                jlist.setVisibleRowCount(Math.min(12, list.size()));
+                jlist.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+                jlist.setSelectedIndex(0);
+
+                final javax.swing.JScrollPane scroller = new javax.swing.JScrollPane(jlist);
+                scroller.setBorder(javax.swing.BorderFactory.createEmptyBorder(0,0,0,0));
+
+                final javax.swing.JPopupMenu popup = new javax.swing.JPopupMenu();
+                popup.setBorder(javax.swing.BorderFactory.createLineBorder(java.awt.Color.GRAY));
+                popup.add(scroller);
+
+                dismiss();
+
+                jlist.addMouseListener(new java.awt.event.MouseAdapter() {
+                    @Override public void mouseClicked(java.awt.event.MouseEvent e) {
+                        if (e.getClickCount() >= 2) { accept(ta, prefix, jlist.getSelectedValue()); }
+                    }
+                });
+                jlist.addKeyListener(new java.awt.event.KeyAdapter() {
+                    @Override public void keyPressed(java.awt.event.KeyEvent e) {
+                        int code = e.getKeyCode();
+                        if (code == java.awt.event.KeyEvent.VK_ENTER) {
+                            accept(ta, prefix, jlist.getSelectedValue());
+                            e.consume();
+                        } else if (code == java.awt.event.KeyEvent.VK_ESCAPE) {
+                            dismiss();
+                            e.consume();
+                        }
+                    }
+                });
+
+                int yBase = p.y + ta.getPainter().getFontMetrics().getAscent();
+                popup.show(ta, p.x, yBase + 2);
+                active = popup;
+
+                javax.swing.SwingUtilities.invokeLater(jlist::requestFocusInWindow);
+            } catch (Throwable ignore) {}
+        }
+
+        private static void accept(final org.gjt.sp.jedit.textarea.JEditTextArea ta,
+                                   final String prefix,
+                                   final String chosen) {
+            try {
+                dismiss();
+                if (chosen == null || chosen.length() <= prefix.length()) return;
+                final org.gjt.sp.jedit.buffer.JEditBuffer buf = ta.getBuffer();
+                if (buf == null) return;
+                final int caret = ta.getCaretPosition();
+                final String suffix = chosen.substring(prefix.length());
+                buf.beginCompoundEdit();
+                try {
+                    buf.insert(caret, suffix);
+                } finally {
+                    buf.endCompoundEdit();
+                }
+                ta.setCaretPosition(caret + suffix.length());
+            } catch (Throwable ignore) {}
+        }
+
+        private static void dismiss() {
+            try {
+                if (active != null && active.isVisible()) active.setVisible(false);
+            } catch (Throwable ignore) {} finally {
+                active = null;
+            }
+        }
+
+        private static String currentPrefix(final org.gjt.sp.jedit.textarea.JEditTextArea ta) {
+            final org.gjt.sp.jedit.buffer.JEditBuffer buf = ta.getBuffer();
+            if (buf == null) return "";
+            int caret = ta.getCaretPosition();
+            int start = caret;
+            while (start > 0) {
+                String ch = buf.getText(start - 1, 1);
+                if (ch == null || ch.isEmpty()) break;
+                char c = ch.charAt(0);
+                if (!(Character.isLetterOrDigit(c) || c == '_' || c == '-')) break;
+                start--;
+            }
+            int len = caret - start;
+            return (len <= 0) ? "" : buf.getText(start, len);
+        }
+
+        private static void collectTokens(final org.gjt.sp.jedit.buffer.JEditBuffer buf,
+                                          final java.util.Set<String> out,
+                                          final int maxChars) {
+            try {
+                int len = Math.min(buf.getLength(), Math.max(64_000, maxChars));
+                if (len <= 0) return;
+                String text = buf.getText(0, len);
+                int n = text.length();
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < n; i++) {
+                    char c = text.charAt(i);
+                    if (Character.isLetterOrDigit(c) || c == '_' || c == '-') {
+                        sb.append(c);
+                    } else {
+                        if (sb.length() > 0) { out.add(sb.toString()); sb.setLength(0); }
+                    }
+                }
+                if (sb.length() > 0) out.add(sb.toString());
+            } catch (Throwable ignore) {}
+        }
+    }
+    // === END: Drop-down AutoComplete ===
+
     /**
      * ***************************************************************
      */

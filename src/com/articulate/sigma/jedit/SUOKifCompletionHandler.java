@@ -6,6 +6,7 @@ import com.articulate.sigma.Formula;
 import org.gjt.sp.jedit.*;
 import org.gjt.sp.jedit.msg.BufferUpdate;
 import org.gjt.sp.jedit.msg.EditorStarted;
+import org.gjt.sp.jedit.jEdit;
 
 import org.gjt.sp.jedit.textarea.JEditTextArea;
 import org.gjt.sp.jedit.textarea.TextAreaExtension;
@@ -23,17 +24,21 @@ import java.util.stream.Collectors;
  * SUO-KIF inline SmartCompose for SUMOjEdit.
  *
  * - Renders faint gray "ghost" suffix after caret.
- * - Accept with TAB or RIGHT; cancel with ESC.
+ * - Accept with TAB or RIGHT; cancel with ESC (only when ghost mode is enabled).
  * - Candidates: current buffer tokens + SUO-KIF operator groups from Formula.
  *
- * Tab acceptance reliability:
- * - Installs component-level key bindings on JEditTextArea (registerKeyboardAction).
- * - Also installs a global KeyEventDispatcher as a fallback.
- * - Disables focus traversal on the text area so TAB reaches us.
+ * NOTE (2025-08): Ghost-AC obeys sumojedit.ac.mode from SUMOjEdit.props:
+ *   OFF           -> disabled
+ *   GHOST_ONLY    -> enabled
+ *   DROPDOWN_ONLY -> disabled
+ *   BOTH          -> enabled
+ *
+ * IMPORTANT: To avoid interfering with the drop-down AC, we only install
+ * ghost key bindings when ghost mode is enabled, and unregister them otherwise.
  */
 public final class SUOKifCompletionHandler implements EBComponent {
 
-    private static final boolean ENABLE_INLINE   = true;
+    // static flag removed; ghost mode is controlled by sumojedit.ac.mode
     private static final int     MAX_SCAN_CHARS  = 250_000;
 
     private static final Map<String, List<String>> SUO_KIF_KEYWORD_GROUPS = new LinkedHashMap<>();
@@ -48,6 +53,12 @@ public final class SUOKifCompletionHandler implements EBComponent {
     /** One overlay per text area (weak to avoid leaks) */
     private final Map<JEditTextArea, GhostOverlay> overlays = new WeakHashMap<>();
     private boolean dispatcherInstalled = false;
+
+    /** AC-mode helper: ghost text allowed only in GHOST_ONLY or BOTH */
+    private static boolean ghostACEnabled() {
+        String m = jEdit.getProperty("sumojedit.ac.mode", "BOTH");
+        return "GHOST_ONLY".equals(m) || "BOTH".equals(m);
+    }
 
     public SUOKifCompletionHandler() {
         EditBus.addToBus(this);
@@ -90,23 +101,18 @@ public final class SUOKifCompletionHandler implements EBComponent {
             ta.addKeyListener(new InlineRecomputeListener(view, overlay));
         }
 
-        // 3) Component-level key bindings to guarantee Tab/Right/Esc
-        installComponentKeyBindings(ta, overlay);
+        // 3) Install or remove ghost key bindings based on current mode
+        installOrRemoveGhostKeyBindings(ta, overlay);
 
-        // 4) Ensure Tab reaches us (not eaten by focus traversal)
-        ta.setFocusTraversalKeysEnabled(false);
-
-        // Initial compute/paint
+        // Initial compute/paint (will clear if ghost is disabled)
         overlay.recompute();
         overlay.repaintNow();
     }
 
-    // ----- component key bindings (highest reliability) -----
+    // ----- component key bindings (install only when ghost enabled) -----
     private static void installComponentKeyBindings(JEditTextArea ta, GhostOverlay overlay) {
-        // Clear any stale bindings we previously added (defensive)
-        unregisterAction(ta, "smartcompose-accept-tab");
-        unregisterAction(ta, "smartcompose-accept-right");
-        unregisterAction(ta, "smartcompose-cancel-esc");
+        // clear stale first (defensive)
+        unregisterGhostKeys(ta);
 
         registerAction(ta, "smartcompose-accept-tab",
             KeyStroke.getKeyStroke(KeyEvent.VK_TAB, 0),
@@ -119,6 +125,25 @@ public final class SUOKifCompletionHandler implements EBComponent {
         registerAction(ta, "smartcompose-cancel-esc",
             KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0),
             () -> { if (overlay.hasGhost()) { overlay.clear(); overlay.repaintNow(); } });
+
+        // Ensure Tab reaches us (not eaten by focus traversal) only when ghost is active
+        ta.setFocusTraversalKeysEnabled(false);
+    }
+
+    private static void installOrRemoveGhostKeyBindings(JEditTextArea ta, GhostOverlay overlay) {
+        if (ghostACEnabled()) {
+            installComponentKeyBindings(ta, overlay);
+        } else {
+            unregisterGhostKeys(ta);
+            // restore default traversal so Tab behaves normally for other features/popups
+            ta.setFocusTraversalKeysEnabled(true);
+        }
+    }
+
+    private static void unregisterGhostKeys(JEditTextArea ta) {
+        ta.unregisterKeyboardAction(KeyStroke.getKeyStroke(KeyEvent.VK_TAB, 0));
+        ta.unregisterKeyboardAction(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, 0));
+        ta.unregisterKeyboardAction(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0));
     }
 
     private static void registerAction(JEditTextArea ta, String name, KeyStroke ks, Runnable r) {
@@ -130,12 +155,7 @@ public final class SUOKifCompletionHandler implements EBComponent {
         ta.registerKeyboardAction(action, name, ks, JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
     }
 
-    private static void unregisterAction(JEditTextArea ta, String name) {
-        // There’s no direct unregister by name; we reset the InputMap/ActionMap pairs for our keystrokes in registerAction,
-        // so here we do nothing. Left as a stub for clarity.
-    }
-
-    // ----- global dispatcher (fallback) -----
+    // ----- global dispatcher (fallback; respects ghostACEnabled at runtime) -----
     private void installGlobalDispatcherOnce() {
         if (dispatcherInstalled) return;
         KeyboardFocusManager.getCurrentKeyboardFocusManager()
@@ -158,7 +178,16 @@ public final class SUOKifCompletionHandler implements EBComponent {
 
         @Override
         public void keyReleased(KeyEvent e) {
-            if (!ENABLE_INLINE || !isKif(view)) return;
+            // Keep key bindings in sync with current mode on every keystroke (cheap & robust)
+            JEditTextArea ta = view.getTextArea();
+            if (ta != null) installOrRemoveGhostKeyBindings(ta, overlay);
+
+            // do nothing if not a .kif file or ghost mode disabled
+            if (!isKif(view) || !ghostACEnabled()) {
+                // If disabled, clear any lingering ghost
+                if (!ghostACEnabled()) { overlay.clear(); overlay.repaintNow(); }
+                return;
+            }
             int kc = e.getKeyCode();
             if (kc == KeyEvent.VK_SHIFT || kc == KeyEvent.VK_CONTROL || kc == KeyEvent.VK_ALT ||
                 kc == KeyEvent.VK_META  || kc == KeyEvent.VK_ESCAPE  || kc == KeyEvent.VK_TAB ||
@@ -170,11 +199,12 @@ public final class SUOKifCompletionHandler implements EBComponent {
         }
     }
 
-    /** Fallback: pre-empt keys before jEdit if needed. */
+    /** Fallback: pre-empt keys before jEdit if needed (does nothing when ghost disabled). */
     private final class GhostKeyDispatcher implements KeyEventDispatcher {
         @Override
         public boolean dispatchKeyEvent(KeyEvent e) {
-            if (!ENABLE_INLINE) return false;
+            // ghost mode disabled? then ignore
+            if (!ghostACEnabled()) return false;
             if (e.getID() != KeyEvent.KEY_PRESSED && e.getID() != KeyEvent.KEY_TYPED) return false;
 
             // Focused component -> nearest JEditTextArea ancestor
@@ -193,7 +223,7 @@ public final class SUOKifCompletionHandler implements EBComponent {
             int code = e.getKeyCode();
             char ch = e.getKeyChar();
 
-            // Accept on VK_TAB or on typed '\t' (some platforms map Tab to keyChar)
+            // Accept on VK_TAB or on typed '\t'
             boolean isTab = (code == KeyEvent.VK_TAB) || (code == KeyEvent.VK_UNDEFINED && ch == '\t');
 
             if (e.getID() == KeyEvent.KEY_PRESSED && (isTab || code == KeyEvent.VK_RIGHT)) {
@@ -230,7 +260,7 @@ public final class SUOKifCompletionHandler implements EBComponent {
         void repaintNow() { ta.getPainter().repaint(); }
 
         boolean acceptIfAvailable() {
-            if (!hasGhost()) return false;
+            if (!ghostACEnabled() || !hasGhost()) return false;
             final JEditBuffer buffer = ta.getBuffer();
             if (buffer == null) return false;
             final int caret = ta.getCaretPosition();
@@ -246,9 +276,11 @@ public final class SUOKifCompletionHandler implements EBComponent {
         }
 
         void recompute() {
+            if (!ghostACEnabled()) { clear(); return; }
+
             final JEditBuffer buf = ta.getBuffer();
             if (buf == null) { clear(); return; }
-            
+
             final int caret = ta.getCaretPosition();
             final String prefix = getCurrentPrefix(ta);
             if (prefix.isEmpty()) { clear(); return; }
@@ -298,7 +330,7 @@ public final class SUOKifCompletionHandler implements EBComponent {
         @Override
         public void paintValidLine(Graphics2D g, int screenLine, int physicalLine,
                                    int start, int end, int y) {
-            if (!hasGhost()) return;
+            if (!ghostACEnabled() || !hasGhost()) return;
             int caret = ta.getCaretPosition();
             if (anchorCaret != caret) return;
             if (physicalLine != ta.getCaretLine()) return;
