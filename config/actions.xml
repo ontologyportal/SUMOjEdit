@@ -126,7 +126,7 @@
         <CODE>
             jEdit.setProperty("sumojedit.ac.mode", "BOTH");
             jEdit.setProperty("sumo.autocomplete.mode", "both");
-            Macros.message(view, "Autocomplete mode: Both");
+            Macros.message(view, "AC: dual mode enabled (ghost text + drop-down)");
         </CODE>
         <IS_SELECTED>
             return "BOTH".equals(jEdit.getProperty("sumojedit.ac.mode", "BOTH"));
