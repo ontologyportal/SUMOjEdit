@@ -136,7 +136,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
      */
     private void processLoadedKifOrTptp() {
 
-        Runnable r = () -> {
+//        Runnable r = () -> { // likely the cause of thread contention during arity check
             boolean isKif = Files.getFileExtension(view.getBuffer().getPath()).equalsIgnoreCase("kif");
             boolean isTptp = Files.getFileExtension(view.getBuffer().getPath()).equalsIgnoreCase("tptp");
             if (isKif || isTptp) {
@@ -165,8 +165,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
                 }
             }
             Log.log(Log.MESSAGE, this, ":processLoadedKifOrTptp(): complete");
-        };
-        startThread(r);
+//        };
+//        startThread(r);
     }
 
     /**
