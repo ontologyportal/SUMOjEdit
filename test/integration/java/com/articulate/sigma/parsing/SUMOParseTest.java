@@ -27,6 +27,7 @@ public class SUMOParseTest {
 
     private void parsePath(String path) throws IOException {
 
+        System.out.println("SUMOjEdit com.articulate.sigma.parsing.SUMOParseTest.parsePath(): path: " + path);
         Path inPath = Paths.get(path);
         try (Stream<Path> paths = Files.walk(inPath)) {
             paths.filter(f -> f.toString().endsWith(".kif")).sorted().forEach(f ->  {
