@@ -125,7 +125,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
         fp = SUMOtoTFAform.fp;
         autoComplete = new AutoCompleteManager(view, kb);
         errsrc = new DefaultErrorSource(getClass().getName(), this.view);
-        processLoadedKifOrTptp();
+        processLoadedKifOrTptp(); // this does not occur under the EDT. Might miss the green background for the status bar
         Log.log(Log.MESSAGE, this, ": kb: " + kb);
         Log.log(Log.MESSAGE, SUMOjEditPlugin.class, ":start(): complete");
     }
@@ -136,7 +136,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
      */
     private void processLoadedKifOrTptp() {
 
-        Runnable r = () -> {
+//        Runnable r = () -> { // likely the cause of thread contention during arity check
             boolean isKif = Files.getFileExtension(view.getBuffer().getPath()).equalsIgnoreCase("kif");
             boolean isTptp = Files.getFileExtension(view.getBuffer().getPath()).equalsIgnoreCase("tptp");
             if (isKif || isTptp) {
@@ -165,8 +165,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
                 }
             }
             Log.log(Log.MESSAGE, this, ":processLoadedKifOrTptp(): complete");
-        };
-        startThread(r);
+//        };
+//        startThread(r);
     }
 
     /**
@@ -245,7 +245,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
 
     /* Props at: https://www.jedit.org/api/org/gjt/sp/jedit/msg/package-summary.html */
     @Override
-    public void handleMessage(EBMessage msg) {
+    public void handleMessage(EBMessage msg) { // this occurs on the EDT
 
         if (msg instanceof BufferUpdate)
             bufferUpdate((BufferUpdate)msg);
@@ -1160,7 +1160,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
         KB kb = KBmanager.getMgr().getKB(kbName);
         System.err.println("check back soon");
     }
-    
+
     /**
      * ***************************************************************
      */
