@@ -4,6 +4,7 @@ import org.gjt.sp.jedit.Buffer;
 import org.gjt.sp.jedit.View;
 import org.gjt.sp.jedit.textarea.JEditTextArea;
 import org.gjt.sp.jedit.textarea.Selection;
+import org.gjt.sp.jedit.jEdit;
 
 import javax.swing.*;
 import java.awt.*;
@@ -29,8 +30,6 @@ import com.articulate.sigma.KB;
  *   to ensure navigation and acceptance work reliably.
  */
 public class AutoCompleteManager {
-
-    private static final boolean ENABLE_SUO_POPUP = false;
 
     private final View view;
     private final JEditTextArea textArea;
@@ -87,6 +86,12 @@ public class AutoCompleteManager {
         }
     };
 
+    // returns true if the current mode includes a popup dropdown
+    private static boolean popupEnabled() {
+        String mode = jEdit.getProperty("sumo.autocomplete.mode", "both");
+        return "popup".equalsIgnoreCase(mode) || "both".equalsIgnoreCase(mode);
+    }
+
     // Key handler to recompute suggestions after typing
     private final KeyAdapter keyHandler = new KeyAdapter() {
         @Override public void keyReleased(KeyEvent e) {
@@ -112,8 +117,8 @@ public class AutoCompleteManager {
         this.textArea = view.getEditPane().getTextArea();
         this.kb = kb;
 
-        // ⛔ Disable this dropdown manager entirely
-        if (!ENABLE_SUO_POPUP) return;
+        // ⛔ disable this dropdown manager entirely if popup is not enabled
+        if (!popupEnabled()) return;
 
         list.setModel(listModel);
         list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -192,8 +197,8 @@ public class AutoCompleteManager {
     // === Core UI logic ===
 
     private void maybeShow() {
-        // 🔴 Kill switch: disables SUO popup entirely
-        if (!ENABLE_SUO_POPUP) return;
+        // return immediately if popup is not enabled
+        if (!popupEnabled()) return;
 
         String prefix = currentWordPrefix();
         if (prefix.length() < minPrefix) { hidePopup(); return; }
@@ -265,9 +270,9 @@ public class AutoCompleteManager {
     }
 
     private char charAt(Buffer buffer, int offset) {
-        if (offset < 0 || offset >= buffer.getLength()) return ' ';
+        if (offset < 0 || offset >= buffer.getLength()) return '\0';
         String s = buffer.getText(offset, 1);
-        return s.isEmpty() ? ' ' : s.charAt(0);
+        return s.isEmpty() ? '\0' : s.charAt(0);
     }
 
     private Point caretAnchorPoint() {

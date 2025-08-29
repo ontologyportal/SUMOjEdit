@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import org.gjt.sp.jedit.jEdit;
+
 /**
  * FastSuggestor
  * - Shows suggestions quickly while typing.
@@ -16,10 +18,6 @@ import java.util.concurrent.Executors;
  *   then refresh fully after a slightly longer debounce in background.
  */
 public class FastSuggestor {
-
-    // === Kill-switch for the old dropdown popup ===
-    // Leave FALSE to disable popup everywhere. Set TRUE if you ever want it back.
-    private static final boolean ENABLE_POPUP = false;
 
     private final JTextComponent editor;
     private final PrefixIndex index;
@@ -38,6 +36,11 @@ public class FastSuggestor {
     // State we keep between keystrokes
     private String lastPrefix = "";
     private List<String> lastResults = Collections.emptyList();
+
+    private static boolean popupEnabled() {
+        String mode = jEdit.getProperty("sumo.autocomplete.mode", "both");
+        return "popup".equalsIgnoreCase(mode) || "both".equalsIgnoreCase(mode);
+    }
 
     // Tunables
     private static final int INSERT_DEBOUNCE_MS = 70;
@@ -63,7 +66,7 @@ public class FastSuggestor {
     }
 
     private void onChange(DocumentEvent e) {
-        if (!ENABLE_POPUP) return; // disabled: never compute/show
+        if (!popupEnabled()) return; // disabled: never compute/show
         String prefix = currentWordPrefix();
         boolean isDelete = prefix.length() < lastPrefix.length();
 
@@ -100,7 +103,7 @@ public class FastSuggestor {
 
     /** Compute full results off the EDT, then swap in on EDT. */
     private void refreshFullAsync() {
-        if (!ENABLE_POPUP) return;
+        if (!popupEnabled()) return;
         final String prefixSnapshot = lastPrefix;
         if (prefixSnapshot == null || prefixSnapshot.isEmpty()) {
             SwingUtilities.invokeLater(() -> showSuggestions(Collections.emptyList()));
@@ -147,7 +150,7 @@ public class FastSuggestor {
 
     /** Render the popup. Keep this light — actual data is prepared elsewhere. */
     private void showSuggestions(List<String> items) {
-        if (!ENABLE_POPUP) return;
+        if (!popupEnabled()) return;
         popup.setVisible(false);
         popup.removeAll();
 
@@ -205,7 +208,7 @@ public class FastSuggestor {
     // Create a FastSuggestor by building an index from words and wiring it to this editor.
     public static FastSuggestor attach(javax.swing.text.JTextComponent editor,
                                        java.util.List<String> words) {
-        if (!ENABLE_POPUP) {
+        if (!popupEnabled()) {
             System.out.println("[FastAC] Popup disabled (ENABLE_POPUP=false) — FastSuggestor.attach(editor,words) no-op.");
             return null;
         }
@@ -229,7 +232,7 @@ public class FastSuggestor {
     public static FastSuggestor attach(java.awt.Window owner,
                                        javax.swing.text.JTextComponent editor,
                                        java.util.List<String> words) {
-        if (!ENABLE_POPUP) {
+        if (!popupEnabled()) {
             System.out.println("[FastAC] Popup disabled (ENABLE_POPUP=false) — FastSuggestor.attach(owner,editor,words) no-op.");
             return null;
         }

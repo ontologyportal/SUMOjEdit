@@ -3,19 +3,23 @@ package com.articulate.sigma.jedit.fastac;
 import javax.swing.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.gjt.sp.jedit.jEdit;
+
 public final class FastACBootstrap {
 
-    // Toggle: set to true if you want the old dropdown popup enabled again
-    private static final boolean ENABLE_POPUP = false;
-
     private static final AtomicBoolean didRun = new AtomicBoolean(false);
+
+    private static boolean popupEnabled() {
+        String mode = jEdit.getProperty("sumo.autocomplete.mode", "both");
+        return "popup".equalsIgnoreCase(mode) || "both".equalsIgnoreCase(mode);
+    }
 
     private FastACBootstrap() {}
 
     /** Safe to call from anywhere, many times; it will only attach once. */
     public static void runOnce() {
         // Disable the old dropdown if the flag is off
-        if (!ENABLE_POPUP) return;
+        if (!popupEnabled()) return;
 
         if (!didRun.compareAndSet(false, true)) return; // already ran
 
