@@ -47,6 +47,7 @@ import org.gjt.sp.jedit.menu.EnhancedMenu;
 import org.gjt.sp.jedit.msg.BufferUpdate;
 import org.gjt.sp.jedit.msg.EditPaneUpdate;
 import org.gjt.sp.util.Log;
+import org.gjt.sp.util.ThreadUtilities;
 
 import tptp_parser.*;
 
@@ -90,16 +91,13 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
 
     /**
      * ***************************************************************
-     * Starts the given named Runnable
+     * Starts the given Runnable in the background, non-EDT
      *
      * @param r the Runnable to start
      */
-    public void startThread(Runnable r) {
+    public void startBackgroundThread(Runnable r) {
 
-        Thread t = new Thread(r);
-        t.setName(SUMOjEdit.class.getSimpleName());
-        t.setDaemon(true);
-        t.start();
+        ThreadUtilities.runInBackground(r);
     }
 
     /* Starts the KB initialization process for UI use only. Must only be
@@ -125,7 +123,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
         fp = SUMOtoTFAform.fp;
         autoComplete = new AutoCompleteManager(view, kb);
         errsrc = new DefaultErrorSource(getClass().getName(), this.view);
-        processLoadedKifOrTptp(); // this does not occur under the EDT. Might miss the green background for the status bar
+        processLoadedKifOrTptp();
         Log.log(Log.MESSAGE, this, ": kb: " + kb);
         Log.log(Log.MESSAGE, SUMOjEditPlugin.class, ":start(): complete");
     }
@@ -136,7 +134,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
      */
     private void processLoadedKifOrTptp() {
 
-//        Runnable r = () -> { // likely the cause of thread contention during arity check
+        Runnable r = () -> {
             boolean isKif = Files.getFileExtension(view.getBuffer().getPath()).equalsIgnoreCase("kif");
             boolean isTptp = Files.getFileExtension(view.getBuffer().getPath()).equalsIgnoreCase("tptp");
             if (isKif || isTptp) {
@@ -146,12 +144,18 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
                     if (kb != null && !kb.constituents.contains(kif.filename) /*&& !KBmanager.getMgr().infFileOld()*/) {
                         togglePluginMenus(false);
                         Color clr = view.getStatus().getBackground();
-                        view.getStatus().setBackground(Color.GREEN);
-                        view.getStatus().setMessage("processing " + kif.filename);
+                        Runnable r2 = () -> {
+                            view.getStatus().setBackground(Color.GREEN);
+                            view.getStatus().setMessage("processing " + kif.filename);
+                        };
+                        ThreadUtilities.runInDispatchThreadNow(r2);
                         tellTheKbAboutLoadedKif(); // adds kif as a constituent into the KB
                         checkErrors();
-                        view.getStatus().setBackground(clr);
-                        view.getStatus().setMessageAndClear("processing " + kif.filename + " complete");
+                        r2 = () -> {
+                            view.getStatus().setBackground(clr);
+                            view.getStatus().setMessageAndClear("processing " + kif.filename + " complete");
+                        };
+                        ThreadUtilities.runInDispatchThreadNow(r2);
                         togglePluginMenus(true);
                         // TODO: remove loaded KIF from KB?
                     }
@@ -165,8 +169,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
                 }
             }
             Log.log(Log.MESSAGE, this, ":processLoadedKifOrTptp(): complete");
-//        };
-//        startThread(r);
+        };
+        startBackgroundThread(r);
     }
 
     /**
@@ -178,18 +182,24 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
      */
     private void togglePluginMenus(boolean enabled) {
 
-        // Top view menu bar / Enhanced menu item / Plugins menu / SUMOjEdit plugin menu
-        MenuElement[] elems = view.getJMenuBar().getSubElements()[8].getSubElements()[0].getSubElements();
-        for (MenuElement elem : elems) {
-            if (elem instanceof EnhancedMenu)
-                if (((EnhancedMenu) elem).getText().toLowerCase().equals(SUMOjEditPlugin.NAME)) {
-                    elem.getComponent().setEnabled(enabled);
-                    break;
-                }
-        }
+        Runnable r = () -> {
 
-        // Now, the right click context menu of the editor's text area in the case of customized SUMOjEdit actions
-        view.getEditPane().getTextArea().setRightClickPopupEnabled(enabled);
+            // Top view menu bar / Enhanced menu item / Plugins menu / SUMOjEdit plugin menu
+            MenuElement[] elems = view.getJMenuBar().getSubElements()[8].getSubElements()[0].getSubElements();
+            for (MenuElement elem : elems) {
+                if (elem instanceof EnhancedMenu) {
+                    if (((EnhancedMenu) elem).getText().toLowerCase().equals(SUMOjEditPlugin.NAME)) {
+                        elem.getComponent().setEnabled(enabled);
+                        break;
+                    }
+                }
+            }
+
+            // Now, the right click context menu of the editor's text area in the case of customized SUMOjEdit actions
+            view.getEditPane().getTextArea().setRightClickPopupEnabled(enabled);
+
+        };
+        ThreadUtilities.runInDispatchThreadNow(r);
     }
 
     /**
@@ -419,7 +429,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
         String contents = view.getEditPane().getTextArea().getSelectedText();
         if (!checkEditorContents(contents, "Please fully highlight an atom for query"))
             return;
-//        Runnable r = () -> { // TODO: For a longer query, may have to send to the KButilities.EXECUTOR thread
+//        Runnable r = () -> { // TODO: For a longer query, may have to send to jEdit ThreadPool
         togglePluginMenus(false);
         Log.log(Log.MESSAGE, this, ":queryExp(): query with: " + contents);
         System.out.println("queryExp(): query with: " + contents);
@@ -452,7 +462,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
         view.getTextArea().setText(queryResultString(tpp));
         Log.log(Log.MESSAGE, this, ":queryExp(): complete");
 //        };
-//        startThread(r);
+//        startBackgroundThread(r);
 
     }
 
@@ -878,7 +888,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
     //        errorListRefreshHack(); // do not want to do this, it disrupts message handling
             Log.log(Log.MESSAGE, this, ":checkErrors(): complete");
         };
-        startThread(r);
+        startBackgroundThread(r);
     }
 
     /**
