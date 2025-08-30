@@ -65,7 +65,9 @@ public class SUMOjEditPlugin extends EditPlugin {
 
         // Start the main SUMOjEdit component and allow KBs to load asynchronously.
         sje = new SUMOjEdit();
-        ((SUMOjEdit) sje).startThread(((SUMOjEdit) sje));
+
+        // Allow jEdit to start while the KBs are loading
+        ((SUMOjEdit)sje).startBackgroundThread(((SUMOjEdit) sje));
         EditBus.addToBus(sje);
 
         // Read the autocomplete mode and normalize to lower case.
