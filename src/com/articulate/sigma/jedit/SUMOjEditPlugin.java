@@ -23,60 +23,85 @@ package com.articulate.sigma.jedit;
 import org.gjt.sp.jedit.EBComponent;
 import org.gjt.sp.jedit.EditBus;
 import org.gjt.sp.jedit.EditPlugin;
+import org.gjt.sp.jedit.jEdit;
 
-// >>> ADD: fast autocomplete bootstrap
 import com.articulate.sigma.jedit.fastac.FastACBootstrap;
 
-// >>> ADD: ghost-text autocomplete bootstrap
-import com.articulate.sigma.jedit.fastac.smartcompose.SmartComposeBootstrap;
-
 /**
- * The SUMOjEdit plugin launcher
- * @author Adam Pease
+ * The SUMOjEdit plugin launcher.
+ *
+ * This class initializes the SUMOjEdit plugin and conditionally
+ * starts autocomplete features based on the sumo.autocomplete.mode property.
+ *
+ * Acceptable values for sumo.autocomplete.mode are:
+ *   - "off"          : disable both popup and ghost completions
+ *   - "popup"        : enable drop‑down popup completion only
+ *   - "ghost_only"   : enable inline ghost completion only
+ *   - "both"         : enable both popup and ghost completions
+ *
+ * If the property is not set, the plugin defaults to "both".
  */
 public class SUMOjEditPlugin extends EditPlugin {
-
+    /**
+     * The plugin name and option prefix used by jEdit.
+     */
     public static final String NAME = "sumojedit";
     public static final String OPTION_PREFIX = "options." + NAME + ".";
+
+    /**
+     * jEdit property key controlling autocomplete mode.
+     */
+    public static final String PROP_AC_MODE = "sumo.autocomplete.mode";
 
     private EBComponent sje;
     private EBComponent sjech;
 
     @Override
     public void start() {
+        // Ensure a default mode is set if none exists.
+        if (jEdit.getProperty(PROP_AC_MODE) == null) {
+            jEdit.setProperty(PROP_AC_MODE, "both");
+        }
 
+        // Start the main SUMOjEdit component and allow KBs to load asynchronously.
         sje = new SUMOjEdit();
 
         // Allow jEdit to start while the KBs are loading
         ((SUMOjEdit)sje).startBackgroundThread(((SUMOjEdit) sje));
         EditBus.addToBus(sje);
 
-        sjech = new SUOKifCompletionHandler();
-        EditBus.addToBus(sjech);
+        // Read the autocomplete mode and normalize to lower case.
+        String mode = jEdit.getProperty(PROP_AC_MODE, "both").toLowerCase();
 
-        // >>> ADD: Kick off fast autocomplete once UI is up.
-        // Safe to call multiple times; internally guarded to run only once.
-        FastACBootstrap.runOnce();
+        // Start drop‑down popup only when mode is "popup" or "both".
+        if ("popup".equals(mode) || "both".equals(mode)) {
+            FastACBootstrap.runOnce();
+        }
 
-        // >>> ADD: Kick off ghost-text autocomplete overlay
-        SmartComposeBootstrap.start();
+        // Start inline ghost completion only when mode is "ghost_only" or "both".
+        if ("ghost_only".equals(mode) || "both".equals(mode)) {
+            sjech = new SUOKifCompletionHandler();
+            EditBus.addToBus(sjech);
+        }
     }
 
     @Override
     public void stop() {
-
+        // Remove the main SUMOjEdit component from the bus.
         EditBus.removeFromBus(sje);
-        EditBus.removeFromBus(sjech);
 
-        // >>> ADD: Stop ghost-text autocomplete overlay
-        SmartComposeBootstrap.stop();
+        // Remove the inline completion handler if it was started.
+        if (sjech != null) {
+            EditBus.removeFromBus(sjech);
+            sjech = null;
+        }
     }
 
-    /** JavaBean accessor for the plugin component
-     *
-     * @return an EBComponent (the plugin)
-     */
-    public EBComponent getSje() {return sje;}
+    /** JavaBean accessor for the plugin component. */
+    public EBComponent getSje() {
+        return sje;
+    }
 
-//    public EBComponent getSjech() {return sjech;}
+    // Uncomment if you need to expose the inline handler.
+    // public EBComponent getSjech() { return sjech; }
 }
