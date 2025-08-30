@@ -88,6 +88,35 @@
         </CODE>
     </ACTION>
 
+    <!-- ===== New: User Guide popup (scrollable + resizable) ===== -->
+    <ACTION NAME="sumojedit.ac.user-guide">
+      <CODE><![CDATA[
+        import javax.swing.*;
+        import java.awt.*;
+
+        String title = jEdit.getProperty("sumo.ac.userguide.title", "AutoComplete (AC) User Guide");
+        String body  = jEdit.getProperty("sumo.ac.userguide.text",
+            "Welcome to the AutoComplete (AC) User Guide.\\n\\n" +
+            "Replace this text via 'sumo.ac.userguide.text' in config/SUMOjEdit.props.\\n\\n" +
+            "Click OK to dismiss.");
+
+        JTextArea textArea = new JTextArea(body);
+        textArea.setEditable(false);
+        textArea.setLineWrap(true);
+        textArea.setWrapStyleWord(true);
+        textArea.setCaretPosition(0);
+
+        JScrollPane scrollPane = new JScrollPane(textArea);
+        scrollPane.setPreferredSize(new Dimension(700, 480));
+
+        JOptionPane optionPane = new JOptionPane(scrollPane, JOptionPane.INFORMATION_MESSAGE);
+        JDialog dialog = optionPane.createDialog(view, title);
+        dialog.setModal(false);
+        dialog.setResizable(true);
+        dialog.setVisible(true);
+      ]]></CODE>
+    </ACTION>
+
     <!-- ===== New: Autocomplete mode toggles ===== -->
     <ACTION NAME="sumojedit.ac.mode.off">
         <CODE>
@@ -98,9 +127,9 @@
         <IS_SELECTED>
             return "OFF".equals(jEdit.getProperty("sumojedit.ac.mode", "BOTH"));
         </IS_SELECTED>
-        </ACTION>
+    </ACTION>
 
-        <ACTION NAME="sumojedit.ac.mode.ghost">
+    <ACTION NAME="sumojedit.ac.mode.ghost">
         <CODE>
             jEdit.setProperty("sumojedit.ac.mode", "GHOST_ONLY");
             jEdit.setProperty("sumo.autocomplete.mode", "ghost_only");
@@ -109,9 +138,9 @@
         <IS_SELECTED>
             return "GHOST_ONLY".equals(jEdit.getProperty("sumojedit.ac.mode", "BOTH"));
         </IS_SELECTED>
-        </ACTION>
+    </ACTION>
 
-        <ACTION NAME="sumojedit.ac.mode.dropdown">
+    <ACTION NAME="sumojedit.ac.mode.dropdown">
         <CODE>
             jEdit.setProperty("sumojedit.ac.mode", "DROPDOWN_ONLY");
             jEdit.setProperty("sumo.autocomplete.mode", "popup");
@@ -120,9 +149,9 @@
         <IS_SELECTED>
             return "DROPDOWN_ONLY".equals(jEdit.getProperty("sumojedit.ac.mode", "BOTH"));
         </IS_SELECTED>
-        </ACTION>
+    </ACTION>
 
-        <ACTION NAME="sumojedit.ac.mode.both">
+    <ACTION NAME="sumojedit.ac.mode.both">
         <CODE>
             jEdit.setProperty("sumojedit.ac.mode", "BOTH");
             jEdit.setProperty("sumo.autocomplete.mode", "both");
@@ -131,5 +160,5 @@
         <IS_SELECTED>
             return "BOTH".equals(jEdit.getProperty("sumojedit.ac.mode", "BOTH"));
         </IS_SELECTED>
-        </ACTION>
+    </ACTION>
 </ACTIONS>
