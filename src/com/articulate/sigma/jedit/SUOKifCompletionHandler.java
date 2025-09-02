@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
  * SUO-KIF inline SmartCompose for SUMOjEdit.
  *
  * - Renders faint gray "ghost" suffix after caret.
- * - Accept with LEFT SHIFT ONLY; cancel with ESC (only when ghost mode is enabled).
+ * - Accept with CONTROL ONLY; cancel with ESC (only when ghost mode is enabled).
  * - Candidates: current buffer tokens + SUO-KIF operator groups from Formula.
  *
  * NOTE (2025-08): Ghost-AC obeys sumojedit.ac.mode from SUMOjEdit.props:
@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
  *   DROPDOWN_ONLY -> disabled
  *   BOTH          -> enabled
  *
- * UPDATED: LEFT SHIFT is now the ONLY key to accept ghost text suggestions
+ * UPDATED: CONTROL is now the ONLY key to accept ghost text suggestions
  */
 public final class SUOKifCompletionHandler implements EBComponent {
 
@@ -113,8 +113,8 @@ public final class SUOKifCompletionHandler implements EBComponent {
         // clear stale first (defensive)
         unregisterGhostKeys(ta);
 
-        // UPDATED: LEFT SHIFT is now the ONLY accept key for ghost text
-        // Note: SHIFT key is a modifier, so we detect it on key press/release
+        // UPDATED: CONTROL is now the ONLY accept key for ghost text
+        // Note: CONTROL key is a modifier, so we detect it on key press/release
         registerAction(ta, "smartcompose-accept-control",
             KeyStroke.getKeyStroke(KeyEvent.VK_CONTROL, InputEvent.CTRL_DOWN_MASK, false),
             () -> { 
@@ -191,7 +191,7 @@ public final class SUOKifCompletionHandler implements EBComponent {
         private final View view;
         private final GhostOverlay overlay;
         
-        // Track shift key state
+        // Track control key state
         private boolean controlPressed = false;
         
         InlineRecomputeListener(View view, GhostOverlay overlay) { 
@@ -201,7 +201,7 @@ public final class SUOKifCompletionHandler implements EBComponent {
 
         @Override
         public void keyPressed(KeyEvent e) {
-            // UPDATED: Track LEFT SHIFT press for accepting ghost text
+            // UPDATED: Track CONTROL press for accepting ghost text
             if (e.getKeyCode() == KeyEvent.VK_CONTROL && e.getKeyLocation() == KeyEvent.KEY_LOCATION_LEFT) {
                 if (!controlPressed && overlay.hasGhost() && ghostACEnabled() && isKif(view)) {
                     controlPressed = true;
@@ -213,7 +213,7 @@ public final class SUOKifCompletionHandler implements EBComponent {
         
         @Override
         public void keyReleased(KeyEvent e) {
-            // Reset shift state on release
+            // Reset control state on release
             if (e.getKeyCode() == KeyEvent.VK_CONTROL && e.getKeyLocation() == KeyEvent.KEY_LOCATION_LEFT) {
                 controlPressed = false;
             }
@@ -265,7 +265,7 @@ public final class SUOKifCompletionHandler implements EBComponent {
 
             int code = e.getKeyCode();
             
-            // UPDATED: Handle LEFT SHIFT for accepting ghost text
+            // UPDATED: Handle CONTROL for accepting ghost text
             if (code == KeyEvent.VK_CONTROL && e.getKeyLocation() == KeyEvent.KEY_LOCATION_LEFT) {
                 if (e.getID() == KeyEvent.KEY_PRESSED && !controlHandled) {
                     if (overlay.acceptIfAvailable()) {
@@ -393,7 +393,7 @@ public final class SUOKifCompletionHandler implements EBComponent {
             g.setColor(new Color(128, 128, 128, 160));
             int baseline = y + painter.getFontMetrics().getAscent();
             
-            // UPDATED: Add visual hint about LEFT SHIFT key
+            // UPDATED: Add visual hint about CONTROL key
             String displayText = ghost;
             if (ghost.length() > 0) {
                 // Could optionally append a hint, but keeping it clean for now
