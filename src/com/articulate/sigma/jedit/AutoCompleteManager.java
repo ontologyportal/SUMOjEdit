@@ -54,13 +54,19 @@ public class AutoCompleteManager {
     // Global dispatcher reliably handles UP/DOWN/TAB/ESC even if editor consumes them
     private final KeyEventDispatcher dispatcher = new KeyEventDispatcher() {
         @Override public boolean dispatchKeyEvent(KeyEvent e) {
+            // FIXED: Only handle keys when popup is actually visible
             if (!popup.isVisible()) return false;
             if (e.getID() != KeyEvent.KEY_PRESSED) return false;
             switch (e.getKeyCode()) {
                 case KeyEvent.VK_TAB:
-                    e.consume();
-                    acceptSelection();
-                    return true;
+                    // Only consume Tab if popup is showing suggestions
+                    if (popup.isVisible() && listModel.size() > 0) {
+                        e.consume();
+                        acceptSelection();
+                        return true;
+                    }
+                    // Let Tab pass through for indentation
+                    return false;
                 case KeyEvent.VK_ESCAPE:
                     e.consume();
                     hidePopup();
@@ -74,7 +80,7 @@ public class AutoCompleteManager {
                     moveSelection(1);
                     return true;
                 case KeyEvent.VK_ENTER:
-                    if (acceptOnEnter) {
+                    if (acceptOnEnter && popup.isVisible() && listModel.size() > 0) {
                         e.consume();
                         acceptSelection();
                         return true;
@@ -97,6 +103,12 @@ public class AutoCompleteManager {
         @Override public void keyReleased(KeyEvent e) {
             switch (e.getKeyCode()) {
                 case KeyEvent.VK_TAB:
+                    // FIXED: Don't interfere with Tab when no popup is showing
+                    if (!popup.isVisible()) {
+                        // Let Tab do its normal indentation
+                        return;
+                    }
+                    break;
                 case KeyEvent.VK_ESCAPE:
                 case KeyEvent.VK_UP:
                 case KeyEvent.VK_DOWN:
@@ -108,6 +120,17 @@ public class AutoCompleteManager {
                     return;
                 default:
                     SwingUtilities.invokeLater(AutoCompleteManager.this::maybeShow);
+            }
+        }
+        
+        @Override public void keyPressed(KeyEvent e) {
+            // FIXED: Only block Tab if popup is actually showing with suggestions
+            if (e.getKeyCode() == KeyEvent.VK_TAB) {
+                if (!popup.isVisible() || listModel.size() == 0) {
+                    // No suggestions - let Tab do indentation
+                    return;
+                }
+                // Otherwise the dispatcher will handle it
             }
         }
     };

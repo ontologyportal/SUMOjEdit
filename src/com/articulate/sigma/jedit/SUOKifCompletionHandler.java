@@ -114,19 +114,39 @@ public final class SUOKifCompletionHandler implements EBComponent {
         // clear stale first (defensive)
         unregisterGhostKeys(ta);
 
+        // FIXED: Only consume Tab when there's actually a ghost suggestion
         registerAction(ta, "smartcompose-accept-tab",
             KeyStroke.getKeyStroke(KeyEvent.VK_TAB, 0),
-            () -> { if (overlay.hasGhost()) overlay.acceptIfAvailable(); });
+            () -> { 
+                if (overlay.hasGhost()) {
+                    overlay.acceptIfAvailable();
+                    return true; // consume
+                }
+                return false; // don't consume - let Tab do indentation
+            });
 
         registerAction(ta, "smartcompose-accept-right",
             KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, 0),
-            () -> { if (overlay.hasGhost()) overlay.acceptIfAvailable(); });
+            () -> { 
+                if (overlay.hasGhost()) {
+                    overlay.acceptIfAvailable();
+                    return true;
+                }
+                return false;
+            });
 
         registerAction(ta, "smartcompose-cancel-esc",
             KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0),
-            () -> { if (overlay.hasGhost()) { overlay.clear(); overlay.repaintNow(); } });
+            () -> { 
+                if (overlay.hasGhost()) { 
+                    overlay.clear(); 
+                    overlay.repaintNow();
+                    return true;
+                }
+                return false;
+            });
 
-        // Ensure Tab reaches us (not eaten by focus traversal) only when ghost is active
+        // Only disable focus traversal when we have a ghost suggestion
         ta.setFocusTraversalKeysEnabled(false);
     }
 
@@ -146,9 +166,25 @@ public final class SUOKifCompletionHandler implements EBComponent {
         ta.unregisterKeyboardAction(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0));
     }
 
-    private static void registerAction(JEditTextArea ta, String name, KeyStroke ks, Runnable r) {
+    // FIXED: Updated to handle boolean return values
+    private static void registerAction(JEditTextArea ta, String name, KeyStroke ks, java.util.function.BooleanSupplier r) {
         Action action = new AbstractAction(name) {
-            @Override public void actionPerformed(ActionEvent e) { r.run(); }
+            @Override 
+            public void actionPerformed(ActionEvent e) { 
+                boolean consumed = r.getAsBoolean();
+                if (!consumed && e.getSource() instanceof JComponent) {
+                    // If not consumed, let the event continue to other handlers
+                    ((JComponent)e.getSource()).getInputMap().remove(ks);
+                    KeyboardFocusManager.getCurrentKeyboardFocusManager()
+                        .redispatchEvent(ta, new KeyEvent(ta, 
+                            KeyEvent.KEY_PRESSED, 
+                            System.currentTimeMillis(), 
+                            0, 
+                            ks.getKeyCode(), 
+                            KeyEvent.CHAR_UNDEFINED));
+                    ((JComponent)e.getSource()).getInputMap().put(ks, name);
+                }
+            }
         };
         // Bind both WHEN_FOCUSED and WHEN_ANCESTOR_OF_FOCUSED to be extra safe
         ta.registerKeyboardAction(action, name, ks, JComponent.WHEN_FOCUSED);
@@ -214,6 +250,7 @@ public final class SUOKifCompletionHandler implements EBComponent {
             if (ta == null) return false;
 
             GhostOverlay overlay = overlays.get(ta);
+            // FIXED: Only intercept Tab if there's actually a ghost suggestion
             if (overlay == null || !overlay.hasGhost()) return false;
 
             // Only in .kif buffers
@@ -223,7 +260,7 @@ public final class SUOKifCompletionHandler implements EBComponent {
             int code = e.getKeyCode();
             char ch = e.getKeyChar();
 
-            // Accept on VK_TAB or on typed '\t'
+            // Accept on VK_TAB or on typed '\t' - ONLY if there's a ghost
             boolean isTab = (code == KeyEvent.VK_TAB) || (code == KeyEvent.VK_UNDEFINED && ch == '\t');
 
             if (e.getID() == KeyEvent.KEY_PRESSED && (isTab || code == KeyEvent.VK_RIGHT)) {

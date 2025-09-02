@@ -48,6 +48,7 @@ import org.gjt.sp.jedit.msg.BufferUpdate;
 import org.gjt.sp.jedit.msg.EditPaneUpdate;
 import org.gjt.sp.util.Log;
 import org.gjt.sp.util.ThreadUtilities;
+import org.gjt.sp.jedit.View;
 
 import tptp_parser.*;
 
@@ -1226,6 +1227,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
                         if (e.getClickCount() >= 2) { accept(ta, prefix, jlist.getSelectedValue()); }
                     }
                 });
+                
+                // FIXED: Enhanced key handling to properly manage Tab key
                 jlist.addKeyListener(new java.awt.event.KeyAdapter() {
                     @Override public void keyPressed(java.awt.event.KeyEvent e) {
                         int code = e.getKeyCode();
@@ -1235,8 +1238,48 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
                         } else if (code == java.awt.event.KeyEvent.VK_ESCAPE) {
                             dismiss();
                             e.consume();
+                        } else if (code == java.awt.event.KeyEvent.VK_TAB) {
+                            // Accept the selection with Tab
+                            accept(ta, prefix, jlist.getSelectedValue());
+                            e.consume();
                         }
                     }
+                });
+
+                // FIXED: Add a key event dispatcher specifically for this popup
+                java.awt.KeyEventDispatcher popupDispatcher = new java.awt.KeyEventDispatcher() {
+                    @Override
+                    public boolean dispatchKeyEvent(java.awt.event.KeyEvent e) {
+                        // Only handle events when our popup is active
+                        if (popup != active || !popup.isVisible()) return false;
+                        
+                        if (e.getID() == java.awt.event.KeyEvent.KEY_PRESSED) {
+                            if (e.getKeyCode() == java.awt.event.KeyEvent.VK_TAB) {
+                                // Tab pressed - accept selection and close
+                                accept(ta, prefix, jlist.getSelectedValue());
+                                e.consume();
+                                // Remove this dispatcher after use
+                                java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager()
+                                    .removeKeyEventDispatcher(this);
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
+                };
+                
+                // Install the dispatcher temporarily while popup is shown
+                java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager()
+                    .addKeyEventDispatcher(popupDispatcher);
+                
+                // Add popup listener to clean up dispatcher when popup closes
+                popup.addPopupMenuListener(new javax.swing.event.PopupMenuListener() {
+                    @Override public void popupMenuWillBecomeInvisible(javax.swing.event.PopupMenuEvent e) {
+                        java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager()
+                            .removeKeyEventDispatcher(popupDispatcher);
+                    }
+                    @Override public void popupMenuWillBecomeVisible(javax.swing.event.PopupMenuEvent e) {}
+                    @Override public void popupMenuCanceled(javax.swing.event.PopupMenuEvent e) {}
                 });
 
                 int yBase = p.y + ta.getPainter().getFontMetrics().getAscent();
