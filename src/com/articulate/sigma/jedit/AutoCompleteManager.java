@@ -141,7 +141,7 @@ public class AutoCompleteManager {
         this.kb = kb;
 
         // ⛔ disable this dropdown manager entirely if popup is not enabled
-        if (!popupEnabled()) return;
+        // if (!popupEnabled()) return;
 
         list.setModel(listModel);
         list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
