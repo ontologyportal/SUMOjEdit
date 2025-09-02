@@ -100,27 +100,25 @@ and helps ensure consistent use of terms across your files.\n\n\
 \
 To use AC, simply begin typing a term. Depending on the selected mode, suggestions will \
 appear either inline, in the drop-down menu, or in both.\n\n\
+\
 There are several modes of AC, each tailored to different editing preferences:\n\n\
 \
 OFF mode disables all AC functionality. Select this mode if you prefer typing without \
 any suggestions.\n\n\
 \
 GHOST TEXT mode* displays suggestions inline, shown in a faint gray color directly after \
-the cursor. When this mode is enabled, pressing either the RIGHT ARROW key or the TAB key \
-accepts the suggestion.\n\n\
+the cursor. In this mode, pressing the LEFT CONTROL (CTRL) key accepts the suggestion.\n\n\
 \
 DROP-DOWN mode** provides a pop-up list of suggestions beneath the cursor. You can use the \
-UP and DOWN ARROW keys to navigate through the list and press only the TAB key to insert \
-the highlighted term. This mode is useful when multiple possible completions exist.\n\n\
+UP and DOWN ARROW keys to navigate through the list and the TAB key to insert the suggested \
+term. This mode is useful when multiple possible completions exist.\n\n\
 \
 DUAL MODE combines Ghost Text mode and Drop-Down mode, offering both inline and pop-up \
-suggestions at the same time. This mode provides the most guidance and flexibility. To \
-accept a suggestion from the Drop-Down, press only the TAB key; for Ghost Text suggestion, \
-press only the RIGHT ARROW key.\n\n\
+suggestions at the same time. This mode provides the most guidance and flexibility. The \
+key bindings do not change.\n\n\
 \
 *Ghost Text mode only suggests words belonging to logical operators and some fundamental \
-relations in SUMO, such as "exists," "instance," "and," "or," "not," "domainSubclass," \
-"equal," "greaterThan," etc.\n\n\
+relations in SUMO, such as "exists," "instance," "and," "or," "greaterThan," etc.\n\n\
 \
 **Drop-Down mode only suggests SUMO terms (as defined in the .kif files) in the sumo \
 repository.\n\n\
