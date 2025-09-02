@@ -148,14 +148,14 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
                             view.getStatus().setBackground(Color.GREEN);
                             view.getStatus().setMessage("processing " + kif.filename);
                         };
-                        ThreadUtilities.runInDispatchThreadNow(r2);
+                        ThreadUtilities.runInDispatchThread(r2);
                         tellTheKbAboutLoadedKif(); // adds kif as a constituent into the KB
                         checkErrors();
                         r2 = () -> {
                             view.getStatus().setBackground(clr);
                             view.getStatus().setMessageAndClear("processing " + kif.filename + " complete");
                         };
-                        ThreadUtilities.runInDispatchThreadNow(r2);
+                        ThreadUtilities.runInDispatchThread(r2);
                         togglePluginMenus(true);
                         // TODO: remove loaded KIF from KB?
                     }
@@ -197,9 +197,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
 
             // Now, the right click context menu of the editor's text area in the case of customized SUMOjEdit actions
             view.getEditPane().getTextArea().setRightClickPopupEnabled(enabled);
-
         };
-        ThreadUtilities.runInDispatchThreadNow(r);
+        ThreadUtilities.runInDispatchThread(r);
     }
 
     /**
