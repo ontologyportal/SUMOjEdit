@@ -107,7 +107,6 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
     @Override
     @SuppressWarnings("SleepWhileInLoop")
     public void run() {
-
         // wait for the view to become active
         do
             try {
@@ -115,14 +114,36 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
                 Thread.sleep(50L);
             } catch (InterruptedException ex) {System.err.println(ex);}
         while (view == null);
-        view.getJMenuBar().getSubElements()[8].menuSelectionChanged(true); // force population of all Plugin items
+        
+        // Force single-threaded mode to prevent arity check deadlock
+        System.setProperty("java.util.concurrent.ForkJoinPool.common.parallelism", "1");
+
+        view.getJMenuBar().getSubElements()[8].menuSelectionChanged(true);
         togglePluginMenus(false);
-        SUMOtoTFAform.initOnce(); // will first initialize the KB
+        
+        // Force single-threaded mode for arity check
+        System.setProperty("java.util.concurrent.ForkJoinPool.common.parallelism", "1");
+        
+        try {
+            SUMOtoTFAform.initOnce();
+            kb = SUMOtoTFAform.kb;
+            fp = SUMOtoTFAform.fp;
+        } catch (Exception e) {
+            Log.log(Log.ERROR, this, ":run(): KB init error: ", e);
+            // Continue anyway
+            if (SUMOtoTFAform.kb != null) {
+                kb = SUMOtoTFAform.kb;
+                fp = SUMOtoTFAform.fp;
+            }
+        }
+        
         togglePluginMenus(true);
         view.getJMenuBar().getSubElements()[8].menuSelectionChanged(false);
-        kb = SUMOtoTFAform.kb;
-        fp = SUMOtoTFAform.fp;
-        autoComplete = new AutoCompleteManager(view, kb);
+        
+        if (view != null && kb != null) {
+            autoComplete = new AutoCompleteManager(view, kb);
+        }
+        
         errsrc = new DefaultErrorSource(getClass().getName(), this.view);
         processLoadedKifOrTptp();
         Log.log(Log.MESSAGE, this, ": kb: " + kb);
