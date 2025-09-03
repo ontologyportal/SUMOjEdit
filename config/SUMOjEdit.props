@@ -84,7 +84,7 @@ sumojedit.ac.mode.dropdown.label=AC: Drop-Down Mode
 sumojedit.ac.mode.both.label=AC: Dual Mode
 
 # Default AC mode (read at startup and used by the toggles)
-sumojedit.ac.mode.OFF
+sumojedit.ac.mode=BOTH
 
 # ===== NEW: User Guide dialog strings =====
 # Title for the dialog

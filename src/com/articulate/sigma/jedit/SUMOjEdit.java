@@ -26,6 +26,10 @@ import com.articulate.sigma.tp.*;
 import com.articulate.sigma.trans.*;
 import com.articulate.sigma.utils.*;
 
+import org.gjt.sp.jedit.Buffer;
+import org.gjt.sp.jedit.EditPane;
+import org.gjt.sp.jedit.textarea.JEditTextArea;
+
 import com.google.common.io.Files;
 
 import errorlist.DefaultErrorSource;
@@ -140,10 +144,34 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
         togglePluginMenus(true);
         view.getJMenuBar().getSubElements()[8].menuSelectionChanged(false);
         
-        if (view != null && kb != null) {
-            autoComplete = new AutoCompleteManager(view, kb);
+        // Force AC initialization even if KB has issues
+        if (view != null) {
+            if (kb != null) {
+                autoComplete = new AutoCompleteManager(view, kb);
+                Log.log(Log.MESSAGE, this, ": AutoComplete initialized with KB");
+            } else {
+                // Try to get KB from KBmanager as fallback
+                KB fallbackKB = KBmanager.getMgr().getKB("SUMO");
+                if (fallbackKB != null) {
+                    kb = fallbackKB;
+                    autoComplete = new AutoCompleteManager(view, kb);
+                    Log.log(Log.WARNING, this, ": AutoComplete initialized with fallback KB");
+                } else {
+                    Log.log(Log.ERROR, this, ": No KB available for AutoComplete");
+                }
+            }
         }
         
+        if (view != null && kb != null) {
+            autoComplete = new AutoCompleteManager(view, kb);
+            Log.log(Log.MESSAGE, this, ": AutoComplete initialized successfully with " + kb.terms.size() + " terms");
+        } else {
+            Log.log(Log.ERROR, this, ": AutoComplete NOT initialized - view=" + view + ", kb=" + kb);
+            if (kb == null) {
+                Log.log(Log.ERROR, this, ": KB is null! AutoComplete will not work.");
+            }
+        }
+
         errsrc = new DefaultErrorSource(getClass().getName(), this.view);
         processLoadedKifOrTptp();
         Log.log(Log.MESSAGE, this, ": kb: " + kb);
