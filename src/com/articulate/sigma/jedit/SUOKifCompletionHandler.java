@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
  * SUO-KIF inline SmartCompose for SUMOjEdit.
  *
  * - Renders faint gray "ghost" suffix after caret.
- * - Accept with TAB or RIGHT; cancel with ESC (only when ghost mode is enabled).
+ * - Accept with CONTROL ONLY; cancel with ESC (only when ghost mode is enabled).
  * - Candidates: current buffer tokens + SUO-KIF operator groups from Formula.
  *
  * NOTE (2025-08): Ghost-AC obeys sumojedit.ac.mode from SUMOjEdit.props:
@@ -33,8 +33,7 @@ import java.util.stream.Collectors;
  *   DROPDOWN_ONLY -> disabled
  *   BOTH          -> enabled
  *
- * IMPORTANT: To avoid interfering with the drop-down AC, we only install
- * ghost key bindings when ghost mode is enabled, and unregister them otherwise.
+ * UPDATED: CONTROL is now the ONLY key to accept ghost text suggestions
  */
 public final class SUOKifCompletionHandler implements EBComponent {
 
@@ -114,20 +113,32 @@ public final class SUOKifCompletionHandler implements EBComponent {
         // clear stale first (defensive)
         unregisterGhostKeys(ta);
 
-        registerAction(ta, "smartcompose-accept-tab",
-            KeyStroke.getKeyStroke(KeyEvent.VK_TAB, 0),
-            () -> { if (overlay.hasGhost()) overlay.acceptIfAvailable(); });
+        // UPDATED: CONTROL is now the ONLY accept key for ghost text
+        // Note: CONTROL key is a modifier, so we detect it on key press/release
+        registerAction(ta, "smartcompose-accept-control",
+            KeyStroke.getKeyStroke(KeyEvent.VK_CONTROL, InputEvent.CTRL_DOWN_MASK, false),
+            () -> { 
+                if (overlay.hasGhost()) {
+                    overlay.acceptIfAvailable();
+                    return true; // consume
+                }
+                return false; // don't consume - let control do its normal thing
+            });
 
-        registerAction(ta, "smartcompose-accept-right",
-            KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, 0),
-            () -> { if (overlay.hasGhost()) overlay.acceptIfAvailable(); });
-
+        // ESC to cancel/clear ghost text
         registerAction(ta, "smartcompose-cancel-esc",
             KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0),
-            () -> { if (overlay.hasGhost()) { overlay.clear(); overlay.repaintNow(); } });
+            () -> { 
+                if (overlay.hasGhost()) { 
+                    overlay.clear(); 
+                    overlay.repaintNow();
+                    return true;
+                }
+                return false;
+            });
 
-        // Ensure Tab reaches us (not eaten by focus traversal) only when ghost is active
-        ta.setFocusTraversalKeysEnabled(false);
+        // Keep focus traversal enabled since we're not using Tab anymore
+        ta.setFocusTraversalKeysEnabled(true);
     }
 
     private static void installOrRemoveGhostKeyBindings(JEditTextArea ta, GhostOverlay overlay) {
@@ -135,20 +146,25 @@ public final class SUOKifCompletionHandler implements EBComponent {
             installComponentKeyBindings(ta, overlay);
         } else {
             unregisterGhostKeys(ta);
-            // restore default traversal so Tab behaves normally for other features/popups
             ta.setFocusTraversalKeysEnabled(true);
         }
     }
 
     private static void unregisterGhostKeys(JEditTextArea ta) {
+        ta.unregisterKeyboardAction(KeyStroke.getKeyStroke(KeyEvent.VK_CONTROL, InputEvent.CTRL_DOWN_MASK, false));
+        ta.unregisterKeyboardAction(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0));
+        // Remove old bindings that are no longer used
         ta.unregisterKeyboardAction(KeyStroke.getKeyStroke(KeyEvent.VK_TAB, 0));
         ta.unregisterKeyboardAction(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, 0));
-        ta.unregisterKeyboardAction(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0));
     }
 
-    private static void registerAction(JEditTextArea ta, String name, KeyStroke ks, Runnable r) {
+    // Updated to handle boolean return values
+    private static void registerAction(JEditTextArea ta, String name, KeyStroke ks, java.util.function.BooleanSupplier r) {
         Action action = new AbstractAction(name) {
-            @Override public void actionPerformed(ActionEvent e) { r.run(); }
+            @Override 
+            public void actionPerformed(ActionEvent e) { 
+                r.getAsBoolean();
+            }
         };
         // Bind both WHEN_FOCUSED and WHEN_ANCESTOR_OF_FOCUSED to be extra safe
         ta.registerKeyboardAction(action, name, ks, JComponent.WHEN_FOCUSED);
@@ -174,10 +190,34 @@ public final class SUOKifCompletionHandler implements EBComponent {
     private static final class InlineRecomputeListener extends KeyAdapter {
         private final View view;
         private final GhostOverlay overlay;
-        InlineRecomputeListener(View view, GhostOverlay overlay) { this.view = view; this.overlay = overlay; }
+        
+        // Track control key state
+        private boolean controlPressed = false;
+        
+        InlineRecomputeListener(View view, GhostOverlay overlay) { 
+            this.view = view; 
+            this.overlay = overlay; 
+        }
 
         @Override
+        public void keyPressed(KeyEvent e) {
+            // UPDATED: Track CONTROL press for accepting ghost text
+            if (e.getKeyCode() == KeyEvent.VK_CONTROL && e.getKeyLocation() == KeyEvent.KEY_LOCATION_LEFT) {
+                if (!controlPressed && overlay.hasGhost() && ghostACEnabled() && isKif(view)) {
+                    controlPressed = true;
+                    overlay.acceptIfAvailable();
+                    e.consume();
+                }
+            }
+        }
+        
+        @Override
         public void keyReleased(KeyEvent e) {
+            // Reset control state on release
+            if (e.getKeyCode() == KeyEvent.VK_CONTROL && e.getKeyLocation() == KeyEvent.KEY_LOCATION_LEFT) {
+                controlPressed = false;
+            }
+            
             // Keep key bindings in sync with current mode on every keystroke (cheap & robust)
             JEditTextArea ta = view.getTextArea();
             if (ta != null) installOrRemoveGhostKeyBindings(ta, overlay);
@@ -188,12 +228,14 @@ public final class SUOKifCompletionHandler implements EBComponent {
                 if (!ghostACEnabled()) { overlay.clear(); overlay.repaintNow(); }
                 return;
             }
+            
             int kc = e.getKeyCode();
-            if (kc == KeyEvent.VK_SHIFT || kc == KeyEvent.VK_CONTROL || kc == KeyEvent.VK_ALT ||
-                kc == KeyEvent.VK_META  || kc == KeyEvent.VK_ESCAPE  || kc == KeyEvent.VK_TAB ||
-                kc == KeyEvent.VK_RIGHT) {
+            // Don't recompute on modifier keys or navigation keys
+            if (kc == KeyEvent.VK_CONTROL || kc == KeyEvent.VK_CONTROL || kc == KeyEvent.VK_ALT ||
+                kc == KeyEvent.VK_META  || kc == KeyEvent.VK_ESCAPE) {
                 return;
             }
+            
             overlay.recompute();
             overlay.repaintNow();
         }
@@ -201,12 +243,13 @@ public final class SUOKifCompletionHandler implements EBComponent {
 
     /** Fallback: pre-empt keys before jEdit if needed (does nothing when ghost disabled). */
     private final class GhostKeyDispatcher implements KeyEventDispatcher {
+        private boolean controlHandled = false;
+        
         @Override
         public boolean dispatchKeyEvent(KeyEvent e) {
             // ghost mode disabled? then ignore
             if (!ghostACEnabled()) return false;
-            if (e.getID() != KeyEvent.KEY_PRESSED && e.getID() != KeyEvent.KEY_TYPED) return false;
-
+            
             // Focused component -> nearest JEditTextArea ancestor
             Component fo = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
             if (fo == null) return false;
@@ -221,19 +264,21 @@ public final class SUOKifCompletionHandler implements EBComponent {
             if (view == null || !isKif(view)) return false;
 
             int code = e.getKeyCode();
-            char ch = e.getKeyChar();
-
-            // Accept on VK_TAB or on typed '\t'
-            boolean isTab = (code == KeyEvent.VK_TAB) || (code == KeyEvent.VK_UNDEFINED && ch == '\t');
-
-            if (e.getID() == KeyEvent.KEY_PRESSED && (isTab || code == KeyEvent.VK_RIGHT)) {
-                if (overlay.acceptIfAvailable()) {
-                    e.consume();
-                    return true;
+            
+            // UPDATED: Handle CONTROL for accepting ghost text
+            if (code == KeyEvent.VK_CONTROL && e.getKeyLocation() == KeyEvent.KEY_LOCATION_LEFT) {
+                if (e.getID() == KeyEvent.KEY_PRESSED && !controlHandled) {
+                    if (overlay.acceptIfAvailable()) {
+                        controlHandled = true;
+                        e.consume();
+                        return true;
+                    }
+                } else if (e.getID() == KeyEvent.KEY_RELEASED) {
+                    controlHandled = false;
                 }
-                return false;
             }
 
+            // ESC to clear ghost text
             if (e.getID() == KeyEvent.KEY_PRESSED && code == KeyEvent.VK_ESCAPE) {
                 overlay.clear();
                 overlay.repaintNow();
@@ -272,6 +317,7 @@ public final class SUOKifCompletionHandler implements EBComponent {
             }
             ta.setCaretPosition(caret + ghost.length());
             clear();
+            repaintNow(); // Immediately update display after accepting
             return true;
         }
 
@@ -346,7 +392,15 @@ public final class SUOKifCompletionHandler implements EBComponent {
             Color old = g.getColor();
             g.setColor(new Color(128, 128, 128, 160));
             int baseline = y + painter.getFontMetrics().getAscent();
-            g.drawString(ghost, p.x, baseline);
+            
+            // UPDATED: Add visual hint about CONTROL key
+            String displayText = ghost;
+            if (ghost.length() > 0) {
+                // Could optionally append a hint, but keeping it clean for now
+                // displayText = ghost + " [CTRL]";
+            }
+            
+            g.drawString(displayText, p.x, baseline);
             g.setColor(old);
         }
     }
