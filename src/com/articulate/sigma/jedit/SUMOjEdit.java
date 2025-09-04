@@ -26,8 +26,6 @@ import com.articulate.sigma.tp.*;
 import com.articulate.sigma.trans.*;
 import com.articulate.sigma.utils.*;
 
-import org.gjt.sp.jedit.Buffer;
-import org.gjt.sp.jedit.EditPane;
 import org.gjt.sp.jedit.textarea.JEditTextArea;
 
 import com.google.common.io.Files;
@@ -52,7 +50,6 @@ import org.gjt.sp.jedit.msg.BufferUpdate;
 import org.gjt.sp.jedit.msg.EditPaneUpdate;
 import org.gjt.sp.util.Log;
 import org.gjt.sp.util.ThreadUtilities;
-import org.gjt.sp.jedit.View;
 
 import tptp_parser.*;
 
@@ -77,7 +74,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
     private DefaultErrorSource.DefaultError de;
     private DefaultErrorSource.DefaultError dw;
 
-    private View view;
+    private org.gjt.sp.jedit.View view;
 
     /**
      * ***************************************************************
@@ -119,19 +116,22 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
             } catch (InterruptedException ex) {System.err.println(ex);}
         while (view == null);
         
-        // Force single-threaded mode to prevent arity check deadlock
+        // Set single-threaded mode for jEdit to prevent arity check deadlock
+        System.out.println("SUMOjEdit.run(): Setting single-threaded mode for jEdit");
         System.setProperty("java.util.concurrent.ForkJoinPool.common.parallelism", "1");
+
+        // Refresh the ExecutorService to respect the single-threaded constraint
+        KButilities.refreshExecutorService();
 
         view.getJMenuBar().getSubElements()[8].menuSelectionChanged(true);
         togglePluginMenus(false);
         
-        // Force single-threaded mode for arity check
-        System.setProperty("java.util.concurrent.ForkJoinPool.common.parallelism", "1");
-        
         try {
+            System.out.println("SUMOjEdit.run(): Initializing KB with single-threaded executor");
             SUMOtoTFAform.initOnce();
             kb = SUMOtoTFAform.kb;
             fp = SUMOtoTFAform.fp;
+            System.out.println("SUMOjEdit.run(): KB initialization successful");
         } catch (Exception e) {
             Log.log(Log.ERROR, this, ":run(): KB init error: ", e);
             // Continue anyway
@@ -1223,7 +1223,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
         boolean dropdownEnabled = "DROPDOWN_ONLY".equals(mode) || "BOTH".equals(mode);
         if (!dropdownEnabled) return;
 
-        final View v = jEdit.getActiveView();
+        final org.gjt.sp.jedit.View v = jEdit.getActiveView();
         if (v == null) return;
         final org.gjt.sp.jedit.textarea.JEditTextArea ta = v.getTextArea();
         if (ta == null) return;
