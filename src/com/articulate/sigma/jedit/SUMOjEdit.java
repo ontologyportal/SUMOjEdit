@@ -26,8 +26,6 @@ import com.articulate.sigma.tp.*;
 import com.articulate.sigma.trans.*;
 import com.articulate.sigma.utils.*;
 
-import org.gjt.sp.jedit.textarea.JEditTextArea;
-
 import com.google.common.io.Files;
 
 import errorlist.DefaultErrorSource;
@@ -38,6 +36,7 @@ import java.awt.*;
 import java.io.*;
 //import javax.swing.Box;
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.swing.MenuElement;
@@ -57,7 +56,7 @@ import tptp_parser.*;
  * ***************************************************************
  * A SUO-KIF editor and error checker
  */
-public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
+public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
     // at top-level fields
     private AutoCompleteManager autoComplete;
@@ -75,6 +74,29 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
     private DefaultErrorSource.DefaultError dw;
 
     private org.gjt.sp.jedit.View view;
+
+    private long pluginStart;
+
+    /** Create a Runnable with an overridden toString for label display
+     *
+     * @param runnable the supplied Runnable to run
+     * @param toStringSupplier to provide a toString override label
+     * @return a Runnable with an overridden toString
+     */
+    public static Runnable create(Runnable runnable, Supplier<String> toStringSupplier) {
+        return new Runnable() {
+
+            @Override
+            public void run() {
+                runnable.run();
+            }
+
+            @Override
+            public String toString() {
+                return toStringSupplier.get();
+            }
+        };
+    }
 
     /**
      * ***************************************************************
@@ -102,80 +124,88 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
         ThreadUtilities.runInBackground(r);
     }
 
-    /* Starts the KB initialization process for UI use only. Must only be
+    /** Starts the KB initialization process for UI use only. Must only be
      * called when jEdit will be an active UI. Not meant for use by the main()
      */
-    @Override
     @SuppressWarnings("SleepWhileInLoop")
-    public void run() {
-        // wait for the view to become active
-        do
+    public void init() {
+
+        Runnable r = () -> {
+
+            pluginStart = System.currentTimeMillis();
+
+            // wait for the view to become active
+            do
+                try {
+                    view = jEdit.getActiveView();
+                    Thread.sleep(50L);
+                } catch (InterruptedException ex) {System.err.println(ex);}
+            while (view == null);
+
+            // Set single-threaded mode for jEdit to prevent arity check deadlock
+            System.out.println("SUMOjEdit.run(): Setting single-threaded mode for jEdit");
+            System.setProperty("java.util.concurrent.ForkJoinPool.common.parallelism", "1");
+
+            // Refresh the ExecutorService to respect the single-threaded constraint
+            KButilities.refreshExecutorService();
+
+            // toggle the menu so that we can view the plugin dropdown
+            view.getJMenuBar().getSubElements()[8].menuSelectionChanged(true);
+            togglePluginMenus(false);
+            view.getJMenuBar().getSubElements()[8].menuSelectionChanged(false);
+
             try {
-                view = jEdit.getActiveView();
-                Thread.sleep(50L);
-            } catch (InterruptedException ex) {System.err.println(ex);}
-        while (view == null);
-        
-        // Set single-threaded mode for jEdit to prevent arity check deadlock
-        System.out.println("SUMOjEdit.run(): Setting single-threaded mode for jEdit");
-        System.setProperty("java.util.concurrent.ForkJoinPool.common.parallelism", "1");
-
-        // Refresh the ExecutorService to respect the single-threaded constraint
-        KButilities.refreshExecutorService();
-
-        view.getJMenuBar().getSubElements()[8].menuSelectionChanged(true);
-        togglePluginMenus(false);
-        
-        try {
-            System.out.println("SUMOjEdit.run(): Initializing KB with single-threaded executor");
-            SUMOtoTFAform.initOnce();
-            kb = SUMOtoTFAform.kb;
-            fp = SUMOtoTFAform.fp;
-            System.out.println("SUMOjEdit.run(): KB initialization successful");
-        } catch (Exception e) {
-            Log.log(Log.ERROR, this, ":run(): KB init error: ", e);
-            // Continue anyway
-            if (SUMOtoTFAform.kb != null) {
+                System.out.println("SUMOjEdit.run(): Initializing KB with single-threaded executor");
+                SUMOtoTFAform.initOnce();
                 kb = SUMOtoTFAform.kb;
                 fp = SUMOtoTFAform.fp;
-            }
-        }
-        
-        togglePluginMenus(true);
-        view.getJMenuBar().getSubElements()[8].menuSelectionChanged(false);
-        
-        // Force AC initialization even if KB has issues
-        if (view != null) {
-            if (kb != null) {
-                autoComplete = new AutoCompleteManager(view, kb);
-                Log.log(Log.MESSAGE, this, ": AutoComplete initialized with KB");
-            } else {
-                // Try to get KB from KBmanager as fallback
-                KB fallbackKB = KBmanager.getMgr().getKB("SUMO");
-                if (fallbackKB != null) {
-                    kb = fallbackKB;
-                    autoComplete = new AutoCompleteManager(view, kb);
-                    Log.log(Log.WARNING, this, ": AutoComplete initialized with fallback KB");
-                } else {
-                    Log.log(Log.ERROR, this, ": No KB available for AutoComplete");
+                System.out.println("SUMOjEdit.run(): KB initialization successful");
+            } catch (Exception e) {
+                Log.log(Log.ERROR, this, ":run(): KB init error: ", e);
+                // Continue anyway
+                if (SUMOtoTFAform.kb != null) {
+                    kb = SUMOtoTFAform.kb;
+                    fp = SUMOtoTFAform.fp;
                 }
             }
-        }
-        
-        if (view != null && kb != null) {
-            autoComplete = new AutoCompleteManager(view, kb);
-            Log.log(Log.MESSAGE, this, ": AutoComplete initialized successfully with " + kb.terms.size() + " terms");
-        } else {
-            Log.log(Log.ERROR, this, ": AutoComplete NOT initialized - view=" + view + ", kb=" + kb);
-            if (kb == null) {
-                Log.log(Log.ERROR, this, ": KB is null! AutoComplete will not work.");
-            }
-        }
 
-        errsrc = new DefaultErrorSource(getClass().getName(), this.view);
-        processLoadedKifOrTptp();
-        Log.log(Log.MESSAGE, this, ": kb: " + kb);
-        Log.log(Log.MESSAGE, SUMOjEditPlugin.class, ":start(): complete");
+            togglePluginMenus(true);
+
+            // Force AC initialization even if KB has issues
+            if (view != null) {
+                if (kb != null) {
+                    autoComplete = new AutoCompleteManager(view, kb);
+                    Log.log(Log.MESSAGE, this, ": AutoComplete initialized with KB");
+                } else {
+                    // Try to get KB from KBmanager as fallback
+                    KB fallbackKB = KBmanager.getMgr().getKB("SUMO");
+                    if (fallbackKB != null) {
+                        kb = fallbackKB;
+                        autoComplete = new AutoCompleteManager(view, kb);
+                        Log.log(Log.WARNING, this, ": AutoComplete initialized with fallback KB");
+                    } else {
+                        Log.log(Log.ERROR, this, ": No KB available for AutoComplete");
+                    }
+                }
+            }
+
+            if (view != null && kb != null) {
+                autoComplete = new AutoCompleteManager(view, kb);
+                Log.log(Log.MESSAGE, this, ": AutoComplete initialized successfully with " + kb.terms.size() + " terms");
+            } else {
+                Log.log(Log.ERROR, this, ": AutoComplete NOT initialized - view=" + view + ", kb=" + kb);
+                if (kb == null) {
+                    Log.log(Log.ERROR, this, ": KB is null! AutoComplete will not work.");
+                }
+            }
+
+            errsrc = new DefaultErrorSource(getClass().getName(), this.view);
+            processLoadedKifOrTptp();
+            Log.log(Log.MESSAGE, this, ": kb: " + kb);
+            Log.log(Log.MESSAGE, SUMOjEditPlugin.class, ":run(): complete");
+        };
+        Runnable rs = create(r, () -> "Initialize " + this);
+        startBackgroundThread(rs);
     }
 
     /**
@@ -191,21 +221,21 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
                 togglePluginMenus(true);
                 if (isKif) {
                     kif.filename = view.getBuffer().getPath();
-                    if (kb != null && !kb.constituents.contains(kif.filename) /*&& !KBmanager.getMgr().infFileOld()*/) {
+                    if (kb != null && !kb.constituents.contains(kif.filename) && view.getBuffer().getLength() > 1/*&& !KBmanager.getMgr().infFileOld()*/) {
                         togglePluginMenus(false);
                         Color clr = view.getStatus().getBackground();
-                        Runnable r2 = () -> {
+                        Runnable rd = () -> {
                             view.getStatus().setBackground(Color.GREEN);
                             view.getStatus().setMessage("processing " + kif.filename);
                         };
-                        ThreadUtilities.runInDispatchThreadNow(r2);
+                        ThreadUtilities.runInDispatchThread(rd);
                         tellTheKbAboutLoadedKif(); // adds kif as a constituent into the KB
                         checkErrors();
-                        r2 = () -> {
+                        rd = () -> {
                             view.getStatus().setBackground(clr);
                             view.getStatus().setMessageAndClear("processing " + kif.filename + " complete");
                         };
-                        ThreadUtilities.runInDispatchThreadNow(r2);
+                        ThreadUtilities.runInDispatchThread(rd);
                         togglePluginMenus(true);
                         // TODO: remove loaded KIF from KB?
                     }
@@ -219,8 +249,13 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
                 }
             }
             Log.log(Log.MESSAGE, this, ":processLoadedKifOrTptp(): complete");
+            if (pluginStart > 0) {
+                Log.log(Log.MESSAGE, this, ":initial startup completed in " + (System.currentTimeMillis() - pluginStart) / KButilities.ONE_K + " secs");
+                pluginStart = 0L;
+            }
         };
-        startBackgroundThread(r);
+        Runnable rs = create(r, () -> "Processing KIF/TPTP file");
+        startBackgroundThread(rs);
     }
 
     /**
@@ -247,9 +282,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
 
             // Now, the right click context menu of the editor's text area in the case of customized SUMOjEdit actions
             view.getEditPane().getTextArea().setRightClickPopupEnabled(enabled);
-
         };
-        ThreadUtilities.runInDispatchThreadNow(r);
+        ThreadUtilities.runInDispatchThread(r);
     }
 
     /**
@@ -283,7 +317,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
                 useCacheFile = KBmanager.getMgr().getPref("cache").equalsIgnoreCase("yes");
                 for (SimpleElement kbConst : element.getChildElements()) {
                     if (!kbConst.getTagName().equals("constituent"))
-                        System.err.println("Error in KBmanager.kbsFromXML(): Bad tag: " + kbConst.getTagName());
+                        System.err.println("Error in SUMOjEdit.tellTheKbAboutLoadedKif(): Bad tag: " + kbConst.getTagName());
                     filename = kbConst.getAttribute("filename");
                     if (!filename.startsWith((File.separator)))
                         filename = KBmanager.getMgr().getPref("kbDir") + File.separator + filename;
@@ -300,7 +334,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
             }
         }
         kb = KBmanager.getMgr().getKB(kbName);
-        Log.log(Log.MESSAGE, this, ":tellTheKbAboutLoadedKif() took " + (System.currentTimeMillis() - start) + " m/s");
+        Log.log(Log.MESSAGE, this, ":tellTheKbAboutLoadedKif() completed in " + (System.currentTimeMillis() - start) / KButilities.ONE_K + " secs");
     }
 
     /* Props at: https://www.jedit.org/api/org/gjt/sp/jedit/msg/package-summary.html */
@@ -512,7 +546,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
         view.getTextArea().setText(queryResultString(tpp));
         Log.log(Log.MESSAGE, this, ":queryExp(): complete");
 //        };
-//        startBackgroundThread(r);
+//        Runnable rs = create(r, () -> "Querying expression");
+//        startBackgroundThread(rs);
 
     }
 
@@ -938,7 +973,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
     //        errorListRefreshHack(); // do not want to do this, it disrupts message handling
             Log.log(Log.MESSAGE, this, ":checkErrors(): complete");
         };
-        startBackgroundThread(r);
+        Runnable rs = create(r, () -> "Checking errors");
+        startBackgroundThread(rs);
     }
 
     /**
@@ -1276,7 +1312,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
                         if (e.getClickCount() >= 2) { accept(ta, prefix, jlist.getSelectedValue()); }
                     }
                 });
-                
+
                 // FIXED: Enhanced key handling to properly manage Tab key
                 jlist.addKeyListener(new java.awt.event.KeyAdapter() {
                     @Override public void keyPressed(java.awt.event.KeyEvent e) {
@@ -1301,7 +1337,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
                     public boolean dispatchKeyEvent(java.awt.event.KeyEvent e) {
                         // Only handle events when our popup is active
                         if (popup != active || !popup.isVisible()) return false;
-                        
+
                         if (e.getID() == java.awt.event.KeyEvent.KEY_PRESSED) {
                             if (e.getKeyCode() == java.awt.event.KeyEvent.VK_TAB) {
                                 // Tab pressed - accept selection and close
@@ -1316,11 +1352,11 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions, Runnable {
                         return false;
                     }
                 };
-                
+
                 // Install the dispatcher temporarily while popup is shown
                 java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager()
                     .addKeyEventDispatcher(popupDispatcher);
-                
+
                 // Add popup listener to clean up dispatcher when popup closes
                 popup.addPopupMenuListener(new javax.swing.event.PopupMenuListener() {
                     @Override public void popupMenuWillBecomeInvisible(javax.swing.event.PopupMenuEvent e) {
