@@ -149,8 +149,10 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             // Refresh the ExecutorService to respect the single-threaded constraint
             KButilities.refreshExecutorService();
 
+            // toggle the menu so that we can view the plugin dropdown
             view.getJMenuBar().getSubElements()[8].menuSelectionChanged(true);
             togglePluginMenus(false);
+            view.getJMenuBar().getSubElements()[8].menuSelectionChanged(false);
 
             try {
                 System.out.println("SUMOjEdit.run(): Initializing KB with single-threaded executor");
@@ -168,7 +170,6 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             }
 
             togglePluginMenus(true);
-            view.getJMenuBar().getSubElements()[8].menuSelectionChanged(false);
 
             // Force AC initialization even if KB has issues
             if (view != null) {
@@ -220,21 +221,21 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 togglePluginMenus(true);
                 if (isKif) {
                     kif.filename = view.getBuffer().getPath();
-                    if (kb != null && !kb.constituents.contains(kif.filename) /*&& !KBmanager.getMgr().infFileOld()*/) {
+                    if (kb != null && !kb.constituents.contains(kif.filename) && view.getBuffer().getLength() > 1/*&& !KBmanager.getMgr().infFileOld()*/) {
                         togglePluginMenus(false);
                         Color clr = view.getStatus().getBackground();
-                        Runnable r2 = () -> {
+                        Runnable rd = () -> {
                             view.getStatus().setBackground(Color.GREEN);
                             view.getStatus().setMessage("processing " + kif.filename);
                         };
-                        ThreadUtilities.runInDispatchThread(r2);
+                        ThreadUtilities.runInDispatchThread(rd);
                         tellTheKbAboutLoadedKif(); // adds kif as a constituent into the KB
                         checkErrors();
-                        r2 = () -> {
+                        rd = () -> {
                             view.getStatus().setBackground(clr);
                             view.getStatus().setMessageAndClear("processing " + kif.filename + " complete");
                         };
-                        ThreadUtilities.runInDispatchThread(r2);
+                        ThreadUtilities.runInDispatchThread(rd);
                         togglePluginMenus(true);
                         // TODO: remove loaded KIF from KB?
                     }
