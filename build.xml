@@ -31,6 +31,7 @@
 
     <path id="core.sourcepath">
         <pathelement path="src"/>
+        <pathelement path="${build.home}/generated-sources"/>
     </path>
 
     <path id="test.sourcepath">
@@ -161,6 +162,9 @@ public final class BuildInfo {
     </target>
 
     <target name="compile" depends="sigma.antlr" description="Compile ${app.name}">
+        <!-- Increment build number first -->
+        <buildnumber/>
+
         <javac destdir="${build.home}/classes"
                debug="on"
                optimize="on"
@@ -169,9 +173,18 @@ public final class BuildInfo {
                classpathref="compile.classpath"
                release="${javac.release}">
             <src refid="core.sourcepath"/>
-            <src path="${build.home}/generated-sources"/>
         </javac>
-        <copy todir="${build.home}/classes" file="config/SUMOjEdit.props"/>
+
+        <!-- Copy and process SUMOjEdit.props with build number -->
+        <copy file="config/SUMOjEdit.props" todir="${build.home}/classes" overwrite="true">
+            <filterchain>
+                <replacetokens>
+                    <token key="BUILD_NUMBER" value="${build.number}"/>
+                </replacetokens>
+            </filterchain>
+        </copy>
+
+        <!-- Copy other resources as before -->
         <copy todir="${build.home}/classes" file="config/actions.xml"/>
         <copy todir="${build.home}/classes" file="README.txt"/>
         <copy todir="${build.home}/classes" file="index.html"/>

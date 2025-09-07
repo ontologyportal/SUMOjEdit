@@ -161,4 +161,29 @@
             return "BOTH".equals(jEdit.getProperty("sumojedit.ac.mode", "BOTH"));
         </IS_SELECTED>
     </ACTION>
+
+    <!-- ===== New: SUMOjEdit Version/Build Number ===== -->
+    <ACTION NAME="sumojedit.show-version">
+        <CODE><![CDATA[
+            // Use the generated BuildInfo class as the single source of truth.
+            String full = com.articulate.sigma.jedit.BuildInfo.getFullVersion();
+
+            // Centered, compact two-line HTML with minimal spacing
+            String html =
+                "<html>" +
+                "<div style='text-align:center;'>" +
+                    "<div style='font-weight:bold; margin:0; padding:0;'>" + full + "</div>" +
+                    "<div style='margin-top:4px; padding:0;'>A syntax aware editor for SUMO (Suggested Upper Merged Ontology)</div>" +
+                "</div>" +
+                "</html>";
+
+            javax.swing.JLabel label = new javax.swing.JLabel(html, javax.swing.SwingConstants.CENTER);
+            javax.swing.JOptionPane.showMessageDialog(
+                view,
+                label,
+                "About SUMOjEdit",
+                javax.swing.JOptionPane.INFORMATION_MESSAGE
+            );
+        ]]></CODE>
+    </ACTION>
 </ACTIONS>
