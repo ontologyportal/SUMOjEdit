@@ -40,6 +40,7 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.swing.MenuElement;
+import javax.swing.SwingUtilities;
 
 import org.gjt.sp.jedit.*;
 //import org.gjt.sp.jedit.gui.RolloverButton;
@@ -114,6 +115,15 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     }
 
     /**
+     * Get the plugin version with build number
+     */
+    public static String getVersionWithBuild() {
+        String version = jEdit.getProperty("plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.version", "1.1.0");
+        String buildNum = jEdit.getProperty("build.number", "0");
+        return String.format("SUMOjEdit v%s (Build %s)", version, buildNum);
+    }
+
+    /**
      * ***************************************************************
      * Starts the given Runnable in the background, non-EDT
      *
@@ -142,9 +152,24 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 } catch (InterruptedException ex) {System.err.println(ex);}
             while (view == null);
 
+            // Display build number in status bar
+            view.getStatus().setMessage(BuildInfo.getFullVersion() + " loading...");
+            
             // Set single-threaded mode for jEdit to prevent arity check deadlock
             System.out.println("SUMOjEdit.run(): Setting single-threaded mode for jEdit");
+            System.out.println("SUMOjEdit.run(): " + BuildInfo.getFullVersion());
             System.setProperty("java.util.concurrent.ForkJoinPool.common.parallelism", "1");
+
+            // Set persistent status message about version
+            SwingUtilities.invokeLater(() -> {
+                if (view != null) {
+                    // This will show in the Plugin Manager and About dialogs
+                    jEdit.setProperty("plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.longdescription",
+                        "A syntax aware editor for the Suggested Upper Merged Ontology (SUMO)\n" +
+                        BuildInfo.getFullVersion() + "\n" +
+                        "Knowledge Base loaded with " + (kb != null ? kb.terms.size() : 0) + " terms");
+                }
+            });
 
             // Refresh the ExecutorService to respect the single-threaded constraint
             KButilities.refreshExecutorService();
@@ -203,6 +228,9 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             processLoadedKifOrTptp();
             Log.log(Log.MESSAGE, this, ": kb: " + kb);
             Log.log(Log.MESSAGE, SUMOjEditPlugin.class, ":run(): complete");
+            
+            // Update status bar with build info after initialization
+            view.getStatus().setMessageAndClear(BuildInfo.getFullVersion() + " ready");
         };
         Runnable rs = create(r, () -> "Initialize " + this);
         startBackgroundThread(rs);

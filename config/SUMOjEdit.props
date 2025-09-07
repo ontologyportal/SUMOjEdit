@@ -8,8 +8,9 @@ plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.usePluginHome=true
 # Required for all plugins:
 plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.name=SUMOjEdit
 plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.author=Adam Pease
-plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.description=A syntax aware editor for the Suggested Upper Merged Ontology (SUMO)
+plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.description=A syntax aware editor for the Suggested Upper Merged Ontology (SUMO) - Build @BUILD_NUMBER@
 plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.version=1.1.0
+plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.build=Build information available at runtime
 
 # Supporting libs
 plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.jars=\
@@ -37,6 +38,8 @@ plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.depend.2=plugin errorlist.Erro
 
 # View plugin sub-menu - a list of actions or separators
 plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.menu=\
+  sumojedit.show-version \
+  - \
   sumojedit.browse-term \
   sumojedit.check-errors \
   sumojedit.format-select \
@@ -61,6 +64,7 @@ plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.menu=\
   sumojedit.ac.mode.both
 
 # action labels for actions supplied by actions.xml
+sumojedit.show-version.label=About SUMOjEdit
 sumojedit.show-stats.label=show statistics for buffer
 sumojedit.check-errors.label=check for SUO-KIF errors
 sumojedit.format-select.label=format axioms
