@@ -142,8 +142,12 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 } catch (InterruptedException ex) {System.err.println(ex);}
             while (view == null);
 
+            // Display build number in status bar
+            view.getStatus().setMessage("SUMOjEdit " + BuildInfo.getShortVersion() + " loading...");
+            
             // Set single-threaded mode for jEdit to prevent arity check deadlock
             System.out.println("SUMOjEdit.run(): Setting single-threaded mode for jEdit");
+            System.out.println("SUMOjEdit.run(): " + BuildInfo.getFullVersion());
             System.setProperty("java.util.concurrent.ForkJoinPool.common.parallelism", "1");
 
             // Refresh the ExecutorService to respect the single-threaded constraint
@@ -203,6 +207,9 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             processLoadedKifOrTptp();
             Log.log(Log.MESSAGE, this, ": kb: " + kb);
             Log.log(Log.MESSAGE, SUMOjEditPlugin.class, ":run(): complete");
+            
+            // Update status bar with build info after initialization
+            view.getStatus().setMessageAndClear(BuildInfo.getFullVersion() + " ready");
         };
         Runnable rs = create(r, () -> "Initialize " + this);
         startBackgroundThread(rs);

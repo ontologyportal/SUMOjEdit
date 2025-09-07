@@ -10,6 +10,7 @@ plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.name=SUMOjEdit
 plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.author=Adam Pease
 plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.description=A syntax aware editor for the Suggested Upper Merged Ontology (SUMO)
 plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.version=1.1.0
+plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.build=Build information available at runtime
 
 # Supporting libs
 plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.jars=\
