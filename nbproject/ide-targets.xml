@@ -40,7 +40,7 @@
     ============
     -->
 
-    <target name="init" depends="init-ivy">
+    <target name="init" depends="init-ivy,generate-build-info">
         <mkdir dir="${build.home}/classes"/>
         <mkdir dir="${reports.dir}"/>
         <echo message="JEDIT_HOME is set to: ${jedit.home}"/>
