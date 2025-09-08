@@ -92,51 +92,14 @@ sumo.ac.userguide.title=AutoComplete (AC) User Guide
 
 # Body text for the dialog (\n for line breaks). 
 sumo.ac.userguide.text=Welcome to the AutoComplete (AC) User Guide.\n\n\
-The AC feature in SUMOjEdit is designed to make writing and editing ontology terms faster, \
-easier, and less error-prone. By predicting what you intend to type, it reduces keystrokes \
-and helps ensure consistent use of terms across your files.\n\n\
-\
-###\n\n\
-\
-To use AC, simply begin typing a term. Depending on the selected mode, suggestions will \
-appear either inline, in the drop-down menu, or in both.\n\n\
-\
-There are several modes of AC, each tailored to different editing preferences:\n\n\
-\
-OFF mode disables all AC functionality. Select this mode if you prefer typing without \
-any suggestions.\n\n\
-\
-GHOST TEXT mode* displays suggestions inline, shown in a faint gray color directly after \
-the cursor. In this mode, pressing the LEFT CONTROL (CTRL) key accepts the suggestion.\n\n\
-\
-DROP-DOWN mode** provides a pop-up list of suggestions beneath the cursor. You can use the \
-UP and DOWN ARROW keys to navigate through the list and the TAB key to insert the suggested \
-term. This mode is useful when multiple possible completions exist.\n\n\
-\
-DUAL MODE combines Ghost Text mode and Drop-Down mode, offering both inline and pop-up \
-suggestions at the same time. This mode provides the most guidance and flexibility. The \
-key bindings do not change.\n\n\
-\
-*Ghost Text mode only suggests words belonging to logical operators and some fundamental \
-relations in SUMO, such as "exists," "instance," "and," "or," "greaterThan," etc.\n\n\
-\
-**Drop-Down mode only suggests SUMO terms (as defined in the .kif files) in the sumo \
-repository.\n\n\
-\
-###\n\n\
-\
-You can switch modes at any time by navigating to the Plugins menu > SUMOjEdit, then \
-selecting the desired AC mode. A small status message will confirm the change.\n\n\
-\
-If you find suggestions distracting or overwhelming, try Ghost Text mode for subtle \
-guidance or turning AC Off entirely. If you prefer more explicit support, the Drop-Down \
-mode or Dual Mode options may be better suited for you.\n\n\
-\
-###\n\n\
-\
-We'd love to hear your feedback! Tell us what you like about AC and how we can make it \
-even better!\
-\
-\n\n\n\
-\
+The AC feature in SUMOjEdit helps make writing and editing ontology terms faster, easier, and less error-prone by predicting what you intend to type. This reduces keystrokes and helps ensure consistent use of terms across your files.\n\n\
+Depending on which suggestion types are enabled, AC completions will appear inline (ghost text), in a drop-down list, or both.\n\n\
+You can independently enable or disable two types of suggestions in AC:\n\n\
+GHOST TEXT suggestions* appear inline as faint gray text directly after the cursor. In this mode, pressing the LEFT CONTROL (CTRL) key accepts the suggestion.\n\n\
+DROP-DOWN suggestions** provide a pop-up list of completion options beneath the cursor. Use the UP and DOWN ARROW keys to navigate the list, and press TAB to insert the highlighted term.\n\n\
+If both Ghost Text and Drop-Down suggestions are enabled, AC offers both inline and pop-up completions at the same time. If only one is enabled, AC provides only that type of completion. If neither is enabled, AC is completely off.\n\n\
+*Ghost Text suggestions include common logical operators and fundamental relations in SUMO (e.g., "exists", "instance", "and", "or", "greaterThan", etc.).\n\n\
+**Drop-Down suggestions include SUMO terms as defined in the ontology (.kif) files.\n\n\
+You can toggle Ghost Text and Drop-Down modes on or off at any time via the Plugins menu > SUMOjEdit. A checkmark next to each indicates it is enabled, and a status message will confirm the change.\n\n\
+We'd love to hear your feedback! Tell us what you like about AC and how we can make it even better!\n\n\
 Close this dialog by clicking OK.
