@@ -36,9 +36,12 @@ import java.awt.*;
 import java.io.*;
 //import javax.swing.Box;
 import java.util.*;
+import java.util.List;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+//import javax.swing.Action;
 import javax.swing.MenuElement;
 import javax.swing.SwingUtilities;
 
@@ -827,23 +830,39 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
      */
     private void logKifWarnAndErr() {
 
+        List<DefaultErrorSource.DefaultError> warnings = new ArrayList<>();
+        List<DefaultErrorSource.DefaultError> errors = new ArrayList<>();
+        
         int line, offset;
         for (String warn : kif.warningSet) {
-
             line = getLineNum(warn);
             offset = getOffset(warn);
-            if (offset == 0)
-                offset = 1;
-            errsrc.addError(ErrorSource.WARNING, kif.filename, line == 0 ? line : line-1, offset, offset+1, warn);
+            if (offset == 0) offset = 1;
+            DefaultErrorSource.DefaultError warning = new DefaultErrorSource.DefaultError(
+                errsrc, ErrorSource.WARNING, kif.filename, 
+                line == 0 ? line : line-1, offset, offset+1, warn);
+            warnings.add(warning);
         }
+        
         for (String err : kif.errorSet) {
-
             line = getLineNum(err);
             offset = getOffset(err);
-            if (offset == 0)
-                offset = 1;
-            errsrc.addError(ErrorSource.ERROR, kif.filename, line == 0 ? line : line-1, offset, offset+1, err);
+            if (offset == 0) offset = 1;
+            DefaultErrorSource.DefaultError error = new DefaultErrorSource.DefaultError(
+                errsrc, ErrorSource.ERROR, kif.filename, 
+                line == 0 ? line : line-1, offset, offset+1, err);
+            errors.add(error);
         }
+        
+        // Add all warnings and errors on EDT
+        SwingUtilities.invokeLater(() -> {
+            for (DefaultErrorSource.DefaultError warning : warnings) {
+                errsrc.addError(warning);
+            }
+            for (DefaultErrorSource.DefaultError error : errors) {
+                errsrc.addError(error);
+            }
+        });
 
         // Not currently used, but good framework to have
         if (dw != null && (!dw.getErrorMessage().isBlank() || dw.getExtraMessages().length > 0))
@@ -875,14 +894,35 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
      */
     private void clearWarnAndErr() {
 
-        if (!StringUtil.emptyString(kif.filename))
-            errsrc.removeFileErrors(kif.filename);
+        // Ensure we're on EDT for ErrorList operations
+        Runnable clearTask = () -> {
+            if (!StringUtil.emptyString(kif.filename))
+                errsrc.removeFileErrors(kif.filename);
 
-        // Redundant calls if the clear button is also invoked
-        jEdit.getAction("error-list-clear").invoke(view);
-        errsrc.clear();
-        // But good to invoke if the ErrorList is not yet visible
+            // Clear the error source
+            errsrc.clear();
+            
+            // Don't send null error - ErrorList plugin can't handle it
+            // Just clear the errors without sending an update for individual errors
+            // The clear() call above already notifies ErrorList
+            
+            // Also clear using jEdit action if available
+            if (view != null && jEdit.getAction("error-list-clear") != null) {
+                jEdit.getAction("error-list-clear").invoke(view);
+            }
+        };
+        
+        if (SwingUtilities.isEventDispatchThread()) {
+            clearTask.run();
+        } else {
+            try {
+                SwingUtilities.invokeAndWait(clearTask);
+            } catch (Exception e) {
+                Log.log(Log.ERROR, this, "Error clearing warnings and errors", e);
+            }
+        }
 
+        // Clear KIF and KB errors (these can be done on any thread)
         clearKif();
         KButilities.clearErrors();
         kb.errors.clear();
@@ -910,8 +950,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 //            // Get the Box at the scaled coordinates
 //            Box box = (Box) elp.getComponentAt((int) scaledX, (int) scaledY);
 //            RolloverButton btn = (RolloverButton) box.getComponents()[13];
-//            btn.doClick(); // click the clear btn
-//        }
+//            btn.doClick(); // click the clear btn//        
     }
 
     @Override
@@ -992,13 +1031,27 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
         clearWarnAndErr();
         Log.log(Log.MESSAGE, this, ":checkErrors(): starting");
+        
+        // Ensure we have the current view
+        if (view == null) {
+            view = jEdit.getActiveView();
+        }
+        
         if (StringUtil.emptyString(kif.filename))
             kif.filename = view.getBuffer().getPath();
         String contents = view.getEditPane().getTextArea().getText();
 
         Runnable r = () -> {
             checkErrorsBody(contents);
-    //        errorListRefreshHack(); // do not want to do this, it disrupts message handling
+            // Force ErrorList refresh on EDT
+            SwingUtilities.invokeLater(() -> {
+                // Don't send null error - just show the ErrorList window
+                // The errors have already been added and ErrorList is already notified
+                // Show ErrorList window if hidden
+                if (view != null) {
+                    view.getDockableWindowManager().showDockableWindow("error-list");
+                }
+            });
             Log.log(Log.MESSAGE, this, ":checkErrors(): complete");
         };
         Runnable rs = create(r, () -> "Checking errors");
@@ -1053,11 +1106,26 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         int counter = 0, idx, line, offset;
         SuokifVisitor sv = SuokifApp.process(contents);
         if (!sv.errors.isEmpty()) {
+            // Collect errors first
+            List<DefaultErrorSource.DefaultError> errorList = new ArrayList<>();
             for (String er : sv.errors) {
                 line = getLineNum(er);
                 offset = getOffset(er);
-                errsrc.addError(ErrorSource.ERROR, kif.filename, line == 0 ? line : line - 1, offset, offset + 1, er);
-                if (log) {
+                DefaultErrorSource.DefaultError error = new DefaultErrorSource.DefaultError(
+                    errsrc, ErrorSource.ERROR, kif.filename, 
+                    line == 0 ? line : line - 1, offset, offset + 1, er);
+                errorList.add(error);
+            }
+            
+            // Add errors on EDT
+            SwingUtilities.invokeLater(() -> {
+                for (DefaultErrorSource.DefaultError error : errorList) {
+                    errsrc.addError(error);
+                }
+            });
+            
+            if (log) {
+                for (String er : sv.errors) {
                     Log.log(Log.ERROR, this, er);
                 }
             }
