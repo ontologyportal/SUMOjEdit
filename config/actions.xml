@@ -118,49 +118,71 @@
     </ACTION>
 
     <!-- ===== New: Autocomplete mode toggles ===== -->
-    <ACTION NAME="sumojedit.ac.mode.off">
-        <CODE>
-            jEdit.setProperty("sumojedit.ac.mode", "OFF");
-            jEdit.setProperty("sumo.autocomplete.mode", "off");
-            Macros.message(view, "Autocomplete mode: Off");
-        </CODE>
-        <IS_SELECTED>
-            return "OFF".equals(jEdit.getProperty("sumojedit.ac.mode", "BOTH"));
-        </IS_SELECTED>
-    </ACTION>
+        <ACTION NAME="sumojedit.ac.mode.ghost">
+            <CODE>
+                String mode = jEdit.getProperty("sumojedit.ac.mode", "BOTH");
+                boolean ghostOn = "GHOST_ONLY".equals(mode) || "BOTH".equals(mode);
+                boolean dropOn  = "DROPDOWN_ONLY".equals(mode) || "BOTH".equals(mode);
+                if (ghostOn) {
+                    if (dropOn) {
+                        jEdit.setProperty("sumojedit.ac.mode", "DROPDOWN_ONLY");
+                        jEdit.setProperty("sumo.autocomplete.mode", "popup");
+                        Macros.message(view, "Autocomplete mode: Drop-down only");
+                    } else {
+                        jEdit.setProperty("sumojedit.ac.mode", "OFF");
+                        jEdit.setProperty("sumo.autocomplete.mode", "off");
+                        Macros.message(view, "Autocomplete mode: Off");
+                    }
+                } else {
+                    if (dropOn) {
+                        jEdit.setProperty("sumojedit.ac.mode", "BOTH");
+                        jEdit.setProperty("sumo.autocomplete.mode", "both");
+                        Macros.message(view, "Autocomplete mode: Ghost-text + Drop-down");
+                    } else {
+                        jEdit.setProperty("sumojedit.ac.mode", "GHOST_ONLY");
+                        jEdit.setProperty("sumo.autocomplete.mode", "ghost_only");
+                        Macros.message(view, "Autocomplete mode: Ghost-text only");
+                    }
+                }
+            </CODE>
+            <IS_SELECTED>
+                String m = jEdit.getProperty("sumojedit.ac.mode", "BOTH");
+                return "GHOST_ONLY".equals(m) || "BOTH".equals(m);
+            </IS_SELECTED>
+        </ACTION>
 
-    <ACTION NAME="sumojedit.ac.mode.ghost">
-        <CODE>
-            jEdit.setProperty("sumojedit.ac.mode", "GHOST_ONLY");
-            jEdit.setProperty("sumo.autocomplete.mode", "ghost_only");
-            Macros.message(view, "Autocomplete mode: Ghost-text only");
-        </CODE>
-        <IS_SELECTED>
-            return "GHOST_ONLY".equals(jEdit.getProperty("sumojedit.ac.mode", "BOTH"));
-        </IS_SELECTED>
-    </ACTION>
-
-    <ACTION NAME="sumojedit.ac.mode.dropdown">
-        <CODE>
-            jEdit.setProperty("sumojedit.ac.mode", "DROPDOWN_ONLY");
-            jEdit.setProperty("sumo.autocomplete.mode", "popup");
-            Macros.message(view, "Autocomplete mode: Drop-down only");
-        </CODE>
-        <IS_SELECTED>
-            return "DROPDOWN_ONLY".equals(jEdit.getProperty("sumojedit.ac.mode", "BOTH"));
-        </IS_SELECTED>
-    </ACTION>
-
-    <ACTION NAME="sumojedit.ac.mode.both">
-        <CODE>
-            jEdit.setProperty("sumojedit.ac.mode", "BOTH");
-            jEdit.setProperty("sumo.autocomplete.mode", "both");
-            Macros.message(view, "AC: dual mode enabled (ghost text + drop-down)");
-        </CODE>
-        <IS_SELECTED>
-            return "BOTH".equals(jEdit.getProperty("sumojedit.ac.mode", "BOTH"));
-        </IS_SELECTED>
-    </ACTION>
+        <ACTION NAME="sumojedit.ac.mode.dropdown">
+            <CODE>
+                String mode = jEdit.getProperty("sumojedit.ac.mode", "BOTH");
+                boolean dropOn  = "DROPDOWN_ONLY".equals(mode) || "BOTH".equals(mode);
+                boolean ghostOn = "GHOST_ONLY".equals(mode) || "BOTH".equals(mode);
+                if (dropOn) {
+                    if (ghostOn) {
+                        jEdit.setProperty("sumojedit.ac.mode", "GHOST_ONLY");
+                        jEdit.setProperty("sumo.autocomplete.mode", "ghost_only");
+                        Macros.message(view, "Autocomplete mode: Ghost-text only");
+                    } else {
+                        jEdit.setProperty("sumojedit.ac.mode", "OFF");
+                        jEdit.setProperty("sumo.autocomplete.mode", "off");
+                        Macros.message(view, "Autocomplete mode: Off");
+                    }
+                } else {
+                    if (ghostOn) {
+                        jEdit.setProperty("sumojedit.ac.mode", "BOTH");
+                        jEdit.setProperty("sumo.autocomplete.mode", "both");
+                        Macros.message(view, "Autocomplete mode: Ghost-text + Drop-down");
+                    } else {
+                        jEdit.setProperty("sumojedit.ac.mode", "DROPDOWN_ONLY");
+                        jEdit.setProperty("sumo.autocomplete.mode", "popup");
+                        Macros.message(view, "Autocomplete mode: Drop-down only");
+                    }
+                }
+            </CODE>
+            <IS_SELECTED>
+                String m = jEdit.getProperty("sumojedit.ac.mode", "BOTH");
+                return "DROPDOWN_ONLY".equals(m) || "BOTH".equals(m);
+            </IS_SELECTED>
+        </ACTION>
 
     <!-- ===== New: SUMOjEdit Version/Build Number ===== -->
     <ACTION NAME="sumojedit.show-version">

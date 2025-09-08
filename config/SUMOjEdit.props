@@ -58,10 +58,8 @@ plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.menu=\
   - \
   sumojedit.ac.user-guide \
   - \
-  sumojedit.ac.mode.off \
   sumojedit.ac.mode.ghost \
-  sumojedit.ac.mode.dropdown \
-  sumojedit.ac.mode.both
+  sumojedit.ac.mode.dropdown
 
 # action labels for actions supplied by actions.xml
 sumojedit.show-version.label=About SUMOjEdit
@@ -82,10 +80,8 @@ sumojedit.from-tptp.label=SUO-KIF from TPTP
 sumojedit.ac.user-guide.label=AutoComplete (AC) User Guide
 
 # ==== NEW: Labels + default for AC mode actions ====
-sumojedit.ac.mode.off.label=AC: Off
 sumojedit.ac.mode.ghost.label=AC: Ghost-Text Mode
 sumojedit.ac.mode.dropdown.label=AC: Drop-Down Mode
-sumojedit.ac.mode.both.label=AC: Dual Mode
 
 # Default AC mode (read at startup and used by the toggles)
 sumojedit.ac.mode=BOTH
