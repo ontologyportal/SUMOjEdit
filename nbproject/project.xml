@@ -24,6 +24,12 @@ auxiliary.show.customizer.message=<message>
                     <encoding>UTF-8</encoding>
                 </source-folder>
                 <source-folder>
+                    <label>Generated Sources</label>
+                    <type>java</type>
+                    <location>build/generated-sources</location>
+                    <encoding>UTF-8</encoding>
+                </source-folder>
+                <source-folder>
                     <label>Source Packages</label>
                     <type>java</type>
                     <location>src</location>
@@ -220,12 +226,28 @@ auxiliary.show.customizer.message=<message>
             </export>
             <export>
                 <type>folder</type>
-                <location>build/test/classes</location>
+                <location>${build.test.classes.dir}</location>
+                <script>${ant.script}</script>
+                <build-target>deploy</build-target>
+            </export>
+            <export>
+                <type>folder</type>
+                <location>${build.home}/test/classes</location>
+                <script>${ant.script}</script>
+                <build-target>deploy</build-target>
+            </export>
+            <export>
+                <type>folder</type>
+                <location>${build.classes.dir}</location>
                 <script>${ant.script}</script>
                 <build-target>deploy</build-target>
             </export>
             <view>
                 <items>
+                    <source-folder style="packages">
+                        <label>Generated Sources</label>
+                        <location>build/generated-sources</location>
+                    </source-folder>
                     <source-folder style="packages">
                         <label>Source Packages</label>
                         <location>src</location>
@@ -272,6 +294,11 @@ auxiliary.show.customizer.message=<message>
                 <unit-tests/>
                 <classpath mode="compile">${javac.test.classpath}</classpath>
                 <built-to>${build.test.classes.dir}</built-to>
+                <source-level>11</source-level>
+            </compilation-unit>
+            <compilation-unit>
+                <package-root>build/generated-sources</package-root>
+                <built-to>${build.classes.dir}</built-to>
                 <source-level>11</source-level>
             </compilation-unit>
         </java-data>
