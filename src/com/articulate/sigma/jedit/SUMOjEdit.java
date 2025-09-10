@@ -34,6 +34,7 @@ import errorlist.ErrorSource;
 
 import java.awt.*;
 import java.io.*;
+import java.lang.reflect.InvocationTargetException;
 //import javax.swing.Box;
 import java.util.*;
 import java.util.List;
@@ -81,6 +82,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
     private long pluginStart;
 
+    private final Set<String> constituentsToAdd;
+
     /** Create a Runnable with an overridden toString for label display
      *
      * @param runnable the supplied Runnable to run
@@ -115,6 +118,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
         kif = new KIF();
         kif.filename = "";
+        constituentsToAdd = new HashSet<>();
     }
 
     /**
@@ -156,37 +160,42 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             while (view == null);
 
             // Display build number in status bar
-            view.getStatus().setMessage(BuildInfo.getFullVersion() + " loading...");
-            
+            ThreadUtilities.runInDispatchThread(() -> {
+                view.getStatus().setMessage(BuildInfo.getFullVersion() + " loading...");
+            });
+
             // Set single-threaded mode for jEdit to prevent arity check deadlock
             System.out.println("SUMOjEdit.run(): Setting single-threaded mode for jEdit");
             System.out.println("SUMOjEdit.run(): " + BuildInfo.getFullVersion());
             System.setProperty("java.util.concurrent.ForkJoinPool.common.parallelism", "1");
 
             // Set persistent status message about version
-            SwingUtilities.invokeLater(() -> {
-                if (view != null) {
-                    // This will show in the Plugin Manager and About dialogs
-                    jEdit.setProperty("plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.longdescription",
-                        "A syntax aware editor for the Suggested Upper Merged Ontology (SUMO)\n" +
-                        BuildInfo.getFullVersion() + "\n" +
-                        "Knowledge Base loaded with " + (kb != null ? kb.terms.size() : 0) + " terms");
-                }
-            });
+            if (view != null) {
+                // This will show in the Plugin Manager and About dialogs
+                jEdit.setProperty("plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.longdescription",
+                    "A syntax aware editor for the Suggested Upper Merged Ontology (SUMO)\n" +
+                    BuildInfo.getFullVersion() + "\n" +
+                    "Knowledge Base loaded with " + (kb != null ? kb.terms.size() : 0) + " terms");
+            }
 
             // Refresh the ExecutorService to respect the single-threaded constraint
             KButilities.refreshExecutorService();
 
             // toggle the menu so that we can view the plugin dropdown
-            view.getJMenuBar().getSubElements()[8].menuSelectionChanged(true);
+            ThreadUtilities.runInDispatchThread(() -> {
+                view.getJMenuBar().getSubElements()[8].menuSelectionChanged(true);
+            });
             togglePluginMenus(false);
-            view.getJMenuBar().getSubElements()[8].menuSelectionChanged(false);
+            ThreadUtilities.runInDispatchThread(() -> {
+                view.getJMenuBar().getSubElements()[8].menuSelectionChanged(false);
+            });
 
             try {
                 System.out.println("SUMOjEdit.run(): Initializing KB with single-threaded executor");
                 SUMOtoTFAform.initOnce();
                 kb = SUMOtoTFAform.kb;
                 fp = SUMOtoTFAform.fp;
+                constituentsToAdd.addAll(kb.constituents);
                 System.out.println("SUMOjEdit.run(): KB initialization successful");
             } catch (Exception e) {
                 Log.log(Log.ERROR, this, ":run(): KB init error: ", e);
@@ -203,39 +212,40 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             if (view != null) {
                 if (kb != null) {
                     autoComplete = new AutoCompleteManager(view, kb);
-                    Log.log(Log.MESSAGE, this, ": AutoComplete initialized with KB");
+                    Log.log(Log.MESSAGE, this, ":AutoComplete initialized with KB");
                 } else {
                     // Try to get KB from KBmanager as fallback
                     KB fallbackKB = KBmanager.getMgr().getKB("SUMO");
                     if (fallbackKB != null) {
                         kb = fallbackKB;
                         autoComplete = new AutoCompleteManager(view, kb);
-                        Log.log(Log.WARNING, this, ": AutoComplete initialized with fallback KB");
+                        Log.log(Log.WARNING, this, ":AutoComplete initialized with fallback KB");
                     } else {
-                        Log.log(Log.ERROR, this, ": No KB available for AutoComplete");
+                        Log.log(Log.ERROR, this, ":No KB available for AutoComplete");
                     }
                 }
             }
 
             if (view != null && kb != null) {
                 autoComplete = new AutoCompleteManager(view, kb);
-                Log.log(Log.MESSAGE, this, ": AutoComplete initialized successfully with " + kb.terms.size() + " terms");
+                Log.log(Log.MESSAGE, this, ":AutoComplete initialized successfully with " + kb.terms.size() + " terms");
             } else {
-                Log.log(Log.ERROR, this, ": AutoComplete NOT initialized - view=" + view + ", kb=" + kb);
+                Log.log(Log.ERROR, this, ":AutoComplete NOT initialized - view=" + view + ", kb=" + kb);
                 if (kb == null) {
-                    Log.log(Log.ERROR, this, ": KB is null! AutoComplete will not work.");
+                    Log.log(Log.ERROR, this, ":KB is null! AutoComplete will not work.");
                 }
             }
 
-            errsrc = new DefaultErrorSource(getClass().getName(), this.view);
+            errsrc = new DefaultErrorSource(getClass().getName(), view);
             processLoadedKifOrTptp();
-            Log.log(Log.MESSAGE, this, ": kb: " + kb);
-            Log.log(Log.MESSAGE, SUMOjEditPlugin.class, ":run(): complete");
-            
+
             // Update status bar with build info after initialization
-            view.getStatus().setMessageAndClear(BuildInfo.getFullVersion() + " ready");
+            ThreadUtilities.runInDispatchThread(() -> {
+                view.getStatus().setMessageAndClear(BuildInfo.getFullVersion() + " ready");
+            });
+            Log.log(Log.MESSAGE, this, ":kb: " + kb);
         };
-        Runnable rs = create(r, () -> "Initialize " + this);
+        Runnable rs = create(r, () -> "Initializing " + getClass().getName());
         startBackgroundThread(rs);
     }
 
@@ -252,21 +262,19 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 togglePluginMenus(true);
                 if (isKif) {
                     kif.filename = view.getBuffer().getPath();
-                    if (kb != null && !kb.constituents.contains(kif.filename) && view.getBuffer().getLength() > 1/*&& !KBmanager.getMgr().infFileOld()*/) {
+                    if (kb != null && !constituentsToAdd.contains(kif.filename) && new File(kif.filename).length() > 1L /*&& !KBmanager.getMgr().infFileOld()*/) {
                         togglePluginMenus(false);
                         Color clr = view.getStatus().getBackground();
-                        Runnable rd = () -> {
+                        ThreadUtilities.runInDispatchThread(() -> {
                             view.getStatus().setBackground(Color.GREEN);
                             view.getStatus().setMessage("processing " + kif.filename);
-                        };
-                        ThreadUtilities.runInDispatchThread(rd);
+                        });
                         tellTheKbAboutLoadedKif(); // adds kif as a constituent into the KB
                         checkErrors();
-                        rd = () -> {
+                        ThreadUtilities.runInDispatchThread(() -> {
                             view.getStatus().setBackground(clr);
                             view.getStatus().setMessageAndClear("processing " + kif.filename + " complete");
-                        };
-                        ThreadUtilities.runInDispatchThread(rd);
+                        });
                         togglePluginMenus(true);
                         // TODO: remove loaded KIF from KB?
                     }
@@ -274,10 +282,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 ErrorSource.registerErrorSource(errsrc); // just returns if already registered
             } else {
                 togglePluginMenus(false);
-                if (errsrc != null) {
-                    clearWarnAndErr();
+                if (errsrc != null)
                     unload();
-                }
             }
             Log.log(Log.MESSAGE, this, ":processLoadedKifOrTptp(): complete");
             if (pluginStart > 0) {
@@ -298,7 +304,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
      */
     private void togglePluginMenus(boolean enabled) {
 
-        Runnable r = () -> {
+        ThreadUtilities.runInDispatchThread(() -> {
 
             // Top view menu bar / Enhanced menu item / Plugins menu / SUMOjEdit plugin menu
             MenuElement[] elems = view.getJMenuBar().getSubElements()[8].getSubElements()[0].getSubElements();
@@ -313,8 +319,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
             // Now, the right click context menu of the editor's text area in the case of customized SUMOjEdit actions
             view.getEditPane().getTextArea().setRightClickPopupEnabled(enabled);
-        };
-        ThreadUtilities.runInDispatchThread(r);
+        });
     }
 
     /**
@@ -326,45 +331,11 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     private void tellTheKbAboutLoadedKif() {
 
         long start = System.currentTimeMillis();
-        java.util.List<String> constituentsToAdd = new ArrayList<>();
-        File newKbFile = new File(kif.filename);
-        try {
-            constituentsToAdd.add(newKbFile.getCanonicalPath());
-        }
-        catch (IOException ioe) {
-            Log.log(Log.ERROR, this, ":tellTheKbAboutLoadedKif(): ", ioe);
-            System.err.println(ioe);
-            return;
-        }
+        if (!constituentsToAdd.contains(kif.filename))
+            constituentsToAdd.add(kif.filename);
 
-        // Patterns after KBmanager.kbsFromXML()
-        SimpleElement configuration = KBmanager.getMgr().readConfiguration(KButilities.SIGMA_HOME + File.separator + "KBs");
-        String kbName = null, filename;
-        boolean useCacheFile;
-        for (SimpleElement element : configuration.getChildElements()) {
-            if (element.getTagName().equals("kb")) {
-                kbName = element.getAttribute("name");
-                KBmanager.getMgr().addKB(kbName);
-                useCacheFile = KBmanager.getMgr().getPref("cache").equalsIgnoreCase("yes");
-                for (SimpleElement kbConst : element.getChildElements()) {
-                    if (!kbConst.getTagName().equals("constituent"))
-                        System.err.println("Error in SUMOjEdit.tellTheKbAboutLoadedKif(): Bad tag: " + kbConst.getTagName());
-                    filename = kbConst.getAttribute("filename");
-                    if (!filename.startsWith((File.separator)))
-                        filename = KBmanager.getMgr().getPref("kbDir") + File.separator + filename;
-                    if (!StringUtil.emptyString(filename)) {
-                        if (KButilities.isCacheFile(filename)) {
-                            if (useCacheFile)
-                                constituentsToAdd.add(filename);
-                        }
-                        else
-                            constituentsToAdd.add(filename);
-                    }
-                }
-                KBmanager.getMgr().loadKB(kbName, constituentsToAdd);
-            }
-        }
-        kb = KBmanager.getMgr().getKB(kbName);
+        KBmanager.getMgr().loadKB(KBmanager.getMgr().getPref("sumokbname"), new ArrayList<>(constituentsToAdd));
+        kb = KBmanager.getMgr().getKB(KBmanager.getMgr().getPref("sumokbname"));
         Log.log(Log.MESSAGE, this, ":tellTheKbAboutLoadedKif() completed in " + (System.currentTimeMillis() - start) / KButilities.ONE_K + " secs");
     }
 
@@ -446,6 +417,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
      */
     private void unload() {
 
+        clearWarnAndErr();
         ErrorSource.unregisterErrorSource(errsrc);
         if (autoComplete != null) autoComplete.dispose();
     }
@@ -521,7 +493,9 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         java.util.List<String> proofStepsStr = new ArrayList<>();
         for (TPTPFormula ps : tpp.proof)
             proofStepsStr.add(ps.toString());
-        jEdit.newFile(view);
+        ThreadUtilities.runInDispatchThread(() -> {
+            jEdit.newFile(view);
+        });
         StringBuilder result = new StringBuilder();
         if (tpp.bindingMap != null && !tpp.bindingMap.isEmpty())
             result.append("Bindings: ").append(tpp.bindingMap);
@@ -541,52 +515,54 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     @Override
     public void queryExp() {
 
-        String contents = view.getEditPane().getTextArea().getSelectedText();
+        String contents = view.getTextArea().getSelectedText();
         if (!checkEditorContents(contents, "Please fully highlight an atom for query"))
             return;
-//        Runnable r = () -> { // TODO: For a longer query, may have to send to jEdit ThreadPool
-        togglePluginMenus(false);
-        Log.log(Log.MESSAGE, this, ":queryExp(): query with: " + contents);
-        System.out.println("queryExp(): query with: " + contents);
-        String dir = KBmanager.getMgr().getPref("kbDir") + File.separator;
-        String type = "tptp";
-        String outfile = dir + "temp-comb." + type;
-        System.out.println("queryExp(): query on file: " + outfile);
-        Log.log(Log.MESSAGE, this, ":queryExp(): query on file: " + outfile);
-        Vampire vamp;
-        EProver eprover;
-        StringBuilder qlist = null;
-        TPTP3ProofProcessor tpp = new TPTP3ProofProcessor();
-        if (KBmanager.getMgr().prover == KBmanager.Prover.VAMPIRE) {
-            vamp = kb.askVampire(contents, 30, 1);
-            tpp.parseProofOutput(vamp.output, contents, kb, vamp.qlist);
-            qlist = vamp.qlist;
-            //Log.log(Log.MESSAGE,this,"queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(vamp.output));
-        }
-        if (KBmanager.getMgr().prover == KBmanager.Prover.EPROVER) {
-            eprover = kb.askEProver(contents, 30, 1);
-            try {
-                //Log.log(Log.MESSAGE,this,"queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(eprover.output));
-                tpp.parseProofOutput(eprover.output, contents, kb, eprover.qlist);
-                qlist = eprover.qlist;
-            } catch (Exception e) {
-                Log.log(Log.ERROR, this, ":queryExp(): ", e);
+        Runnable r = () -> {
+            togglePluginMenus(false);
+            Log.log(Log.MESSAGE, this, ":queryExp(): query with: " + contents);
+            System.out.println("queryExp(): query with: " + contents);
+            String dir = KBmanager.getMgr().getPref("kbDir") + File.separator;
+            String type = "tptp";
+            String outfile = dir + "temp-comb." + type;
+            System.out.println("queryExp(): query on file: " + outfile);
+            Log.log(Log.MESSAGE, this, ":queryExp(): query on file: " + outfile);
+            Vampire vamp;
+            EProver eprover;
+            StringBuilder qlist = null;
+            TPTP3ProofProcessor tpp = new TPTP3ProofProcessor();
+            if (KBmanager.getMgr().prover == KBmanager.Prover.VAMPIRE) {
+                vamp = kb.askVampire(contents, 30, 1);
+                tpp.parseProofOutput(vamp.output, contents, kb, vamp.qlist);
+                qlist = vamp.qlist;
+                //Log.log(Log.MESSAGE,this,"queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(vamp.output));
             }
-        }
-        tpp.processAnswersFromProof(qlist, contents);
-        view.getTextArea().setText(queryResultString(tpp));
-        Log.log(Log.MESSAGE, this, ":queryExp(): complete");
-//        };
-//        Runnable rs = create(r, () -> "Querying expression");
-//        startBackgroundThread(rs);
+            if (KBmanager.getMgr().prover == KBmanager.Prover.EPROVER) {
+                eprover = kb.askEProver(contents, 30, 1);
+                try {
+                    //Log.log(Log.MESSAGE,this,"queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(eprover.output));
+                    tpp.parseProofOutput(eprover.output, contents, kb, eprover.qlist);
+                    qlist = eprover.qlist;
+                } catch (Exception e) {
+                    Log.log(Log.ERROR, this, ":queryExp(): ", e);
+                }
+            }
+            tpp.processAnswersFromProof(qlist, contents);
 
+            ThreadUtilities.runInDispatchThread(() -> {
+                view.getTextArea().setText(queryResultString(tpp));
+            });
+            Log.log(Log.MESSAGE, this, ":queryExp(): complete");
+        };
+        Runnable rs = create(r, () -> "Querying expression");
+        startBackgroundThread(rs);
     }
 
     @Override
     public void browseTerm() {
 
         clearWarnAndErr();
-        String contents = view.getEditPane().getTextArea().getSelectedText();
+        String contents = view.getTextArea().getSelectedText();
         if (!checkEditorContents(contents, "Please fully highlight a term to browse"))
             return;
 
@@ -763,7 +739,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     public void gotoDefn() {
 
         clearWarnAndErr();
-        String contents = view.getEditPane().getTextArea().getSelectedText();
+        String contents = view.getTextArea().getSelectedText();
         if (!checkEditorContents(contents, "Please fully highlight a term for definition"))
             return;
 
@@ -782,7 +758,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                     jEdit.openFile(view, result.filepath);
                     VFSManager.waitForRequests(); // <- Critical call to allow for complete Buffer loading!
                     int offset = view.getBuffer().getLineStartOffset(result.line);
-                    view.getEditPane().getTextArea().moveCaretPosition(offset);
+                    view.getTextArea().moveCaretPosition(offset);
                 }
             } catch (Exception e) {
                 Log.log(Log.ERROR, this, "gotoDefn()", e);
@@ -817,10 +793,10 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     public void formatSelect() {
 
         clearWarnAndErr();
-        String contents = view.getEditPane().getTextArea().getSelectedText();
+        String contents = view.getTextArea().getSelectedText();
         String result = formatSelectBody(contents);
         if (!StringUtil.emptyString(result))
-            view.getEditPane().getTextArea().setSelectedText(result);
+            view.getTextArea().setSelectedText(result);
     }
 
     /**
@@ -832,28 +808,28 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
         List<DefaultErrorSource.DefaultError> warnings = new ArrayList<>();
         List<DefaultErrorSource.DefaultError> errors = new ArrayList<>();
-        
+
         int line, offset;
         for (String warn : kif.warningSet) {
             line = getLineNum(warn);
             offset = getOffset(warn);
             if (offset == 0) offset = 1;
             DefaultErrorSource.DefaultError warning = new DefaultErrorSource.DefaultError(
-                errsrc, ErrorSource.WARNING, kif.filename, 
+                errsrc, ErrorSource.WARNING, kif.filename,
                 line == 0 ? line : line-1, offset, offset+1, warn);
             warnings.add(warning);
         }
-        
+
         for (String err : kif.errorSet) {
             line = getLineNum(err);
             offset = getOffset(err);
             if (offset == 0) offset = 1;
             DefaultErrorSource.DefaultError error = new DefaultErrorSource.DefaultError(
-                errsrc, ErrorSource.ERROR, kif.filename, 
+                errsrc, ErrorSource.ERROR, kif.filename,
                 line == 0 ? line : line-1, offset, offset+1, err);
             errors.add(error);
         }
-        
+
         // Add all warnings and errors on EDT
         SwingUtilities.invokeLater(() -> {
             for (DefaultErrorSource.DefaultError warning : warnings) {
@@ -901,23 +877,23 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
             // Clear the error source
             errsrc.clear();
-            
+
             // Don't send null error - ErrorList plugin can't handle it
             // Just clear the errors without sending an update for individual errors
             // The clear() call above already notifies ErrorList
-            
+
             // Also clear using jEdit action if available
             if (view != null && jEdit.getAction("error-list-clear") != null) {
                 jEdit.getAction("error-list-clear").invoke(view);
             }
         };
-        
+
         if (SwingUtilities.isEventDispatchThread()) {
             clearTask.run();
         } else {
             try {
                 SwingUtilities.invokeAndWait(clearTask);
-            } catch (Exception e) {
+            } catch (InterruptedException | InvocationTargetException e) {
                 Log.log(Log.ERROR, this, "Error clearing warnings and errors", e);
             }
         }
@@ -950,7 +926,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 //            // Get the Box at the scaled coordinates
 //            Box box = (Box) elp.getComponentAt((int) scaledX, (int) scaledY);
 //            RolloverButton btn = (RolloverButton) box.getComponents()[13];
-//            btn.doClick(); // click the clear btn//        
+//            btn.doClick(); // click the clear btn
+//        }
     }
 
     @Override
@@ -960,7 +937,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         Log.log(Log.MESSAGE, this, ":showStats(): starting");
         if (StringUtil.emptyString(kif.filename))
             kif.filename = view.getBuffer().getPath();
-        String contents = view.getEditPane().getTextArea().getText();
+        String contents = view.getTextArea().getText();
         if (!parseKif(contents))
             return;
 
@@ -1022,7 +999,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             System.err.println(msg);
         }
         jEdit.newFile(view);
-        view.getEditPane().getTextArea().setSelectedText(stats.toString());
+        view.getTextArea().setSelectedText(stats.toString());
         Log.log(Log.MESSAGE, this, ":showStats(): complete");
     }
 
@@ -1031,15 +1008,15 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
         clearWarnAndErr();
         Log.log(Log.MESSAGE, this, ":checkErrors(): starting");
-        
+
         // Ensure we have the current view
         if (view == null) {
             view = jEdit.getActiveView();
         }
-        
+
         if (StringUtil.emptyString(kif.filename))
             kif.filename = view.getBuffer().getPath();
-        String contents = view.getEditPane().getTextArea().getText();
+        String contents = view.getTextArea().getText();
 
         Runnable r = () -> {
             checkErrorsBody(contents);
@@ -1112,18 +1089,18 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 line = getLineNum(er);
                 offset = getOffset(er);
                 DefaultErrorSource.DefaultError error = new DefaultErrorSource.DefaultError(
-                    errsrc, ErrorSource.ERROR, kif.filename, 
+                    errsrc, ErrorSource.ERROR, kif.filename,
                     line == 0 ? line : line - 1, offset, offset + 1, er);
                 errorList.add(error);
             }
-            
+
             // Add errors on EDT
             SwingUtilities.invokeLater(() -> {
                 for (DefaultErrorSource.DefaultError error : errorList) {
                     errsrc.addError(error);
                 }
             });
-            
+
             if (log) {
                 for (String er : sv.errors) {
                     Log.log(Log.ERROR, this, er);
@@ -1264,8 +1241,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         Log.log(Log.MESSAGE, this, ":toTPTP(): starting");
         if (StringUtil.emptyString(kif.filename))
             kif.filename = view.getBuffer().getPath();
-        String contents = view.getEditPane().getTextArea().getText();
-        String selected = view.getEditPane().getTextArea().getSelectedText();
+        String contents = view.getTextArea().getText();
+        String selected = view.getTextArea().getSelectedText();
         if (!StringUtil.emptyString(selected))
             contents = selected;
 
@@ -1314,8 +1291,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
         clearWarnAndErr();
         Log.log(Log.MESSAGE, this, ":fromTPTP(): starting");
-        String contents = view.getEditPane().getTextArea().getText();
-        String selected = view.getEditPane().getTextArea().getSelectedText();
+        String contents = view.getTextArea().getText();
+        String selected = view.getTextArea().getSelectedText();
         if (!StringUtil.emptyString(selected))
             contents = selected;
         if (StringUtil.emptyString(kif.filename))
