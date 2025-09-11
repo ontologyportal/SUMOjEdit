@@ -83,7 +83,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
     private final Set<String> constituentsToAdd;
 
-    /** Create a Runnable with an overridden toString for label display
+    /** Create a non-EDT background Runnable with an overridden toString for
+     * label display
      *
      * @param runnable the supplied Runnable to run
      * @param toStringSupplier to provide a toString override label
@@ -131,7 +132,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
     /**
      * ***************************************************************
-     * Starts the given Runnable in the background, non-EDT
+     * Starts the given non-EDT Runnable in the background
      *
      * @param r the Runnable to start
      */
