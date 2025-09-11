@@ -34,7 +34,6 @@ import errorlist.ErrorSource;
 
 import java.awt.*;
 import java.io.*;
-import java.lang.reflect.InvocationTargetException;
 //import javax.swing.Box;
 import java.util.*;
 import java.util.List;
@@ -814,24 +813,24 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             line = getLineNum(warn);
             offset = getOffset(warn);
             if (offset == 0) offset = 1;
-            DefaultErrorSource.DefaultError warning = new DefaultErrorSource.DefaultError(
+            dw = new DefaultErrorSource.DefaultError(
                 errsrc, ErrorSource.WARNING, kif.filename,
                 line == 0 ? line : line-1, offset, offset+1, warn);
-            warnings.add(warning);
+            warnings.add(dw);
         }
 
         for (String err : kif.errorSet) {
             line = getLineNum(err);
             offset = getOffset(err);
             if (offset == 0) offset = 1;
-            DefaultErrorSource.DefaultError error = new DefaultErrorSource.DefaultError(
+            de = new DefaultErrorSource.DefaultError(
                 errsrc, ErrorSource.ERROR, kif.filename,
                 line == 0 ? line : line-1, offset, offset+1, err);
-            errors.add(error);
+            errors.add(de);
         }
 
         // Add all warnings and errors on EDT
-        SwingUtilities.invokeLater(() -> {
+        ThreadUtilities.runInDispatchThread(() -> {
             for (DefaultErrorSource.DefaultError warning : warnings) {
                 errsrc.addError(warning);
             }
@@ -841,10 +840,10 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         });
 
         // Not currently used, but good framework to have
-        if (dw != null && (!dw.getErrorMessage().isBlank() || dw.getExtraMessages().length > 0))
-            errsrc.addError(dw);
-        if (de != null && (!de.getErrorMessage().isBlank() || de.getExtraMessages().length > 0))
-            errsrc.addError(de);
+//        if (dw != null && (!dw.getErrorMessage().isBlank() || dw.getExtraMessages().length > 0))
+//            errsrc.addError(dw);
+//        if (de != null && (!de.getErrorMessage().isBlank() || de.getExtraMessages().length > 0))
+//            errsrc.addError(de);
     }
 
     /**
@@ -891,11 +890,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         if (SwingUtilities.isEventDispatchThread()) {
             clearTask.run();
         } else {
-            try {
-                SwingUtilities.invokeAndWait(clearTask);
-            } catch (InterruptedException | InvocationTargetException e) {
-                Log.log(Log.ERROR, this, "Error clearing warnings and errors", e);
-            }
+            ThreadUtilities.runInDispatchThreadAndWait(clearTask);
         }
 
         // Clear KIF and KB errors (these can be done on any thread)
@@ -1021,7 +1016,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         Runnable r = () -> {
             checkErrorsBody(contents);
             // Force ErrorList refresh on EDT
-            SwingUtilities.invokeLater(() -> {
+            ThreadUtilities.runInDispatchThread(() -> {
                 // Don't send null error - just show the ErrorList window
                 // The errors have already been added and ErrorList is already notified
                 // Show ErrorList window if hidden
@@ -1095,7 +1090,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             }
 
             // Add errors on EDT
-            SwingUtilities.invokeLater(() -> {
+            ThreadUtilities.runInDispatchThread(() -> {
                 for (DefaultErrorSource.DefaultError error : errorList) {
                     errsrc.addError(error);
                 }
@@ -1444,7 +1439,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 popup.show(ta, p.x, yBase + 2);
                 active = popup;
 
-                javax.swing.SwingUtilities.invokeLater(jlist::requestFocusInWindow);
+                ThreadUtilities.runInDispatchThread(jlist::requestFocusInWindow);
             } catch (Throwable ignore) {}
         }
 
