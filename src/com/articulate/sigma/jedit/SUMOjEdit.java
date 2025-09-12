@@ -84,7 +84,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     private final Set<String> constituentsToAdd;
     private boolean isInitialized;
 
-    /** Create a non-EDT background Runnable with an overridden toString for
+    /** ***************************************************************
+     * Create a non-EDT background Runnable with an overridden toString for
      * label display
      *
      * @param runnable the supplied Runnable to run
@@ -106,8 +107,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         };
     }
 
-    /**
-     * ***************************************************************
+    /** ***************************************************************
      * Initializes this plugin and loads the KBs
      */
     public SUMOjEdit() {
@@ -123,7 +123,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         isInitialized = false;
     }
 
-    /**
+    /** ***************************************************************
      * Get the plugin version with build number
      */
     public static String getVersionWithBuild() {
@@ -132,8 +132,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         return String.format("SUMOjEdit v%s (Build %s)", version, buildNum);
     }
 
-    /**
-     * ***************************************************************
+    /** ***************************************************************
      * Starts the given non-EDT Runnable in the background
      *
      * @param r the Runnable to start
@@ -143,7 +142,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         ThreadUtilities.runInBackground(r);
     }
 
-    /** Starts the KB initialization process for UI use only. Must only be
+    /** ***************************************************************
+     * Starts the KB initialization process for UI use only. Must only be
      * called when jEdit will be an active UI. Not meant for use by the main()
      */
     @SuppressWarnings("SleepWhileInLoop")
@@ -207,6 +207,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                     fp = SUMOtoTFAform.fp;
                 }
             }
+            Log.log(Log.MESSAGE, this, ":kb: " + kb);
 
             togglePluginMenus(true);
 
@@ -250,8 +251,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         startBackgroundThread(rs);
     }
 
-    /**
-     * ***************************************************************
+    /** ***************************************************************
      * Handles the UI while a KIF or TPTP file is being processed
      */
     private void processLoadedKifOrTptp() {
@@ -300,8 +300,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         startBackgroundThread(rs);
     }
 
-    /**
-     * ***************************************************************
+    /** ***************************************************************
      * Disables the SUMOjEdit plugin menu items during processing of KIF
      * or TPTP. Re-enables post processing.
      *
@@ -327,8 +326,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         });
     }
 
-    /**
-     * ***************************************************************
+    /** ***************************************************************
      * Adds a loaded KIF as a constituent to the KB so that all terms
      * can be recognized. If constituent already loaded, will just
      * return.
@@ -360,8 +358,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 //            viewUpdate((ViewUpdate)msg);
     }
 
-    /**
-     * ***************************************************************
+    /** ***************************************************************
      * Handler for BufferUpdate CLOSED and LOADED events
      */
     private void bufferUpdate(BufferUpdate bu) {
@@ -387,16 +384,14 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         }
     }
 
-    /**
-     * ***************************************************************
+    /** ***************************************************************
      */
 //    private void editorExiting(EditorExiting ee) {
 //
 //        System.out.println(getClass().getName() + " exiting");
 //    }
 
-    /**
-     * ***************************************************************
+    /** ***************************************************************
      */
     private void editPaneUpdate(EditPaneUpdate eu) {
 
@@ -416,8 +411,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         }
     }
 
-    /**
-     * ***************************************************************
+    /** ***************************************************************
      * Clean up resources when not needed
      */
     private void unload() {
@@ -427,8 +421,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         if (autoComplete != null) autoComplete.dispose();
     }
 
-    /**
-     * ***************************************************************
+    /** ***************************************************************
      */
 //    private void vfsUpdate(VFSUpdate vu) {
 //
@@ -484,8 +477,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         KBmanager.getMgr().prover = KBmanager.Prover.EPROVER;
     }
 
-    /**
-     * ***************************************************************
+    /** ***************************************************************
      */
     private String queryResultString(TPTP3ProofProcessor tpp) {
 
@@ -585,8 +577,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         }
     }
 
-    /**
-     * ***************************************************************
+    /** ***************************************************************
      * @return the line number of where the error/warning begins
      */
     private int getLineNum(String line) {
@@ -630,8 +621,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         return result;
     }
 
-    /**
-     * ***************************************************************
+    /** ***************************************************************
      * sigmaAntlr generates line offsets
      * @return the line offset of where the error/warning begins
      */
@@ -651,8 +641,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         return result;
     }
 
-    /**
-     * ***************************************************************
+    /** ***************************************************************
      * Utility class that contains searched term line and filepath information
      */
     public class FileSpec {
@@ -661,8 +650,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         public int line = -1;
     }
 
-    /**
-     * ***************************************************************
+    /** ***************************************************************
      * @return a FileSpec with searched term info
      */
     private FileSpec filespecFromForms(java.util.List<Formula> forms, String currentFName) {
@@ -685,8 +673,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         return fs;
     }
 
-    /**
-     * ***************************************************************
+    /** ***************************************************************
      * Note that the "definition" of a term is collection of axioms so look for,
      * in order: instance, subclass, subAttribute, subrelation, domain, documentation
      * @param term the term to search for
@@ -773,8 +760,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             Log.log(Log.WARNING, this, "gotoDefn() term: '" + contents + "' not in the KB");
     }
 
-    /**
-     * ***************************************************************
+    /** ***************************************************************
      * Performs the actual formula formatting
      *
      * @param contents the content (formula) to format
@@ -804,8 +790,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             view.getTextArea().setSelectedText(result);
     }
 
-    /**
-     * ***************************************************************
+    /** ***************************************************************
      * Pass any KIF parse warnings and/or errors to the ErrorList Plugin. Also
      * any general warnings or errors (future capability)
      */
@@ -852,8 +837,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 //            errsrc.addError(de);
     }
 
-    /**
-     * ***************************************************************
+    /** ***************************************************************
      * Clears the KIF instance collections to include warnings and errors
      */
     private void clearKif() {
@@ -868,8 +852,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         kif.terms.clear();
     }
 
-    /**
-     * ***************************************************************
+    /** ***************************************************************
      * Clears out all warnings and errors in both the ErrorList and
      * SigmaKEE trees.
      */
@@ -1036,8 +1019,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         startBackgroundThread(rs);
     }
 
-    /**
-     * ***************************************************************
+    /** ***************************************************************
      * Hack to get the ErrorList to show all errors with multiple results mode on.
      * Should not have to do this, ErrorList refresh bug?
      */
@@ -1071,8 +1053,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         return retVal;
     }
 
-    /**
-     * ***************************************************************
+    /** ***************************************************************
      * Check for a variety of syntactic and semantic errors and warnings in a
      * given buffer
      *
@@ -1516,8 +1497,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     }
     // === END: Drop-down AutoComplete ===
 
-    /**
-     * ***************************************************************
+    /** ***************************************************************
      */
     public static void showHelp() {
 
@@ -1528,8 +1508,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         System.out.println("  -q - run a default query");
     }
 
-    /**
-     * ***************************************************************
+    /** ***************************************************************
      * Test method for this class.
      * @param args command line arguments
      */
