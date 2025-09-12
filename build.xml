@@ -55,24 +55,24 @@
         <propertyfile file="${basedir}/build.number" comment="Build Number for SUMOjEdit">
             <entry key="build.number" type="int" default="1000" operation="+" value="0"/>
         </propertyfile>
-        
+
         <!-- Use Ant's built-in buildnumber task which doesn't add commas -->
         <buildnumber file="${basedir}/build.number"/>
-        
+
         <!-- Load the incremented number -->
         <loadproperties srcFile="${basedir}/build.number"/>
-        
+
         <!-- Get current timestamp -->
         <tstamp>
             <format property="build.date" pattern="yyyy-MM-dd HH:mm:ss"/>
         </tstamp>
-        
+
         <!-- Store the date in a separate properties file -->
         <propertyfile file="${basedir}/build.properties" comment="Build Information">
             <entry key="build.date" value="${build.date}"/>
             <entry key="build.number" value="${build.number}"/>
         </propertyfile>
-        
+
         <echo message="Build number: ${build.number}"/>
         <echo message="Build date: ${build.date}"/>
     </target>
@@ -90,13 +90,13 @@ public final class BuildInfo {
     public static final int BUILD_NUMBER = ${build.number};
     public static final String BUILD_DATE = "${build.date}";
     public static final String BUILD_VERSION = "1.1.0.${build.number}";
-    
+
     private BuildInfo() {} // Prevent instantiation
-    
+
     public static String getFullVersion() {
         return "SUMOjEdit v" + BUILD_VERSION + " (Build " + BUILD_NUMBER + ")";
     }
-    
+
     public static String getShortVersion() {
         return "Build " + BUILD_NUMBER;
     }
@@ -226,6 +226,14 @@ public final class BuildInfo {
             <fileset dir="lib">
                 <exclude name="ErrorList.jar"/>
                 <exclude name="jedit.jar"/>
+            </fileset>
+            <fileset dir="${jedit.home}/jars">
+                <include name="*.jar"/>
+            </fileset>
+            <fileset dir="${jedit.home}/modes">
+                <include name="catalog"/>
+                 <include name="kif.xml"/>
+                 <include name="TPTP.xml"/>
             </fileset>
         </delete>
     </target>
