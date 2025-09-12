@@ -82,6 +82,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     private long pluginStart;
 
     private final Set<String> constituentsToAdd;
+    private boolean isInitialized;
 
     /** Create a non-EDT background Runnable with an overridden toString for
      * label display
@@ -119,6 +120,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         kif = new KIF();
         kif.filename = "";
         constituentsToAdd = new HashSet<>();
+        isInitialized = false;
     }
 
     /**
@@ -158,6 +160,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                     Thread.sleep(50L);
                 } catch (InterruptedException ex) {System.err.println(ex);}
             while (view == null);
+            errsrc = new DefaultErrorSource(getClass().getName(), view);
 
             // Display build number in status bar
             ThreadUtilities.runInDispatchThread(() -> {
@@ -165,8 +168,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             });
 
             // Set single-threaded mode for jEdit to prevent arity check deadlock
-            System.out.println("SUMOjEdit.run(): Setting single-threaded mode for jEdit");
-            System.out.println("SUMOjEdit.run(): " + BuildInfo.getFullVersion());
+            System.out.println("SUMOjEdit.init(): Setting single-threaded mode for jEdit");
+            System.out.println("SUMOjEdit.init(): " + BuildInfo.getFullVersion());
             System.setProperty("java.util.concurrent.ForkJoinPool.common.parallelism", "1");
 
             // Set persistent status message about version
@@ -191,14 +194,13 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             });
 
             try {
-                System.out.println("SUMOjEdit.run(): Initializing KB with single-threaded executor");
+                System.out.println("SUMOjEdit.init(): Initializing KB with single-threaded executor");
                 SUMOtoTFAform.initOnce();
                 kb = SUMOtoTFAform.kb;
                 fp = SUMOtoTFAform.fp;
                 constituentsToAdd.addAll(kb.constituents);
-                System.out.println("SUMOjEdit.run(): KB initialization successful");
             } catch (Exception e) {
-                Log.log(Log.ERROR, this, ":run(): KB init error: ", e);
+                Log.log(Log.ERROR, this, ":init(): KB init error: ", e);
                 // Continue anyway
                 if (SUMOtoTFAform.kb != null) {
                     kb = SUMOtoTFAform.kb;
@@ -236,14 +238,13 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 }
             }
 
-            errsrc = new DefaultErrorSource(getClass().getName(), view);
+            isInitialized = true;
             processLoadedKifOrTptp();
 
             // Update status bar with build info after initialization
             ThreadUtilities.runInDispatchThread(() -> {
                 view.getStatus().setMessageAndClear(BuildInfo.getFullVersion() + " ready");
             });
-            Log.log(Log.MESSAGE, this, ":kb: " + kb);
         };
         Runnable rs = create(r, () -> "Initializing " + getClass().getName());
         startBackgroundThread(rs);
@@ -255,12 +256,16 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
      */
     private void processLoadedKifOrTptp() {
 
+        if (!isInitialized)
+            return;
+
         Runnable r = () -> {
             boolean isKif = Files.getFileExtension(view.getBuffer().getPath()).equalsIgnoreCase("kif");
             boolean isTptp = Files.getFileExtension(view.getBuffer().getPath()).equalsIgnoreCase("tptp");
             if (isKif || isTptp) {
                 togglePluginMenus(true);
                 if (isKif) {
+                    clearWarnAndErr();
                     kif.filename = view.getBuffer().getPath();
                     if (kb != null && !constituentsToAdd.contains(kif.filename) && new File(kif.filename).length() > 1L /*&& !KBmanager.getMgr().infFileOld()*/) {
                         togglePluginMenus(false);
