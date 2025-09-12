@@ -108,7 +108,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     }
 
     /** ***************************************************************
-     * Initializes this plugin and loads the KBs
+     * Default constructor
      */
     public SUMOjEdit() {
 
@@ -124,7 +124,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     }
 
     /** ***************************************************************
-     * Get the plugin version with build number
+     * @return the plugin version with build number
      */
     public static String getVersionWithBuild() {
         String version = jEdit.getProperty("plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.version", "1.1.0");
