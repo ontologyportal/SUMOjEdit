@@ -232,7 +232,7 @@ auxiliary.show.customizer.message=<message>
             </export>
             <export>
                 <type>folder</type>
-                <location>${build.home}/test/classes</location>
+                <location>${build.test.classes.dir}</location>
                 <script>${ant.script}</script>
                 <build-target>deploy</build-target>
             </export>
@@ -278,7 +278,7 @@ auxiliary.show.customizer.message=<message>
         <java-data xmlns="http://www.netbeans.org/ns/freeform-project-java/5">
             <compilation-unit>
                 <package-root>src</package-root>
-                <classpath mode="compile">${javac.classpath}</classpath>
+                <classpath mode="compile">${javac.classpath}:${build.classes.dir}</classpath>
                 <built-to>${build.classes.dir}</built-to>
                 <source-level>11</source-level>
             </compilation-unit>
