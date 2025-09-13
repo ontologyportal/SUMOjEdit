@@ -81,7 +81,6 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
     private long pluginStart;
 
-    private final Set<String> constituentsToAdd;
     private boolean isInitialized;
 
     /** ***************************************************************
@@ -119,7 +118,6 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
         kif = new KIF();
         kif.filename = "";
-        constituentsToAdd = new HashSet<>();
         isInitialized = false;
     }
 
@@ -198,7 +196,6 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 SUMOtoTFAform.initOnce();
                 kb = SUMOtoTFAform.kb;
                 fp = SUMOtoTFAform.fp;
-                constituentsToAdd.addAll(kb.constituents);
             } catch (Exception e) {
                 Log.log(Log.ERROR, this, ":init(): KB init error: ", e);
                 // Continue anyway
@@ -267,7 +264,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 if (isKif) {
                     clearWarnAndErr();
                     kif.filename = view.getBuffer().getPath();
-                    if (kb != null && !constituentsToAdd.contains(kif.filename) && new File(kif.filename).length() > 1L /*&& !KBmanager.getMgr().infFileOld()*/) {
+                    if (kb != null && !kb.constituents.contains(kif.filename) && new File(kif.filename).length() > 1L /*&& !KBmanager.getMgr().infFileOld()*/) {
                         togglePluginMenus(false);
                         Color clr = view.getStatus().getBackground();
                         ThreadUtilities.runInDispatchThread(() -> {
@@ -328,18 +325,18 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
     /** ***************************************************************
      * Adds a loaded KIF as a constituent to the KB so that all terms
-     * can be recognized. If constituent already loaded, will just
-     * return.
+     * in the current jEdit buffer can be recognized. If constituent previously
+     * loaded, will just return.
      */
     private void tellTheKbAboutLoadedKif() {
 
-        long start = System.currentTimeMillis();
-        if (!constituentsToAdd.contains(kif.filename))
-            constituentsToAdd.add(kif.filename);
-
-        KBmanager.getMgr().loadKB(KBmanager.getMgr().getPref("sumokbname"), new ArrayList<>(constituentsToAdd));
-        kb = KBmanager.getMgr().getKB(KBmanager.getMgr().getPref("sumokbname"));
-        Log.log(Log.MESSAGE, this, ":tellTheKbAboutLoadedKif() completed in " + (System.currentTimeMillis() - start) / KButilities.ONE_K + " secs");
+        if (!kb.constituents.contains(kif.filename)) {
+            long start = System.currentTimeMillis();
+            kb.constituents.add(kif.filename);
+            kb.reload();
+            kb = KBmanager.getMgr().getKB(KBmanager.getMgr().getPref("sumokbname"));
+            Log.log(Log.MESSAGE, this, ":tellTheKbAboutLoadedKif() completed in " + (System.currentTimeMillis() - start) / KButilities.ONE_K + " secs");
+        }
     }
 
     /* Props at: https://www.jedit.org/api/org/gjt/sp/jedit/msg/package-summary.html */
