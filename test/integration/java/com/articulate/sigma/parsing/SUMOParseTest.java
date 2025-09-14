@@ -27,7 +27,7 @@ public class SUMOParseTest {
 
     private void parsePath(String path) throws IOException {
 
-        System.out.println("SUMOjEdit com.articulate.sigma.parsing.SUMOParseTest.parsePath(): path: " + path);
+        System.out.println("SUMOjEdit " + SUMOParseTest.class.getName() + ".parsePath(): path: " + path);
         Path inPath = Paths.get(path);
         try (Stream<Path> paths = Files.walk(inPath)) {
             paths.filter(f -> f.toString().endsWith(".kif")).sorted().forEach(f ->  {
@@ -36,8 +36,8 @@ public class SUMOParseTest {
                         break;
                     default:
                         System.out.printf("Parsing: %s%n", f.toFile());
-                        SuokifApp.process(f.toFile());
-                        assertFalse(SuokifVisitor.result.isEmpty());
+                        SuokifVisitor sv = SuokifApp.process(f.toFile());
+                        assertFalse(f + ": " + sv.errors.toString(), SuokifVisitor.result.isEmpty());
                         break;
                 }
             });
@@ -90,7 +90,7 @@ public class SUMOParseTest {
         if (success)
             System.out.println(SUMOParseTest.class.getName() + "#test_individual_kb " + relPath  + " success: " + success);
         else
-            System.err.println(SUMOParseTest.class.getName() + "$test_individual_kb " + relPath  + " failure: " + !success);
+            System.err.println(SUMOParseTest.class.getName() + "#test_individual_kb " + relPath  + " failure: " + !success);
     }
 
 } // end class file SUMOParseTest.java
