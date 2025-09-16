@@ -34,14 +34,19 @@ import errorlist.ErrorSource;
 
 import java.awt.*;
 import java.io.*;
+import java.lang.reflect.InvocationTargetException;
 //import javax.swing.Box;
 import java.util.*;
+import java.util.List;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.Map;
+import java.util.HashMap;
 
 //import javax.swing.Action;
 import javax.swing.MenuElement;
+import javax.swing.SwingUtilities;
 
 import org.gjt.sp.jedit.*;
 //import org.gjt.sp.jedit.gui.RolloverButton;
@@ -79,11 +84,9 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
     private long pluginStart;
 
-    private boolean isInitialized;
+    private final Set<String> constituentsToAdd;
 
-    /** ***************************************************************
-     * Create a non-EDT background Runnable with an overridden toString for
-     * label display
+    /** Create a Runnable with an overridden toString for label display
      *
      * @param runnable the supplied Runnable to run
      * @param toStringSupplier to provide a toString override label
@@ -104,8 +107,9 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         };
     }
 
-    /** ***************************************************************
-     * Default constructor
+    /**
+     * ***************************************************************
+     * Initializes this plugin and loads the KBs
      */
     public SUMOjEdit() {
 
@@ -116,11 +120,11 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
         kif = new KIF();
         kif.filename = "";
-        isInitialized = false;
+        constituentsToAdd = new HashSet<>();
     }
 
-    /** ***************************************************************
-     * @return the plugin version with build number
+    /**
+     * Get the plugin version with build number
      */
     public static String getVersionWithBuild() {
         String version = jEdit.getProperty("plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.version", "1.1.0");
@@ -128,8 +132,9 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         return String.format("SUMOjEdit v%s (Build %s)", version, buildNum);
     }
 
-    /** ***************************************************************
-     * Starts the given non-EDT Runnable in the background
+    /**
+     * ***************************************************************
+     * Starts the given Runnable in the background, non-EDT
      *
      * @param r the Runnable to start
      */
@@ -138,8 +143,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         ThreadUtilities.runInBackground(r);
     }
 
-    /** ***************************************************************
-     * Starts the KB initialization process for UI use only. Must only be
+    /** Starts the KB initialization process for UI use only. Must only be
      * called when jEdit will be an active UI. Not meant for use by the main()
      */
     @SuppressWarnings("SleepWhileInLoop")
@@ -156,7 +160,6 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                     Thread.sleep(50L);
                 } catch (InterruptedException ex) {System.err.println(ex);}
             while (view == null);
-            errsrc = new DefaultErrorSource(getClass().getName(), view);
 
             // Display build number in status bar
             ThreadUtilities.runInDispatchThread(() -> {
@@ -164,8 +167,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             });
 
             // Set single-threaded mode for jEdit to prevent arity check deadlock
-            System.out.println("SUMOjEdit.init(): Setting single-threaded mode for jEdit");
-            System.out.println("SUMOjEdit.init(): " + BuildInfo.getFullVersion());
+            System.out.println("SUMOjEdit.run(): Setting single-threaded mode for jEdit");
+            System.out.println("SUMOjEdit.run(): " + BuildInfo.getFullVersion());
             System.setProperty("java.util.concurrent.ForkJoinPool.common.parallelism", "1");
 
             // Set persistent status message about version
@@ -190,19 +193,20 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             });
 
             try {
-                System.out.println("SUMOjEdit.init(): Initializing KB with single-threaded executor");
+                System.out.println("SUMOjEdit.run(): Initializing KB with single-threaded executor");
                 SUMOtoTFAform.initOnce();
                 kb = SUMOtoTFAform.kb;
                 fp = SUMOtoTFAform.fp;
+                constituentsToAdd.addAll(kb.constituents);
+                System.out.println("SUMOjEdit.run(): KB initialization successful");
             } catch (Exception e) {
-                Log.log(Log.ERROR, this, ":init(): KB init error: ", e);
+                Log.log(Log.ERROR, this, ":run(): KB init error: ", e);
                 // Continue anyway
                 if (SUMOtoTFAform.kb != null) {
                     kb = SUMOtoTFAform.kb;
                     fp = SUMOtoTFAform.fp;
                 }
             }
-            Log.log(Log.MESSAGE, this, ":kb: " + kb);
 
             togglePluginMenus(true);
 
@@ -234,25 +238,24 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 }
             }
 
-            isInitialized = true;
+            errsrc = new DefaultErrorSource(getClass().getName(), view);
             processLoadedKifOrTptp();
 
             // Update status bar with build info after initialization
             ThreadUtilities.runInDispatchThread(() -> {
                 view.getStatus().setMessageAndClear(BuildInfo.getFullVersion() + " ready");
             });
+            Log.log(Log.MESSAGE, this, ":kb: " + kb);
         };
         Runnable rs = create(r, () -> "Initializing " + getClass().getName());
         startBackgroundThread(rs);
     }
 
-    /** ***************************************************************
+    /**
+     * ***************************************************************
      * Handles the UI while a KIF or TPTP file is being processed
      */
     private void processLoadedKifOrTptp() {
-
-        if (!isInitialized)
-            return;
 
         Runnable r = () -> {
             boolean isKif = Files.getFileExtension(view.getBuffer().getPath()).equalsIgnoreCase("kif");
@@ -260,9 +263,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             if (isKif || isTptp) {
                 togglePluginMenus(true);
                 if (isKif) {
-                    clearWarnAndErr();
                     kif.filename = view.getBuffer().getPath();
-                    if (kb != null && !kb.constituents.contains(kif.filename) && new File(kif.filename).length() > 1L /*&& !KBmanager.getMgr().infFileOld()*/) {
+                    if (kb != null && !constituentsToAdd.contains(kif.filename) && new File(kif.filename).length() > 1L /*&& !KBmanager.getMgr().infFileOld()*/) {
                         togglePluginMenus(false);
                         Color clr = view.getStatus().getBackground();
                         ThreadUtilities.runInDispatchThread(() -> {
@@ -295,7 +297,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         startBackgroundThread(rs);
     }
 
-    /** ***************************************************************
+    /**
+     * ***************************************************************
      * Disables the SUMOjEdit plugin menu items during processing of KIF
      * or TPTP. Re-enables post processing.
      *
@@ -321,20 +324,21 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         });
     }
 
-    /** ***************************************************************
+    /**
+     * ***************************************************************
      * Adds a loaded KIF as a constituent to the KB so that all terms
-     * in the current jEdit buffer can be recognized. If constituent previously
-     * loaded, will just return.
+     * can be recognized. If constituent already loaded, will just
+     * return.
      */
     private void tellTheKbAboutLoadedKif() {
 
-        if (!kb.constituents.contains(kif.filename)) {
-            long start = System.currentTimeMillis();
-            kb.constituents.add(kif.filename);
-            kb.reload();
-            kb = KBmanager.getMgr().getKB(KBmanager.getMgr().getPref("sumokbname"));
-            Log.log(Log.MESSAGE, this, ":tellTheKbAboutLoadedKif() completed in " + (System.currentTimeMillis() - start) / KButilities.ONE_K + " secs");
-        }
+        long start = System.currentTimeMillis();
+        if (!constituentsToAdd.contains(kif.filename))
+            constituentsToAdd.add(kif.filename);
+
+        KBmanager.getMgr().loadKB(KBmanager.getMgr().getPref("sumokbname"), new ArrayList<>(constituentsToAdd));
+        kb = KBmanager.getMgr().getKB(KBmanager.getMgr().getPref("sumokbname"));
+        Log.log(Log.MESSAGE, this, ":tellTheKbAboutLoadedKif() completed in " + (System.currentTimeMillis() - start) / KButilities.ONE_K + " secs");
     }
 
     /* Props at: https://www.jedit.org/api/org/gjt/sp/jedit/msg/package-summary.html */
@@ -353,7 +357,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 //            viewUpdate((ViewUpdate)msg);
     }
 
-    /** ***************************************************************
+    /**
+     * ***************************************************************
      * Handler for BufferUpdate CLOSED and LOADED events
      */
     private void bufferUpdate(BufferUpdate bu) {
@@ -379,14 +384,16 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         }
     }
 
-    /** ***************************************************************
+    /**
+     * ***************************************************************
      */
 //    private void editorExiting(EditorExiting ee) {
 //
 //        System.out.println(getClass().getName() + " exiting");
 //    }
 
-    /** ***************************************************************
+    /**
+     * ***************************************************************
      */
     private void editPaneUpdate(EditPaneUpdate eu) {
 
@@ -406,7 +413,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         }
     }
 
-    /** ***************************************************************
+    /**
+     * ***************************************************************
      * Clean up resources when not needed
      */
     private void unload() {
@@ -416,7 +424,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         if (autoComplete != null) autoComplete.dispose();
     }
 
-    /** ***************************************************************
+    /**
+     * ***************************************************************
      */
 //    private void vfsUpdate(VFSUpdate vu) {
 //
@@ -472,7 +481,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         KBmanager.getMgr().prover = KBmanager.Prover.EPROVER;
     }
 
-    /** ***************************************************************
+    /**
+     * ***************************************************************
      */
     private String queryResultString(TPTP3ProofProcessor tpp) {
 
@@ -572,7 +582,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         }
     }
 
-    /** ***************************************************************
+    /**
+     * ***************************************************************
      * @return the line number of where the error/warning begins
      */
     private int getLineNum(String line) {
@@ -616,7 +627,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         return result;
     }
 
-    /** ***************************************************************
+    /**
+     * ***************************************************************
      * sigmaAntlr generates line offsets
      * @return the line offset of where the error/warning begins
      */
@@ -636,7 +648,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         return result;
     }
 
-    /** ***************************************************************
+    /**
+     * ***************************************************************
      * Utility class that contains searched term line and filepath information
      */
     public class FileSpec {
@@ -645,7 +658,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         public int line = -1;
     }
 
-    /** ***************************************************************
+    /**
+     * ***************************************************************
      * @return a FileSpec with searched term info
      */
     private FileSpec filespecFromForms(java.util.List<Formula> forms, String currentFName) {
@@ -668,7 +682,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         return fs;
     }
 
-    /** ***************************************************************
+    /**
+     * ***************************************************************
      * Note that the "definition" of a term is collection of axioms so look for,
      * in order: instance, subclass, subAttribute, subrelation, domain, documentation
      * @param term the term to search for
@@ -755,7 +770,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             Log.log(Log.WARNING, this, "gotoDefn() term: '" + contents + "' not in the KB");
     }
 
-    /** ***************************************************************
+    /**
+     * ***************************************************************
      * Performs the actual formula formatting
      *
      * @param contents the content (formula) to format
@@ -785,38 +801,56 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             view.getTextArea().setSelectedText(result);
     }
 
-    /** ***************************************************************
+    /**
+     * ***************************************************************
      * Pass any KIF parse warnings and/or errors to the ErrorList Plugin. Also
      * any general warnings or errors (future capability)
      */
     private void logKifWarnAndErr() {
 
+        List<DefaultErrorSource.DefaultError> warnings = new ArrayList<>();
+        List<DefaultErrorSource.DefaultError> errors = new ArrayList<>();
+
         int line, offset;
         for (String warn : kif.warningSet) {
-
             line = getLineNum(warn);
             offset = getOffset(warn);
-            if (offset == 0)
-                offset = 1;
-            errsrc.addError(ErrorSource.WARNING, kif.filename, line == 0 ? line : line-1, offset, offset+1, warn);
+            if (offset == 0) offset = 1;
+            DefaultErrorSource.DefaultError warning = new DefaultErrorSource.DefaultError(
+                errsrc, ErrorSource.WARNING, kif.filename,
+                line == 0 ? line : line-1, offset, offset+1, warn);
+            warnings.add(warning);
         }
-        for (String err : kif.errorSet) {
 
+        for (String err : kif.errorSet) {
             line = getLineNum(err);
             offset = getOffset(err);
-            if (offset == 0)
-                offset = 1;
-            errsrc.addError(ErrorSource.ERROR, kif.filename, line == 0 ? line : line-1, offset, offset+1, err);
+            if (offset == 0) offset = 1;
+            DefaultErrorSource.DefaultError error = new DefaultErrorSource.DefaultError(
+                errsrc, ErrorSource.ERROR, kif.filename,
+                line == 0 ? line : line-1, offset, offset+1, err);
+            errors.add(error);
         }
 
+        // Add all warnings and errors on EDT
+        SwingUtilities.invokeLater(() -> {
+            for (DefaultErrorSource.DefaultError warning : warnings) {
+                errsrc.addError(warning);
+            }
+            for (DefaultErrorSource.DefaultError error : errors) {
+                errsrc.addError(error);
+            }
+        });
+
         // Not currently used, but good framework to have
-//        if (dw != null && (!dw.getErrorMessage().isBlank() || dw.getExtraMessages().length > 0))
-//            errsrc.addError(dw);
-//        if (de != null && (!de.getErrorMessage().isBlank() || de.getExtraMessages().length > 0))
-//            errsrc.addError(de);
+        if (dw != null && (!dw.getErrorMessage().isBlank() || dw.getExtraMessages().length > 0))
+            errsrc.addError(dw);
+        if (de != null && (!de.getErrorMessage().isBlank() || de.getExtraMessages().length > 0))
+            errsrc.addError(de);
     }
 
-    /** ***************************************************************
+    /**
+     * ***************************************************************
      * Clears the KIF instance collections to include warnings and errors
      */
     private void clearKif() {
@@ -831,7 +865,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         kif.terms.clear();
     }
 
-    /** ***************************************************************
+    /**
+     * ***************************************************************
      * Clears out all warnings and errors in both the ErrorList and
      * SigmaKEE trees.
      */
@@ -844,10 +879,10 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         // Clear the ErrorList UI - no EDT wrapping needed for actions
         jEdit.getAction("error-list-clear").invoke(view);
         errsrc.clear();
-
+        
         // Clear all KIF collections
         clearKif();
-
+        
         // Clear all error collections from various components
         KButilities.clearErrors();
         if (kb != null) {
@@ -968,20 +1003,35 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
         clearWarnAndErr();
         Log.log(Log.MESSAGE, this, ":checkErrors(): starting");
+
+        // Ensure we have the current view
+        if (view == null) {
+            view = jEdit.getActiveView();
+        }
+
         if (StringUtil.emptyString(kif.filename))
             kif.filename = view.getBuffer().getPath();
         String contents = view.getTextArea().getText();
 
         Runnable r = () -> {
             checkErrorsBody(contents);
-    //        errorListRefreshHack(); // do not want to do this, it disrupts message handling
+            // Force ErrorList refresh on EDT
+            SwingUtilities.invokeLater(() -> {
+                // Don't send null error - just show the ErrorList window
+                // The errors have already been added and ErrorList is already notified
+                // Show ErrorList window if hidden
+                if (view != null) {
+                    view.getDockableWindowManager().showDockableWindow("error-list");
+                }
+            });
             Log.log(Log.MESSAGE, this, ":checkErrors(): complete");
         };
         Runnable rs = create(r, () -> "Checking errors");
         startBackgroundThread(rs);
     }
 
-    /** ***************************************************************
+    /**
+     * ***************************************************************
      * Hack to get the ErrorList to show all errors with multiple results mode on.
      * Should not have to do this, ErrorList refresh bug?
      */
@@ -1015,7 +1065,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         return retVal;
     }
 
-    /** ***************************************************************
+    /**
+     * ***************************************************************
      * Check for a variety of syntactic and semantic errors and warnings in a
      * given buffer
      *
@@ -1023,35 +1074,43 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
      */
     protected void checkErrorsBody(String contents) {
 
-        /* Syntax errors */
-        int counter = 0, idx, line, offset;
+        /* Syntax errors first */
         SuokifVisitor sv = SuokifApp.process(contents);
         if (!sv.errors.isEmpty()) {
             for (String er : sv.errors) {
-                line = getLineNum(er);
-                offset = getOffset(er);
-                errsrc.addError(ErrorSource.ERROR, kif.filename, line == 0 ? line : line - 1, offset, offset + 1, er);
+                int line = getLineNum(er);
+                int offset = getOffset(er);
+                errsrc.addError(ErrorSource.ERROR, kif.filename, 
+                    line == 0 ? line : line - 1, offset, offset + 1, er);
                 if (log) {
                     Log.log(Log.ERROR, this, er);
                 }
             }
-            return; // fix these first
+            return; // fix syntax errors first
         }
 
         if (!parseKif(contents))
-            return; // fix these also before continuing error checks
+            return; // fix parse errors before continuing
         /* End syntax errors */
 
         Log.log(Log.MESSAGE, this, ":checkErrorsBody(): success loading kif file with " + contents.length() + " characters");
         Log.log(Log.MESSAGE, this, ":checkErrorsBody(): filename: " + kif.filename);
 
-        Set<String> nbeTerms = new HashSet<>();
-        Set<String> unkTerms = new HashSet<>();
-        Set<String> result, unquant, terms;
+        // Split the buffer into lines for accurate position calculation
+        String[] bufferLines = contents.split("\n", -1);
+        
+        // Track all problematic terms we find
+        Set<String> nbeTerms = new HashSet<>();  // terms not below Entity
+        Set<String> unkTerms = new HashSet<>();  // unknown terms
+        Map<String, String> termErrors = new HashMap<>(); // term -> error message
+        
+        int counter = 0;
+        Set<String> result, unquant;
         Set<Formula> processed;
         String err, term;
         FileSpec defn;
-        ErrorSource.Error[] ders;
+        
+        // First pass: identify all problematic terms
         for (Formula f : kif.formulaMap.values()) {
             Log.log(Log.MESSAGE, this, ":checkErrorsBody(): check formula:\n " + f);
             counter++;
@@ -1059,132 +1118,155 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 Log.log(Log.NOTICE, this, ".");
                 counter = 0;
             }
+            
+            // Check for various formula-level errors
             if (Diagnostics.quantifierNotInStatement(f)) {
                 err = "Quantifier not in statement";
-                errsrc.addError(ErrorSource.ERROR, kif.filename, f.startLine-1, f.endLine-1,0,err);
-                if (log)
-                    Log.log(Log.ERROR, this, err);
+                // For formula-level errors, report them on the first line of the formula in the buffer
+                int formulaLine = findFormulaInBuffer(f.toString(), bufferLines);
+                if (formulaLine >= 0) {
+                    errsrc.addError(ErrorSource.ERROR, kif.filename, formulaLine, 0, 10, err);
+                }
+                if (log) Log.log(Log.ERROR, this, err);
             }
+            
+            // Check single-use variables
             result = Diagnostics.singleUseVariables(f);
-            if (result != null && !result.isEmpty())
+            if (result != null && !result.isEmpty()) {
                 for (String res : result) {
                     err = "Variable(s) only used once: " + res;
-                    idx = f.toString().indexOf(res);
-                    errsrc.addError(ErrorSource.WARNING, kif.filename, f.startLine-1, idx, idx+res.length(), err);
-                    if (log)
-                        Log.log(Log.WARNING, this, err);
+                    // Find and report all occurrences of this variable in the buffer
+                    reportAllOccurrencesInBuffer(res, err, bufferLines, ErrorSource.WARNING);
+                    if (log) Log.log(Log.WARNING, this, err);
                 }
+            }
+            
+            // Process formula
             processed = fp.preProcess(f, false, kb);
             if (f.errors != null && !f.errors.isEmpty()) {
                 for (String er : f.errors) {
-                    errsrc.addError(ErrorSource.ERROR, kif.filename, f.startLine-1, f.endLine-1, 0, er);
-                    if (log)
-                        Log.log(Log.ERROR, this, er);
+                    int formulaLine = findFormulaInBuffer(f.toString(), bufferLines);
+                    if (formulaLine >= 0) {
+                        errsrc.addError(ErrorSource.ERROR, kif.filename, formulaLine, 0, 10, er);
+                    }
+                    if (log) Log.log(Log.ERROR, this, er);
                 }
                 for (String w : f.warnings) {
-                    errsrc.addError(ErrorSource.WARNING, kif.filename, f.startLine-1, f.endLine-1,0,w);
-                    if (log)
-                        Log.log(Log.WARNING, this, w);
+                    int formulaLine = findFormulaInBuffer(f.toString(), bufferLines);
+                    if (formulaLine >= 0) {
+                        errsrc.addError(ErrorSource.WARNING, kif.filename, formulaLine, 0, 10, w);
+                    }
+                    if (log) Log.log(Log.WARNING, this, w);
                 }
             }
 
-            // note that predicate variables can result in many relations being tried that don't
-            // fit because of type inconsistencies, which then are rejected and not a formalization error
-            // so ignore those cases (of size()>1)
-            if (SUMOtoTFAform.errors != null && !f.errors.isEmpty() && processed.size() == 1) {
+            // Check SUMOtoTFAform errors
+            if (SUMOtoTFAform.errors != null && !SUMOtoTFAform.errors.isEmpty() && processed.size() == 1) {
                 for (String er : SUMOtoTFAform.errors) {
-                    errsrc.addError(ErrorSource.ERROR, kif.filename, f.startLine-1, f.endLine-1, 0, er);
-                    if (log)
-                        Log.log(Log.ERROR, this, er);
+                    int formulaLine = findFormulaInBuffer(f.toString(), bufferLines);
+                    if (formulaLine >= 0) {
+                        errsrc.addError(ErrorSource.ERROR, kif.filename, formulaLine, 0, 10, er);
+                    }
+                    if (log) Log.log(Log.ERROR, this, er);
                 }
                 SUMOtoTFAform.errors.clear();
             }
-            //Log.log(Log.WARNING,this,"checking variables in formula ");
+            
+            // Check formula validity
             if (!KButilities.isValidFormula(kb, f.toString())) {
                 for (String er : KButilities.errors) {
-                    errsrc.addError(ErrorSource.ERROR, kif.filename, f.startLine-1, f.endLine-1, 0, er);
-                    if (log)
-                        Log.log(Log.ERROR, this, er);
+                    int formulaLine = findFormulaInBuffer(f.toString(), bufferLines);
+                    if (formulaLine >= 0) {
+                        errsrc.addError(ErrorSource.ERROR, kif.filename, formulaLine, 0, 10, er);
+                    }
+                    if (log) Log.log(Log.ERROR, this, er);
                 }
                 KButilities.errors.clear();
             }
-            //Log.log(Log.WARNING,this,"done checking var types ");
+            
+            // Check unquantified variables in consequent
             unquant = Diagnostics.unquantInConsequent(f);
             if (unquant != null && !unquant.isEmpty()) {
                 for (String unquan : unquant) {
                     err = "Unquantified var(s) " + unquan + " in consequent";
-                    idx = f.toString().indexOf(unquan);
-                    errsrc.addError(ErrorSource.ERROR, kif.filename, f.startLine-1, idx, idx+unquan.length(), err);
-                    if (log)
-                        Log.log(Log.ERROR, this, err);
+                    reportAllOccurrencesInBuffer(unquan, err, bufferLines, ErrorSource.ERROR);
+                    if (log) Log.log(Log.ERROR, this, err);
                 }
             }
+            
+            // Check arity errors
             term = PredVarInst.hasCorrectArity(f, kb);
             if (!StringUtil.emptyString(term)) {
-                err = ("Arity error of predicate: " + term);
-                idx = f.toString().indexOf(term);
-                errsrc.addError(ErrorSource.ERROR, kif.filename, f.startLine-1, idx, idx+term.length(), err);
-                if (log)
-                    Log.log(Log.ERROR, this, err);
+                err = "Arity error of predicate: " + term;
+                reportAllOccurrencesInBuffer(term, err, bufferLines, ErrorSource.ERROR);
+                if (log) Log.log(Log.ERROR, this, err);
             }
-            terms = f.collectTerms();
+            
+            // Collect all terms and check them
+            Set<String> terms = f.collectTerms();
             Log.log(Log.MESSAGE, this, ":checkErrorsBody(): # terms in formula: " + terms.size());
+            
             for (String t : terms) {
-                idx = f.toString().indexOf(t);
+                // Skip logical operators, Entity, variables, numbers, and quoted strings
                 if (Diagnostics.LOG_OPS.contains(t) || t.equals("Entity")
                         || Formula.isVariable(t) || StringUtil.isNumeric(t)
                         || StringUtil.isQuotedString(t)) {
                     continue;
                 }
-                if (Diagnostics.termNotBelowEntity(t, kb) && !nbeTerms.contains(t)) {
+                
+                // Check if term is not below Entity - REMOVE the check that prevents multiple reports
+                if (Diagnostics.termNotBelowEntity(t, kb)) {
                     nbeTerms.add(t);
-                    err = "term not below Entity: " + t;
-                    errsrc.addError(ErrorSource.ERROR, kif.filename, f.startLine-1, idx, idx+t.length(), err);
-                    if (log)
-                        Log.log(Log.ERROR, this, "term not below Entity: " + t);
+                    termErrors.put(t, "term not below Entity: " + t);
+                    if (log) Log.log(Log.ERROR, this, "term not below Entity: " + t);
                 }
+                
+                // Check if term is unknown - REMOVE the check that prevents multiple reports
                 defn = findDefn(t);
-                if (defn == null && !unkTerms.contains(t)) {
-                    unkTerms.add(t);
-                    err = "unknown term: " + t;
-                    ders = errsrc.getFileErrors(kif.filename);
-                    if (ders != null && ders[0] != null) {
-                        for (ErrorSource.Error drs : ders)
-                            if (drs.getErrorMessage().contains(t))
-                                ((DefaultErrorSource.DefaultError)drs).addExtraMessage(err);
-                    } // b/c the above error has the same term and start/end points, seems a warning can't co-exist w/ an
-                      // error containing the same start/end points and term, so, compensate by adding an extra message
-                    else
-                        errsrc.addError(ErrorSource.WARNING, kif.filename, f.startLine-1, idx, idx+t.length(), err);
-                    if (log)
-                        Log.log(Log.WARNING, this, "unknown term: " + t);
+                if (defn == null) {
+                    // Only add as unknown if not already marked as not-below-entity
+                    if (!nbeTerms.contains(t)) {
+                        unkTerms.add(t);
+                        termErrors.put(t, "unknown term: " + t);
+                        if (log) Log.log(Log.WARNING, this, "unknown term: " + t);
+                    }
                 }
             }
         }
+        
+        // Second pass: Report ALL occurrences of problematic terms in the buffer
+        for (String problemTerm : nbeTerms) {
+            String errorMsg = termErrors.get(problemTerm);
+            reportAllOccurrencesInBuffer(problemTerm, errorMsg, bufferLines, ErrorSource.ERROR);
+        }
+        
+        for (String problemTerm : unkTerms) {
+            String errorMsg = termErrors.get(problemTerm);
+            reportAllOccurrencesInBuffer(problemTerm, errorMsg, bufferLines, ErrorSource.WARNING);
+        }
+        
+        // Handle any additional KIF warnings and errors
+        logKifWarnAndErr();
     }
 
     /**
      * Find all occurrences of a term in the buffer and report errors for each
      */
-    private void reportAllOccurrencesInBuffer(String term, String errorMessage,
+    private void reportAllOccurrencesInBuffer(String term, String errorMessage, 
                                             String[] bufferLines, int errorType) {
         // Search through each line of the buffer
         for (int lineNum = 0; lineNum < bufferLines.length; lineNum++) {
             String line = bufferLines[lineNum];
-
+            
             // Find all occurrences of the term in this line
             int searchStart = 0;
             while (searchStart < line.length()) {
                 int pos = findTermInLine(line, term, searchStart);
                 if (pos == -1) break;
-
+                
                 // Report this occurrence
-                final int finalLine = lineNum;
-                final int finalStartCol = pos;  // Changed from startCol to pos
-                final int finalEndCol = pos + term.length();  // Changed from endCol to pos + term.length()
-                ThreadUtilities.runInDispatchThread(() ->
-                    errsrc.addError(errorType, kif.filename, finalLine, finalStartCol, finalEndCol, errorMessage));
-
+                errsrc.addError(errorType, kif.filename, lineNum, pos, pos + term.length(), errorMessage);
+                
                 searchStart = pos + term.length();
             }
         }
@@ -1198,9 +1280,9 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         while (pos != -1) {
             // Check if this is a complete term (not part of a larger term)
             boolean validStart = (pos == 0 || !isTermChar(line.charAt(pos - 1)));
-            boolean validEnd = (pos + term.length() >= line.length()
+            boolean validEnd = (pos + term.length() >= line.length() 
                             || !isTermChar(line.charAt(pos + term.length())));
-
+            
             if (validStart && validEnd) {
                 return pos;
             }
@@ -1229,16 +1311,16 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 break;
             }
         }
-
+        
         if (firstLine.isEmpty()) return -1;
-
+        
         // Search for this line in the buffer
         for (int i = 0; i < bufferLines.length; i++) {
             if (bufferLines[i].contains(firstLine)) {
                 return i;
             }
         }
-
+        
         // If not found, try a shorter match (first 20 chars)
         if (firstLine.length() > 20) {
             String shortMatch = firstLine.substring(0, 20);
@@ -1248,7 +1330,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 }
             }
         }
-
+        
         return -1;
     }
 
@@ -1462,7 +1544,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 popup.show(ta, p.x, yBase + 2);
                 active = popup;
 
-                ThreadUtilities.runInDispatchThread(jlist::requestFocusInWindow);
+                javax.swing.SwingUtilities.invokeLater(jlist::requestFocusInWindow);
             } catch (Throwable ignore) {}
         }
 
@@ -1533,7 +1615,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     }
     // === END: Drop-down AutoComplete ===
 
-    /** ***************************************************************
+    /**
+     * ***************************************************************
      */
     public static void showHelp() {
 
@@ -1544,7 +1627,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         System.out.println("  -q - run a default query");
     }
 
-    /** ***************************************************************
+    /**
+     * ***************************************************************
      * Test method for this class.
      * @param args command line arguments
      */
