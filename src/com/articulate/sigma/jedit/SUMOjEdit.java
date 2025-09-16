@@ -970,7 +970,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         Log.log(Log.MESSAGE, this, ":checkErrors(): starting");
         if (StringUtil.emptyString(kif.filename))
             kif.filename = view.getBuffer().getPath();
-        String contents = view.getEditPane().getTextArea().getText();
+        String contents = view.getTextArea().getText();
 
         Runnable r = () -> {
             checkErrorsBody(contents);
