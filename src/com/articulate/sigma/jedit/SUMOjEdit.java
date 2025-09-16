@@ -41,8 +41,6 @@ import java.util.List;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.Map;
-import java.util.HashMap;
 
 //import javax.swing.Action;
 import javax.swing.MenuElement;
@@ -74,6 +72,17 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     protected KB kb;
     protected FormulaPreprocessor fp;
     protected DefaultErrorSource errsrc;
+
+    // A tiny result holder
+    private static final class ErrRec {
+        final int type;                // ErrorSource.ERROR or ErrorSource.WARNING
+        final String file;
+        final int line, start, end;    // jEdit 0-based line
+        final String msg;
+        ErrRec(int type, String file, int line, int start, int end, String msg) {
+            this.type = type; this.file = file; this.line = line; this.start = start; this.end = end; this.msg = msg;
+        }
+    }
 
     // These DefaultErrors are not currently used, but good framework to have
     // in case of extra messages
@@ -1099,10 +1108,14 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         // Split the buffer into lines for accurate position calculation
         String[] bufferLines = contents.split("\n", -1);
         
-        // Track all problematic terms we find
-        Set<String> nbeTerms = new HashSet<>();  // terms not below Entity
-        Set<String> unkTerms = new HashSet<>();  // unknown terms
-        Map<String, String> termErrors = new HashMap<>(); // term -> error message
+        // Track all problematic terms we find (thread-safe for parallel phase)
+        final java.util.Set<String> nbeTerms =
+            java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
+        final java.util.Set<String> unkTerms =
+            java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
+        final java.util.concurrent.ConcurrentHashMap<String,String> termErrors =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
         
         int counter = 0;
         Set<String> result, unquant;
@@ -1110,39 +1123,111 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         String err, term;
         FileSpec defn;
         
-        // First pass: identify all problematic terms
+        // ===== Phase A: parallelize safe diagnostics per formula =====
+        final int cores = Math.max(2, Runtime.getRuntime().availableProcessors() - 1);
+        final java.util.concurrent.ExecutorService pool =
+                java.util.concurrent.Executors.newFixedThreadPool(cores, r -> {
+                    Thread t = new Thread(r, "sje-checker");
+                    t.setDaemon(true);
+                    return t;
+                });
+
+        // thread-safe collectors for phase A
+        final java.util.concurrent.ConcurrentLinkedQueue<ErrRec> phaseAErrs = new java.util.concurrent.ConcurrentLinkedQueue<>();
+
+        java.util.List<java.util.concurrent.Future<?>> tasks = new java.util.ArrayList<>();
+
         for (Formula f : kif.formulaMap.values()) {
-            Log.log(Log.MESSAGE, this, ":checkErrorsBody(): check formula:\n " + f);
-            counter++;
-            if (counter > KButilities.ONE_K) {
-                Log.log(Log.NOTICE, this, ".");
-                counter = 0;
-            }
-            
-            // Check for various formula-level errors
-            if (Diagnostics.quantifierNotInStatement(f)) {
-                err = "Quantifier not in statement";
-                // For formula-level errors, report them on the first line of the formula in the buffer
-                int formulaLine = findFormulaInBuffer(f.toString(), bufferLines);
-                if (formulaLine >= 0) {
-                    errsrc.addError(ErrorSource.ERROR, kif.filename, formulaLine, 0, 10, err);
+            final Formula fLocal = f; // capture
+            tasks.add(pool.submit(() -> {
+                // (1) Formula-level quick diagnostics (no shared-static mutation)
+                if (Diagnostics.quantifierNotInStatement(fLocal)) {
+                    String em = "Quantifier not in statement";
+                    int formulaLine = findFormulaInBuffer(fLocal.toString(), bufferLines);
+                    if (formulaLine >= 0)
+                        phaseAErrs.add(new ErrRec(ErrorSource.ERROR, kif.filename, formulaLine, 0, 10, em));
+                    if (log) Log.log(Log.ERROR, this, em);
                 }
-                if (log) Log.log(Log.ERROR, this, err);
-            }
-            
-            // Check single-use variables
-            result = Diagnostics.singleUseVariables(f);
-            if (result != null && !result.isEmpty()) {
-                for (String res : result) {
-                    err = "Variable(s) only used once: " + res;
-                    // Find and report all occurrences of this variable in the buffer
-                    reportAllOccurrencesInBuffer(res, err, bufferLines, ErrorSource.WARNING);
-                    if (log) Log.log(Log.WARNING, this, err);
+
+                Set<String> resultA = Diagnostics.singleUseVariables(fLocal);
+                if (resultA != null && !resultA.isEmpty()) {
+                    for (String res : resultA) {
+                        String em = "Variable(s) only used once: " + res;
+                        // Defer heavy per-line reporting; just record the term → message
+                        termErrors.putIfAbsent(res, em);
+                        if (log) Log.log(Log.WARNING, this, em);
+                    }
                 }
+
+                Set<String> unquantLocal = Diagnostics.unquantInConsequent(fLocal);
+                if (unquantLocal != null && !unquantLocal.isEmpty()) {
+                    for (String uq : unquantLocal) {
+                        String em = "Unquantified var(s) " + uq + " in consequent";
+                        termErrors.putIfAbsent(uq, em);
+                        if (log) Log.log(Log.ERROR, this, em);
+                    }
+                }
+
+                String badArity = PredVarInst.hasCorrectArity(fLocal, kb);
+                if (!StringUtil.emptyString(badArity)) {
+                    String em = "Arity error of predicate: " + badArity;
+                    termErrors.putIfAbsent(badArity, em);
+                    if (log) Log.log(Log.ERROR, this, em);
+                }
+
+                // (2) Per-term classification (unknown vs not-below-Entity)
+                Set<String> terms = fLocal.collectTerms();
+                for (String t : terms) {
+                    if (Diagnostics.LOG_OPS.contains(t) || t.equals("Entity")
+                            || Formula.isVariable(t) || StringUtil.isNumeric(t)
+                            || StringUtil.isQuotedString(t)) {
+                        continue;
+                    }
+                    if (Diagnostics.termNotBelowEntity(t, kb)) {
+                        nbeTerms.add(t);
+                        termErrors.put(t, "term not below Entity: " + t);
+                        if (log) Log.log(Log.ERROR, this, "term not below Entity: " + t);
+                    } else {
+                        FileSpec def = findDefn(t);
+                        if (def == null && !nbeTerms.contains(t)) {
+                            unkTerms.add(t);
+                            termErrors.put(t, "unknown term: " + t);
+                            if (log) Log.log(Log.WARNING, this, "unknown term: " + t);
+                        }
+                    }
+                }
+            }));
+        }
+
+        // wait for phase A to finish
+        for (java.util.concurrent.Future<?> fut : tasks) {
+            try { fut.get(); } catch (Exception e) { Log.log(Log.ERROR, this, "Phase A task", e); }
+        }
+        pool.shutdown();
+
+        // publish phase-A formula-level errors (one EDT batch)
+        javax.swing.SwingUtilities.invokeLater(() -> {
+            for (ErrRec er : phaseAErrs) {
+                errsrc.addError(er.type, er.file, er.line, er.start, er.end, er.msg);
             }
-            
+        });
+
+        // Line-level reporting of collected term issues (serialized; uses your existing helper)
+        for (Map.Entry<String,String> e : termErrors.entrySet()) {
+            final String t = e.getKey();
+            final String msg = e.getValue();
+            reportAllOccurrencesInBuffer(t, msg, bufferLines,
+                    msg.startsWith("term not below") ? ErrorSource.ERROR :
+                    msg.startsWith("unknown term") ? ErrorSource.WARNING :
+                    ErrorSource.ERROR);
+        }
+
+        // ===== Phase B: serialize the existing preprocessing & validity checks =====
+        for (Formula f : kif.formulaMap.values()) {
+            // Process formula (unchanged semantics)
             // Process formula
             processed = fp.preProcess(f, false, kb);
+
             if (f.errors != null && !f.errors.isEmpty()) {
                 for (String er : f.errors) {
                     int formulaLine = findFormulaInBuffer(f.toString(), bufferLines);
@@ -1160,7 +1245,6 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 }
             }
 
-            // Check SUMOtoTFAform errors
             if (SUMOtoTFAform.errors != null && !SUMOtoTFAform.errors.isEmpty() && processed.size() == 1) {
                 for (String er : SUMOtoTFAform.errors) {
                     int formulaLine = findFormulaInBuffer(f.toString(), bufferLines);
@@ -1171,8 +1255,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 }
                 SUMOtoTFAform.errors.clear();
             }
-            
-            // Check formula validity
+
             if (!KButilities.isValidFormula(kb, f.toString())) {
                 for (String er : KButilities.errors) {
                     int formulaLine = findFormulaInBuffer(f.toString(), bufferLines);
@@ -1183,56 +1266,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 }
                 KButilities.errors.clear();
             }
-            
-            // Check unquantified variables in consequent
-            unquant = Diagnostics.unquantInConsequent(f);
-            if (unquant != null && !unquant.isEmpty()) {
-                for (String unquan : unquant) {
-                    err = "Unquantified var(s) " + unquan + " in consequent";
-                    reportAllOccurrencesInBuffer(unquan, err, bufferLines, ErrorSource.ERROR);
-                    if (log) Log.log(Log.ERROR, this, err);
-                }
-            }
-            
-            // Check arity errors
-            term = PredVarInst.hasCorrectArity(f, kb);
-            if (!StringUtil.emptyString(term)) {
-                err = "Arity error of predicate: " + term;
-                reportAllOccurrencesInBuffer(term, err, bufferLines, ErrorSource.ERROR);
-                if (log) Log.log(Log.ERROR, this, err);
-            }
-            
-            // Collect all terms and check them
-            Set<String> terms = f.collectTerms();
-            Log.log(Log.MESSAGE, this, ":checkErrorsBody(): # terms in formula: " + terms.size());
-            
-            for (String t : terms) {
-                // Skip logical operators, Entity, variables, numbers, and quoted strings
-                if (Diagnostics.LOG_OPS.contains(t) || t.equals("Entity")
-                        || Formula.isVariable(t) || StringUtil.isNumeric(t)
-                        || StringUtil.isQuotedString(t)) {
-                    continue;
-                }
-                
-                // Check if term is not below Entity - REMOVE the check that prevents multiple reports
-                if (Diagnostics.termNotBelowEntity(t, kb)) {
-                    nbeTerms.add(t);
-                    termErrors.put(t, "term not below Entity: " + t);
-                    if (log) Log.log(Log.ERROR, this, "term not below Entity: " + t);
-                }
-                
-                // Check if term is unknown - REMOVE the check that prevents multiple reports
-                defn = findDefn(t);
-                if (defn == null) {
-                    // Only add as unknown if not already marked as not-below-entity
-                    if (!nbeTerms.contains(t)) {
-                        unkTerms.add(t);
-                        termErrors.put(t, "unknown term: " + t);
-                        if (log) Log.log(Log.WARNING, this, "unknown term: " + t);
-                    }
-                }
-            }
         }
+
         
         // Second pass: Report ALL occurrences of problematic terms in the buffer
         for (String problemTerm : nbeTerms) {
