@@ -36,7 +36,6 @@ import java.awt.*;
 import java.io.*;
 //import javax.swing.Box;
 import java.util.*;
-import java.util.List;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -792,39 +791,23 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
      */
     private void logKifWarnAndErr() {
 
-        List<DefaultErrorSource.DefaultError> warnings = new ArrayList<>();
-        List<DefaultErrorSource.DefaultError> errors = new ArrayList<>();
-
         int line, offset;
         for (String warn : kif.warningSet) {
+
             line = getLineNum(warn);
             offset = getOffset(warn);
-            if (offset == 0) offset = 1;
-            dw = new DefaultErrorSource.DefaultError(
-                errsrc, ErrorSource.WARNING, kif.filename,
-                line == 0 ? line : line-1, offset, offset+1, warn);
-            warnings.add(dw);
+            if (offset == 0)
+                offset = 1;
+            errsrc.addError(ErrorSource.WARNING, kif.filename, line == 0 ? line : line-1, offset, offset+1, warn);
         }
-
         for (String err : kif.errorSet) {
+
             line = getLineNum(err);
             offset = getOffset(err);
-            if (offset == 0) offset = 1;
-            de = new DefaultErrorSource.DefaultError(
-                errsrc, ErrorSource.ERROR, kif.filename,
-                line == 0 ? line : line-1, offset, offset+1, err);
-            errors.add(de);
+            if (offset == 0)
+                offset = 1;
+            errsrc.addError(ErrorSource.ERROR, kif.filename, line == 0 ? line : line-1, offset, offset+1, err);
         }
-
-        // Add all warnings and errors on EDT
-        ThreadUtilities.runInDispatchThread(() -> {
-            for (DefaultErrorSource.DefaultError warning : warnings) {
-                errsrc.addError(warning);
-            }
-            for (DefaultErrorSource.DefaultError error : errors) {
-                errsrc.addError(error);
-            }
-        });
 
         // Not currently used, but good framework to have
 //        if (dw != null && (!dw.getErrorMessage().isBlank() || dw.getExtraMessages().length > 0))
@@ -985,27 +968,13 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
         clearWarnAndErr();
         Log.log(Log.MESSAGE, this, ":checkErrors(): starting");
-
-        // Ensure we have the current view
-        if (view == null) {
-            view = jEdit.getActiveView();
-        }
-
         if (StringUtil.emptyString(kif.filename))
             kif.filename = view.getBuffer().getPath();
         String contents = view.getTextArea().getText();
 
         Runnable r = () -> {
             checkErrorsBody(contents);
-            // Force ErrorList refresh on EDT
-            ThreadUtilities.runInDispatchThread(() -> {
-                // Don't send null error - just show the ErrorList window
-                // The errors have already been added and ErrorList is already notified
-                // Show ErrorList window if hidden
-                if (view != null) {
-                    view.getDockableWindowManager().showDockableWindow("error-list");
-                }
-            });
+    //        errorListRefreshHack(); // do not want to do this, it disrupts message handling
             Log.log(Log.MESSAGE, this, ":checkErrors(): complete");
         };
         Runnable rs = create(r, () -> "Checking errors");
@@ -1054,43 +1023,35 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
      */
     protected void checkErrorsBody(String contents) {
 
-        /* Syntax errors first */
+        /* Syntax errors */
+        int counter = 0, idx, line, offset;
         SuokifVisitor sv = SuokifApp.process(contents);
         if (!sv.errors.isEmpty()) {
             for (String er : sv.errors) {
-                int line = getLineNum(er);
-                int offset = getOffset(er);
-                errsrc.addError(ErrorSource.ERROR, kif.filename,
-                    line == 0 ? line : line - 1, offset, offset + 1, er);
+                line = getLineNum(er);
+                offset = getOffset(er);
+                errsrc.addError(ErrorSource.ERROR, kif.filename, line == 0 ? line : line - 1, offset, offset + 1, er);
                 if (log) {
                     Log.log(Log.ERROR, this, er);
                 }
             }
-            return; // fix syntax errors first
+            return; // fix these first
         }
 
         if (!parseKif(contents))
-            return; // fix parse errors before continuing
+            return; // fix these also before continuing error checks
         /* End syntax errors */
 
         Log.log(Log.MESSAGE, this, ":checkErrorsBody(): success loading kif file with " + contents.length() + " characters");
         Log.log(Log.MESSAGE, this, ":checkErrorsBody(): filename: " + kif.filename);
 
-        // Split the buffer into lines for accurate position calculation
-        String[] bufferLines = contents.split("\n", -1);
-
-        // Track all problematic terms we find
-        Set<String> nbeTerms = new HashSet<>();  // terms not below Entity
-        Set<String> unkTerms = new HashSet<>();  // unknown terms
-        Map<String, String> termErrors = new HashMap<>(); // term -> error message
-
-        int counter = 0;
-        Set<String> result, unquant;
+        Set<String> nbeTerms = new HashSet<>();
+        Set<String> unkTerms = new HashSet<>();
+        Set<String> result, unquant, terms;
         Set<Formula> processed;
         String err, term;
         FileSpec defn;
-
-        // First pass: identify all problematic terms
+        ErrorSource.Error[] ders;
         for (Formula f : kif.formulaMap.values()) {
             Log.log(Log.MESSAGE, this, ":checkErrorsBody(): check formula:\n " + f);
             counter++;
@@ -1098,135 +1059,108 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 Log.log(Log.NOTICE, this, ".");
                 counter = 0;
             }
-
-            // Check for various formula-level errors
             if (Diagnostics.quantifierNotInStatement(f)) {
                 err = "Quantifier not in statement";
-                // For formula-level errors, report them on the first line of the formula in the buffer
-                int formulaLine = findFormulaInBuffer(f.toString(), bufferLines);
-                if (formulaLine >= 0) {
-                    errsrc.addError(ErrorSource.ERROR, kif.filename, formulaLine, 0, 10, err);
-                }
-                if (log) Log.log(Log.ERROR, this, err);
+                errsrc.addError(ErrorSource.ERROR, kif.filename, f.startLine-1, f.endLine-1,0,err);
+                if (log)
+                    Log.log(Log.ERROR, this, err);
             }
-
-            // Check single-use variables
             result = Diagnostics.singleUseVariables(f);
-            if (result != null && !result.isEmpty()) {
+            if (result != null && !result.isEmpty())
                 for (String res : result) {
                     err = "Variable(s) only used once: " + res;
-                    // Find and report all occurrences of this variable in the buffer
-                    reportAllOccurrencesInBuffer(res, err, bufferLines, ErrorSource.WARNING);
-                    if (log) Log.log(Log.WARNING, this, err);
+                    idx = f.toString().indexOf(res);
+                    errsrc.addError(ErrorSource.WARNING, kif.filename, f.startLine-1, idx, idx+res.length(), err);
+                    if (log)
+                        Log.log(Log.WARNING, this, err);
                 }
-            }
-
-            // Process formula
             processed = fp.preProcess(f, false, kb);
             if (f.errors != null && !f.errors.isEmpty()) {
                 for (String er : f.errors) {
-                    int formulaLine = findFormulaInBuffer(f.toString(), bufferLines);
-                    if (formulaLine >= 0) {
-                        errsrc.addError(ErrorSource.ERROR, kif.filename, formulaLine, 0, 10, er);
-                    }
-                    if (log) Log.log(Log.ERROR, this, er);
+                    errsrc.addError(ErrorSource.ERROR, kif.filename, f.startLine-1, f.endLine-1, 0, er);
+                    if (log)
+                        Log.log(Log.ERROR, this, er);
                 }
                 for (String w : f.warnings) {
-                    int formulaLine = findFormulaInBuffer(f.toString(), bufferLines);
-                    if (formulaLine >= 0) {
-                        errsrc.addError(ErrorSource.WARNING, kif.filename, formulaLine, 0, 10, w);
-                    }
-                    if (log) Log.log(Log.WARNING, this, w);
+                    errsrc.addError(ErrorSource.WARNING, kif.filename, f.startLine-1, f.endLine-1,0,w);
+                    if (log)
+                        Log.log(Log.WARNING, this, w);
                 }
             }
 
-            // Check SUMOtoTFAform errors
-            if (SUMOtoTFAform.errors != null && !SUMOtoTFAform.errors.isEmpty() && processed.size() == 1) {
+            // note that predicate variables can result in many relations being tried that don't
+            // fit because of type inconsistencies, which then are rejected and not a formalization error
+            // so ignore those cases (of size()>1)
+            if (SUMOtoTFAform.errors != null && !f.errors.isEmpty() && processed.size() == 1) {
                 for (String er : SUMOtoTFAform.errors) {
-                    int formulaLine = findFormulaInBuffer(f.toString(), bufferLines);
-                    if (formulaLine >= 0) {
-                        errsrc.addError(ErrorSource.ERROR, kif.filename, formulaLine, 0, 10, er);
-                    }
-                    if (log) Log.log(Log.ERROR, this, er);
+                    errsrc.addError(ErrorSource.ERROR, kif.filename, f.startLine-1, f.endLine-1, 0, er);
+                    if (log)
+                        Log.log(Log.ERROR, this, er);
                 }
                 SUMOtoTFAform.errors.clear();
             }
-
-            // Check formula validity
+            //Log.log(Log.WARNING,this,"checking variables in formula ");
             if (!KButilities.isValidFormula(kb, f.toString())) {
                 for (String er : KButilities.errors) {
-                    int formulaLine = findFormulaInBuffer(f.toString(), bufferLines);
-                    if (formulaLine >= 0) {
-                        errsrc.addError(ErrorSource.ERROR, kif.filename, formulaLine, 0, 10, er);
-                    }
-                    if (log) Log.log(Log.ERROR, this, er);
+                    errsrc.addError(ErrorSource.ERROR, kif.filename, f.startLine-1, f.endLine-1, 0, er);
+                    if (log)
+                        Log.log(Log.ERROR, this, er);
                 }
                 KButilities.errors.clear();
             }
-
-            // Check unquantified variables in consequent
+            //Log.log(Log.WARNING,this,"done checking var types ");
             unquant = Diagnostics.unquantInConsequent(f);
             if (unquant != null && !unquant.isEmpty()) {
                 for (String unquan : unquant) {
                     err = "Unquantified var(s) " + unquan + " in consequent";
-                    reportAllOccurrencesInBuffer(unquan, err, bufferLines, ErrorSource.ERROR);
-                    if (log) Log.log(Log.ERROR, this, err);
+                    idx = f.toString().indexOf(unquan);
+                    errsrc.addError(ErrorSource.ERROR, kif.filename, f.startLine-1, idx, idx+unquan.length(), err);
+                    if (log)
+                        Log.log(Log.ERROR, this, err);
                 }
             }
-
-            // Check arity errors
             term = PredVarInst.hasCorrectArity(f, kb);
             if (!StringUtil.emptyString(term)) {
-                err = "Arity error of predicate: " + term;
-                reportAllOccurrencesInBuffer(term, err, bufferLines, ErrorSource.ERROR);
-                if (log) Log.log(Log.ERROR, this, err);
+                err = ("Arity error of predicate: " + term);
+                idx = f.toString().indexOf(term);
+                errsrc.addError(ErrorSource.ERROR, kif.filename, f.startLine-1, idx, idx+term.length(), err);
+                if (log)
+                    Log.log(Log.ERROR, this, err);
             }
-
-            // Collect all terms and check them
-            Set<String> terms = f.collectTerms();
+            terms = f.collectTerms();
             Log.log(Log.MESSAGE, this, ":checkErrorsBody(): # terms in formula: " + terms.size());
-
             for (String t : terms) {
-                // Skip logical operators, Entity, variables, numbers, and quoted strings
+                idx = f.toString().indexOf(t);
                 if (Diagnostics.LOG_OPS.contains(t) || t.equals("Entity")
                         || Formula.isVariable(t) || StringUtil.isNumeric(t)
                         || StringUtil.isQuotedString(t)) {
                     continue;
                 }
-
-                // Check if term is not below Entity - REMOVE the check that prevents multiple reports
-                if (Diagnostics.termNotBelowEntity(t, kb)) {
+                if (Diagnostics.termNotBelowEntity(t, kb) && !nbeTerms.contains(t)) {
                     nbeTerms.add(t);
-                    termErrors.put(t, "term not below Entity: " + t);
-                    if (log) Log.log(Log.ERROR, this, "term not below Entity: " + t);
+                    err = "term not below Entity: " + t;
+                    errsrc.addError(ErrorSource.ERROR, kif.filename, f.startLine-1, idx, idx+t.length(), err);
+                    if (log)
+                        Log.log(Log.ERROR, this, "term not below Entity: " + t);
                 }
-
-                // Check if term is unknown - REMOVE the check that prevents multiple reports
                 defn = findDefn(t);
-                if (defn == null) {
-                    // Only add as unknown if not already marked as not-below-entity
-                    if (!nbeTerms.contains(t)) {
-                        unkTerms.add(t);
-                        termErrors.put(t, "unknown term: " + t);
-                        if (log) Log.log(Log.WARNING, this, "unknown term: " + t);
-                    }
+                if (defn == null && !unkTerms.contains(t)) {
+                    unkTerms.add(t);
+                    err = "unknown term: " + t;
+                    ders = errsrc.getFileErrors(kif.filename);
+                    if (ders != null && ders[0] != null) {
+                        for (ErrorSource.Error drs : ders)
+                            if (drs.getErrorMessage().contains(t))
+                                ((DefaultErrorSource.DefaultError)drs).addExtraMessage(err);
+                    } // b/c the above error has the same term and start/end points, seems a warning can't co-exist w/ an
+                      // error containing the same start/end points and term, so, compensate by adding an extra message
+                    else
+                        errsrc.addError(ErrorSource.WARNING, kif.filename, f.startLine-1, idx, idx+t.length(), err);
+                    if (log)
+                        Log.log(Log.WARNING, this, "unknown term: " + t);
                 }
             }
         }
-
-        // Second pass: Report ALL occurrences of problematic terms in the buffer
-        for (String problemTerm : nbeTerms) {
-            String errorMsg = termErrors.get(problemTerm);
-            reportAllOccurrencesInBuffer(problemTerm, errorMsg, bufferLines, ErrorSource.ERROR);
-        }
-
-        for (String problemTerm : unkTerms) {
-            String errorMsg = termErrors.get(problemTerm);
-            reportAllOccurrencesInBuffer(problemTerm, errorMsg, bufferLines, ErrorSource.WARNING);
-        }
-
-        // Handle any additional KIF warnings and errors
-        logKifWarnAndErr();
     }
 
     /**

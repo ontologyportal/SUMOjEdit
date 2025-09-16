@@ -217,6 +217,19 @@ auxiliary.show.customizer.message=<message>
                         </arity>
                     </context>
                 </action>
+                <action name="debug.single">
+                    <script>${ant.script}</script>
+                    <target>debug-selected-main-in-test</target>
+                    <context>
+                        <property>test.class</property>
+                        <folder>test/integration/java</folder>
+                        <pattern>\.java$</pattern>
+                        <format>java-name</format>
+                        <arity>
+                            <one-file-only/>
+                        </arity>
+                    </context>
+                </action>
             </ide-actions>
             <export>
                 <type>folder</type>
