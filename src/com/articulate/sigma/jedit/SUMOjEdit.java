@@ -36,12 +36,9 @@ import java.awt.*;
 import java.io.*;
 //import javax.swing.Box;
 import java.util.*;
-import java.util.List;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.Map;
-import java.util.HashMap;
 
 //import javax.swing.Action;
 import javax.swing.MenuElement;
@@ -1182,7 +1179,11 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 if (pos == -1) break;
 
                 // Report this occurrence
-                errsrc.addError(errorType, kif.filename, lineNum, pos, pos + term.length(), errorMessage);
+                final int finalLine = lineNum;
+                final int finalStartCol = pos;  // Changed from startCol to pos
+                final int finalEndCol = pos + term.length();  // Changed from endCol to pos + term.length()
+                ThreadUtilities.runInDispatchThread(() ->
+                    errsrc.addError(errorType, kif.filename, finalLine, finalStartCol, finalEndCol, errorMessage));
 
                 searchStart = pos + term.length();
             }
