@@ -84,6 +84,35 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         }
     }
 
+    // --- Debounced, single-EDT-batch error adder to avoid CME from ErrorList ---
+    private final java.util.List<ErrRec> _pendingErrs = new java.util.ArrayList<>();
+    private volatile boolean _flushScheduled = false;
+
+    private void addErrorsBatch(java.util.List<ErrRec> batch) {
+        if (batch == null || batch.isEmpty()) return;
+
+        synchronized (_pendingErrs) {
+            _pendingErrs.addAll(batch);
+            if (_flushScheduled) return;
+            _flushScheduled = true;
+        }
+
+        // Coalesce to ONE runnable on the EDT
+        javax.swing.SwingUtilities.invokeLater(() -> {
+            java.util.List<ErrRec> toAdd;
+            synchronized (_pendingErrs) {
+                toAdd = new java.util.ArrayList<>(_pendingErrs);
+                _pendingErrs.clear();
+                _flushScheduled = false;
+            }
+
+            // All mutations of DefaultErrorSource happen on EDT → no CME
+            for (ErrRec e : toAdd) {
+                errsrc.addError(e.type, e.file, e.line, e.start, e.end, e.msg);
+            }
+        });
+    }
+
     // These DefaultErrors are not currently used, but good framework to have
     // in case of extra messages
     private DefaultErrorSource.DefaultError de;
@@ -94,6 +123,17 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     private long pluginStart;
 
     private final Set<String> constituentsToAdd;
+
+    // add below other fields
+    private static final java.util.concurrent.ExecutorService CHECKER_POOL =
+        java.util.concurrent.Executors.newFixedThreadPool(
+            Math.max(2, Runtime.getRuntime().availableProcessors() - 1),
+            r -> {
+                Thread t = new Thread(r, "sje-checker");
+                t.setDaemon(true);
+                return t;
+            }
+        );
 
     /** Create a Runnable with an overridden toString for label display
      *
@@ -178,7 +218,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             // Set single-threaded mode for jEdit to prevent arity check deadlock
             System.out.println("SUMOjEdit.run(): Setting single-threaded mode for jEdit");
             System.out.println("SUMOjEdit.run(): " + BuildInfo.getFullVersion());
-            System.setProperty("java.util.concurrent.ForkJoinPool.common.parallelism", "1");
+            System.setProperty("sigma.exec.mode", "jedit-single");
 
             // Set persistent status message about version
             if (view != null) {
@@ -216,6 +256,10 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                     fp = SUMOtoTFAform.fp;
                 }
             }
+
+            /* === Switch back to parallel mode after KB init === */
+            System.setProperty("sigma.exec.mode", "parallel");
+            KButilities.refreshExecutorService();
 
             togglePluginMenus(true);
 
@@ -736,12 +780,11 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
         boolean retVal = true;
         if (contents == null || contents.isBlank() || contents.length() < 2) {
-
-            errsrc.addError(ErrorSource.WARNING, kif.filename, 1, 0, 0, msg);
-            if (log)
-                Log.log(Log.WARNING, this, "checkEditorContents(): " + msg);
+            java.util.List<ErrRec> _chk = new java.util.ArrayList<>();
+            _chk.add(new ErrRec(ErrorSource.WARNING, kif.filename, 1, 0, 0, msg));
+            addErrorsBatch(_chk);
+            if (log) Log.log(Log.WARNING, this, "checkEditorContents(): " + msg);
             retVal = false;
-            // user fix before continuing
         }
         return retVal;
     }
@@ -849,13 +892,12 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             for (DefaultErrorSource.DefaultError error : errors) {
                 errsrc.addError(error);
             }
+            // Not currently used, but ensure these are also on the EDT
+            if (dw != null && (!dw.getErrorMessage().isBlank() || dw.getExtraMessages().length > 0))
+                errsrc.addError(dw);
+            if (de != null && (!de.getErrorMessage().isBlank() || de.getExtraMessages().length > 0))
+                errsrc.addError(de);
         });
-
-        // Not currently used, but good framework to have
-        if (dw != null && (!dw.getErrorMessage().isBlank() || dw.getExtraMessages().length > 0))
-            errsrc.addError(dw);
-        if (de != null && (!de.getErrorMessage().isBlank() || de.getExtraMessages().length > 0))
-            errsrc.addError(de);
     }
 
     /**
@@ -1086,15 +1128,15 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         /* Syntax errors first */
         SuokifVisitor sv = SuokifApp.process(contents);
         if (!sv.errors.isEmpty()) {
+            java.util.List<ErrRec> syn = new java.util.ArrayList<>();
             for (String er : sv.errors) {
                 int line = getLineNum(er);
                 int offset = getOffset(er);
-                errsrc.addError(ErrorSource.ERROR, kif.filename, 
-                    line == 0 ? line : line - 1, offset, offset + 1, er);
-                if (log) {
-                    Log.log(Log.ERROR, this, er);
-                }
+                syn.add(new ErrRec(ErrorSource.ERROR, kif.filename,
+                    line == 0 ? line : line - 1, offset, offset + 1, er));
+                if (log) Log.log(Log.ERROR, this, er);
             }
+            addErrorsBatch(syn);   // single EDT hop
             return; // fix syntax errors first
         }
 
@@ -1123,17 +1165,15 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         String err, term;
         FileSpec defn;
         
-        // ===== Phase A: parallelize safe diagnostics per formula =====
-        final int cores = Math.max(2, Runtime.getRuntime().availableProcessors() - 1);
-        final java.util.concurrent.ExecutorService pool =
-                java.util.concurrent.Executors.newFixedThreadPool(cores, r -> {
-                    Thread t = new Thread(r, "sje-checker");
-                    t.setDaemon(true);
-                    return t;
-                });
+        // ===== Phase A: reuse shared worker pool & add per-run caches =====
+        final java.util.concurrent.ExecutorService pool = CHECKER_POOL;
 
         // thread-safe collectors for phase A
         final java.util.concurrent.ConcurrentLinkedQueue<ErrRec> phaseAErrs = new java.util.concurrent.ConcurrentLinkedQueue<>();
+
+        // per-run caches to avoid repeating expensive KB lookups
+        final java.util.concurrent.ConcurrentHashMap<String, Boolean> nbeCache = new java.util.concurrent.ConcurrentHashMap<>();
+        final java.util.concurrent.ConcurrentHashMap<String, FileSpec> defnCache = new java.util.concurrent.ConcurrentHashMap<>();
 
         java.util.List<java.util.concurrent.Future<?>> tasks = new java.util.ArrayList<>();
 
@@ -1175,25 +1215,30 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                     if (log) Log.log(Log.ERROR, this, em);
                 }
 
-                // (2) Per-term classification (unknown vs not-below-Entity)
+                // (2) Per-term classification (unknown vs not-below-Entity) – with caches
                 Set<String> terms = fLocal.collectTerms();
                 for (String t : terms) {
-                    if (Diagnostics.LOG_OPS.contains(t) || t.equals("Entity")
+                    if (Diagnostics.LOG_OPS.contains(t) || "Entity".equals(t)
                             || Formula.isVariable(t) || StringUtil.isNumeric(t)
                             || StringUtil.isQuotedString(t)) {
                         continue;
                     }
-                    if (Diagnostics.termNotBelowEntity(t, kb)) {
+
+                    // Cache: not-below-Entity check
+                    boolean isNBE = nbeCache.computeIfAbsent(t, k -> Diagnostics.termNotBelowEntity(k, kb));
+                    if (isNBE) {
                         nbeTerms.add(t);
                         termErrors.put(t, "term not below Entity: " + t);
                         if (log) Log.log(Log.ERROR, this, "term not below Entity: " + t);
-                    } else {
-                        FileSpec def = findDefn(t);
-                        if (def == null && !nbeTerms.contains(t)) {
-                            unkTerms.add(t);
-                            termErrors.put(t, "unknown term: " + t);
-                            if (log) Log.log(Log.WARNING, this, "unknown term: " + t);
-                        }
+                        continue; // already classified, skip unknown check
+                    }
+
+                    // Cache: definition lookup (only if not NBE)
+                    FileSpec def = defnCache.computeIfAbsent(t, k -> findDefn(k));
+                    if (def == null && !nbeTerms.contains(t)) {
+                        unkTerms.add(t);
+                        termErrors.put(t, "unknown term: " + t);
+                        if (log) Log.log(Log.WARNING, this, "unknown term: " + t);
                     }
                 }
             }));
@@ -1203,23 +1248,20 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         for (java.util.concurrent.Future<?> fut : tasks) {
             try { fut.get(); } catch (Exception e) { Log.log(Log.ERROR, this, "Phase A task", e); }
         }
-        pool.shutdown();
+        // DO NOT shutdown the shared CHECKER_POOL here; it's reused across runs
 
-        // publish phase-A formula-level errors (one EDT batch)
-        javax.swing.SwingUtilities.invokeLater(() -> {
-            for (ErrRec er : phaseAErrs) {
-                errsrc.addError(er.type, er.file, er.line, er.start, er.end, er.msg);
-            }
-        });
+        // publish phase-A formula-level errors (coalesced through our debounced flusher)
+        addErrorsBatch(new java.util.ArrayList<>(phaseAErrs));
 
-        // Line-level reporting of collected term issues (serialized; uses your existing helper)
+
+        // Line-level reporting of collected term issues (batched per term inside helper)
         for (Map.Entry<String,String> e : termErrors.entrySet()) {
             final String t = e.getKey();
             final String msg = e.getValue();
-            reportAllOccurrencesInBuffer(t, msg, bufferLines,
-                    msg.startsWith("term not below") ? ErrorSource.ERROR :
-                    msg.startsWith("unknown term") ? ErrorSource.WARNING :
-                    ErrorSource.ERROR);
+            final int typ = msg.startsWith("term not below") ? ErrorSource.ERROR :
+                            msg.startsWith("unknown term")   ? ErrorSource.WARNING :
+                                                                    ErrorSource.ERROR;
+            reportAllOccurrencesInBuffer(t, msg, bufferLines, typ);
         }
 
         // ===== Phase B: serialize the existing preprocessing & validity checks =====
@@ -1229,41 +1271,49 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             processed = fp.preProcess(f, false, kb);
 
             if (f.errors != null && !f.errors.isEmpty()) {
+                java.util.List<ErrRec> _fErrs = new java.util.ArrayList<>();
                 for (String er : f.errors) {
                     int formulaLine = findFormulaInBuffer(f.toString(), bufferLines);
                     if (formulaLine >= 0) {
-                        errsrc.addError(ErrorSource.ERROR, kif.filename, formulaLine, 0, 10, er);
+                        _fErrs.add(new ErrRec(ErrorSource.ERROR, kif.filename, formulaLine, 0, 10, er));
                     }
                     if (log) Log.log(Log.ERROR, this, er);
                 }
+                addErrorsBatch(_fErrs);
+                java.util.List<ErrRec> _fWarns = new java.util.ArrayList<>();
                 for (String w : f.warnings) {
                     int formulaLine = findFormulaInBuffer(f.toString(), bufferLines);
                     if (formulaLine >= 0) {
-                        errsrc.addError(ErrorSource.WARNING, kif.filename, formulaLine, 0, 10, w);
+                        _fWarns.add(new ErrRec(ErrorSource.WARNING, kif.filename, formulaLine, 0, 10, w));
                     }
                     if (log) Log.log(Log.WARNING, this, w);
                 }
+                addErrorsBatch(_fWarns);
             }
 
             if (SUMOtoTFAform.errors != null && !SUMOtoTFAform.errors.isEmpty() && processed.size() == 1) {
+                java.util.List<ErrRec> _tfaErrs = new java.util.ArrayList<>();
                 for (String er : SUMOtoTFAform.errors) {
                     int formulaLine = findFormulaInBuffer(f.toString(), bufferLines);
                     if (formulaLine >= 0) {
-                        errsrc.addError(ErrorSource.ERROR, kif.filename, formulaLine, 0, 10, er);
+                        _tfaErrs.add(new ErrRec(ErrorSource.ERROR, kif.filename, formulaLine, 0, 10, er));
                     }
                     if (log) Log.log(Log.ERROR, this, er);
                 }
+                addErrorsBatch(_tfaErrs);
                 SUMOtoTFAform.errors.clear();
             }
 
             if (!KButilities.isValidFormula(kb, f.toString())) {
+                java.util.List<ErrRec> _kbErrs = new java.util.ArrayList<>();
                 for (String er : KButilities.errors) {
                     int formulaLine = findFormulaInBuffer(f.toString(), bufferLines);
                     if (formulaLine >= 0) {
-                        errsrc.addError(ErrorSource.ERROR, kif.filename, formulaLine, 0, 10, er);
+                        _kbErrs.add(new ErrRec(ErrorSource.ERROR, kif.filename, formulaLine, 0, 10, er));
                     }
                     if (log) Log.log(Log.ERROR, this, er);
                 }
+                addErrorsBatch(_kbErrs);
                 KButilities.errors.clear();
             }
         }
@@ -1274,7 +1324,6 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             String errorMsg = termErrors.get(problemTerm);
             reportAllOccurrencesInBuffer(problemTerm, errorMsg, bufferLines, ErrorSource.ERROR);
         }
-        
         for (String problemTerm : unkTerms) {
             String errorMsg = termErrors.get(problemTerm);
             reportAllOccurrencesInBuffer(problemTerm, errorMsg, bufferLines, ErrorSource.WARNING);
@@ -1287,25 +1336,67 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     /**
      * Find all occurrences of a term in the buffer and report errors for each
      */
-    private void reportAllOccurrencesInBuffer(String term, String errorMessage, 
-                                            String[] bufferLines, int errorType) {
-        // Search through each line of the buffer
-        for (int lineNum = 0; lineNum < bufferLines.length; lineNum++) {
-            String line = bufferLines[lineNum];
-            
-            // Find all occurrences of the term in this line
-            int searchStart = 0;
-            while (searchStart < line.length()) {
-                int pos = findTermInLine(line, term, searchStart);
-                if (pos == -1) break;
-                
-                // Report this occurrence
-                errsrc.addError(errorType, kif.filename, lineNum, pos, pos + term.length(), errorMessage);
-                
-                searchStart = pos + term.length();
+        private void reportAllOccurrencesInBuffer(String term, String errorMessage,
+                                                String[] bufferLines, int errorType) {
+            final int n = bufferLines.length;
+            // size chunks by cores to keep tasks coarse-grained
+            final int chunk = Math.max(50, n / Math.max(2, Runtime.getRuntime().availableProcessors() - 1));
+
+            final java.util.List<java.util.concurrent.Callable<java.util.List<ErrRec>>> tasks =
+                    new java.util.ArrayList<>();
+
+            for (int start = 0; start < n; start += chunk) {
+                final int s = start;
+                final int e = Math.min(n, start + chunk);
+                tasks.add(() -> {
+                    java.util.List<ErrRec> local = new java.util.ArrayList<>();
+                    for (int lineNum = s; lineNum < e; lineNum++) {
+                        final String line = bufferLines[lineNum];
+                        int searchStart = 0;
+                        while (searchStart < line.length()) {
+                            int pos = findTermInLine(line, term, searchStart);
+                            if (pos == -1) break;
+                            local.add(new ErrRec(
+                                errorType, kif.filename, lineNum, pos, pos + term.length(), errorMessage
+                            ));
+                            searchStart = pos + term.length();
+                        }
+                    }
+                    return local;
+                });
+            }
+
+            try {
+                // run on our dedicated pool (NOT the clamped common pool)
+                java.util.List<java.util.concurrent.Future<java.util.List<ErrRec>>> futures =
+                        CHECKER_POOL.invokeAll(tasks);
+
+                // merge results
+                java.util.List<ErrRec> merged = new java.util.ArrayList<>();
+                for (java.util.concurrent.Future<java.util.List<ErrRec>> f : futures) {
+                    merged.addAll(f.get());
+                }
+
+                // single EDT hop for this term’s occurrences
+                addErrorsBatch(merged);
+            } catch (Exception ex) {
+                // safe fallback: sequential scan, same results but still batched onto the EDT
+                java.util.List<ErrRec> fallback = new java.util.ArrayList<>();
+                for (int lineNum = 0; lineNum < bufferLines.length; lineNum++) {
+                    final String line = bufferLines[lineNum];
+                    int searchStart = 0;
+                    while (searchStart < line.length()) {
+                        int pos = findTermInLine(line, term, searchStart);
+                        if (pos == -1) break;
+                        fallback.add(new ErrRec(
+                            errorType, kif.filename, lineNum, pos, pos + term.length(), errorMessage
+                        ));
+                        searchStart = pos + term.length();
+                    }
+                }
+                addErrorsBatch(fallback);
             }
         }
-    }
 
     /**
      * Find a term in a line with word boundary checking
