@@ -106,9 +106,15 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 _flushScheduled = false;
             }
 
-            // All mutations of DefaultErrorSource happen on EDT → no CME
-            for (ErrRec e : toAdd) {
-                errsrc.addError(e.type, e.file, e.line, e.start, e.end, e.msg);
+            // Pause ErrorList notifications while we bulk-add
+            errorlist.ErrorSource.unregisterErrorSource(errsrc);
+            try {
+                for (ErrRec e : toAdd) {
+                    errsrc.addError(e.type, e.file, e.line, e.start, e.end, e.msg);
+                }
+            } finally {
+                // Re-enable notifications once, after all errors are in
+                errorlist.ErrorSource.registerErrorSource(errsrc);
             }
         });
     }
@@ -125,15 +131,40 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     private final Set<String> constituentsToAdd;
 
     // add below other fields
-    private static final java.util.concurrent.ExecutorService CHECKER_POOL =
-        java.util.concurrent.Executors.newFixedThreadPool(
-            Math.max(2, Runtime.getRuntime().availableProcessors() - 1),
-            r -> {
-                Thread t = new Thread(r, "sje-checker");
-                t.setDaemon(true);
-                return t;
-            }
-        );
+    private static volatile java.util.concurrent.ThreadPoolExecutor CHECKER_POOL = new java.util.concurrent.ThreadPoolExecutor(
+        getCheckerThreads(),                          // corePoolSize
+        getCheckerThreads(),                          // maximumPoolSize
+        getKeepAliveSeconds(), java.util.concurrent.TimeUnit.SECONDS,
+        new java.util.concurrent.LinkedBlockingQueue<>(),
+        r -> {
+            Thread t = new Thread(r, "sje-checker");
+            t.setDaemon(true);
+            return t;
+        }
+    );
+ 
+    private static int getCheckerThreads() {
+        // jEdit property takes precedence, else system property, else default
+        try {
+            String prop = org.gjt.sp.jedit.jEdit.getProperty("sumojedit.checker.threads");
+            if (prop == null || prop.isBlank()) prop = System.getProperty("sumojedit.checker.threads", "");
+            int v = prop.isBlank() ? 0 : Integer.parseInt(prop.trim());
+            if (v <= 0) v = Math.max(2, Runtime.getRuntime().availableProcessors() - 1);
+            return v;
+        } catch (Throwable t) {
+            return Math.max(2, Runtime.getRuntime().availableProcessors() - 1);
+        }
+    }
+ 
+    private static int getKeepAliveSeconds() {
+        try {
+            String prop = org.gjt.sp.jedit.jEdit.getProperty("sumojedit.checker.keepAliveSec");
+            if (prop == null || prop.isBlank()) prop = System.getProperty("sumojedit.checker.keepAliveSec", "30");
+            return Math.max(1, Integer.parseInt(prop.trim()));
+        } catch (Throwable t) {
+            return 30;
+        }
+    }
 
     /** Create a Runnable with an overridden toString for label display
      *
@@ -884,19 +915,23 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             errors.add(error);
         }
 
-        // Add all warnings and errors on EDT
+        // Add all warnings and errors on EDT (single EditBus pulse)
         SwingUtilities.invokeLater(() -> {
-            for (DefaultErrorSource.DefaultError warning : warnings) {
-                errsrc.addError(warning);
+            errorlist.ErrorSource.unregisterErrorSource(errsrc);
+            try {
+                for (DefaultErrorSource.DefaultError warning : warnings) {
+                    errsrc.addError(warning);
+                }
+                for (DefaultErrorSource.DefaultError error : errors) {
+                    errsrc.addError(error);
+                }
+                if (dw != null && (!dw.getErrorMessage().isBlank() || dw.getExtraMessages().length > 0))
+                    errsrc.addError(dw);
+                if (de != null && (!de.getErrorMessage().isBlank() || de.getExtraMessages().length > 0))
+                    errsrc.addError(de);
+            } finally {
+                errorlist.ErrorSource.registerErrorSource(errsrc);
             }
-            for (DefaultErrorSource.DefaultError error : errors) {
-                errsrc.addError(error);
-            }
-            // Not currently used, but ensure these are also on the EDT
-            if (dw != null && (!dw.getErrorMessage().isBlank() || dw.getExtraMessages().length > 0))
-                errsrc.addError(dw);
-            if (de != null && (!de.getErrorMessage().isBlank() || de.getExtraMessages().length > 0))
-                errsrc.addError(de);
         });
     }
 
