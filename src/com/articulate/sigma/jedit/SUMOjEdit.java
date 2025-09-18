@@ -44,7 +44,6 @@ import java.util.regex.Pattern;
 
 //import javax.swing.Action;
 import javax.swing.MenuElement;
-import javax.swing.SwingUtilities;
 
 import org.gjt.sp.jedit.*;
 //import org.gjt.sp.jedit.gui.RolloverButton;
