@@ -349,7 +349,6 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             if (isKif || isTptp) {
                 togglePluginMenus(true);
                 if (isKif) {
-                    clearWarnAndErr();
                     kif.filename = view.getBuffer().getPath();
                     if (kb != null && !kb.constituents.contains(kif.filename) && new File(kif.filename).length() > 1L /*&& !KBmanager.getMgr().infFileOld()*/) {
                         togglePluginMenus(false);
