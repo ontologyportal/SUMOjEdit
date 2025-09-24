@@ -20,7 +20,6 @@ package com.articulate.sigma.jedit;
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 import com.articulate.sigma.*;
-import com.articulate.sigma.KifFileChecker.ErrRec;
 import com.articulate.sigma.parsing.SuokifApp;
 import com.articulate.sigma.parsing.SuokifVisitor;
 import com.articulate.sigma.tp.*;
@@ -351,7 +350,6 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             if (isKif || isTptp) {
                 togglePluginMenus(true);
                 if (isKif) {
-                    clearWarnAndErr();
                     kif.filename = view.getBuffer().getPath();
                     if (kb != null && !kb.constituents.contains(kif.filename) && new File(kif.filename).length() > 1L /*&& !KBmanager.getMgr().infFileOld()*/) {
                         togglePluginMenus(false);
