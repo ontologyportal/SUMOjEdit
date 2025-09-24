@@ -20,6 +20,7 @@ package com.articulate.sigma.jedit;
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 import com.articulate.sigma.*;
+import com.articulate.sigma.KifFileChecker.ErrRec;
 import com.articulate.sigma.parsing.SuokifApp;
 import com.articulate.sigma.parsing.SuokifVisitor;
 import com.articulate.sigma.tp.*;
@@ -72,22 +73,23 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     protected FormulaPreprocessor fp;
     protected DefaultErrorSource errsrc;
 
-    // A tiny result holder
-    private static final class ErrRec {
-        final int type;                // ErrorSource.ERROR or ErrorSource.WARNING
-        final String file;
-        final int line, start, end;    // jEdit 0-based line
-        final String msg;
-        ErrRec(int type, String file, int line, int start, int end, String msg) {
-            this.type = type; this.file = file; this.line = line; this.start = start; this.end = end; this.msg = msg;
-        }
-    }
+    // Use KifFileChecker.ErrRec instead (moved from here, line 77-86)
+        // A tiny result holder
+        // private static final class ErrRec {
+            // final int type;                // ErrorSource.ERROR or ErrorSource.WARNING
+            // final String file;
+            // final int line, start, end;    // jEdit 0-based line
+            // final String msg;
+            // ErrRec(int type, String file, int line, int start, int end, String msg) {
+                // this.type = type; this.file = file; this.line = line; this.start = start; this.end = end; this.msg = msg;
+            // }
+        // }
 
     // --- Debounced, single-EDT-batch error adder to avoid CME from ErrorList ---
-    private final java.util.List<ErrRec> _pendingErrs = new java.util.ArrayList<>();
+    private final java.util.List<KifFileChecker.ErrRec> _pendingErrs = new java.util.ArrayList<>();
     private volatile boolean _flushScheduled = false;
 
-    private void addErrorsBatch(java.util.List<ErrRec> batch) {
+    private void addErrorsBatch(java.util.List<KifFileChecker.ErrRec> batch) {
         if (batch == null || batch.isEmpty()) return;
 
         synchronized (_pendingErrs) {
@@ -98,7 +100,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
         // Coalesce to ONE runnable on the EDT
         ThreadUtilities.runInDispatchThread(() -> {
-            java.util.List<ErrRec> toAdd;
+            java.util.List<KifFileChecker.ErrRec> toAdd;
             synchronized (_pendingErrs) {
                 toAdd = new java.util.ArrayList<>(_pendingErrs);
                 _pendingErrs.clear();
@@ -108,7 +110,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             // Pause ErrorList notifications while we bulk-add
             errorlist.ErrorSource.unregisterErrorSource(errsrc);
             try {
-                for (ErrRec e : toAdd) {
+                for (KifFileChecker.ErrRec e : toAdd) {
                     errsrc.addError(e.type, e.file, e.line, e.start, e.end, e.msg);
                 }
             } finally {
@@ -800,8 +802,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
         boolean retVal = true;
         if (contents == null || contents.isBlank() || contents.length() < 2) {
-            java.util.List<ErrRec> _chk = new java.util.ArrayList<>();
-            _chk.add(new ErrRec(ErrorSource.WARNING, kif.filename, 1, 0, 0, msg));
+            java.util.List<KifFileChecker.ErrRec> _chk = new java.util.ArrayList<>();
+            _chk.add(new KifFileChecker.ErrRec(ErrorSource.WARNING, kif.filename, 1, 0, 0, msg));
             addErrorsBatch(_chk);
             if (log) Log.log(Log.WARNING, this, "checkEditorContents(): " + msg);
             retVal = false;
@@ -1146,11 +1148,11 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         /* Syntax errors first */
         SuokifVisitor sv = SuokifApp.process(contents);
         if (!sv.errors.isEmpty()) {
-            java.util.List<ErrRec> syn = new java.util.ArrayList<>();
+            java.util.List<KifFileChecker.ErrRec> syn = new java.util.ArrayList<>();
             for (String er : sv.errors) {
                 int line = getLineNum(er);
                 int offset = getOffset(er);
-                syn.add(new ErrRec(ErrorSource.ERROR, kif.filename,
+                syn.add(new KifFileChecker.ErrRec(ErrorSource.ERROR, kif.filename,
                     line == 0 ? line : line - 1, offset, offset + 1, er));
                 if (log) Log.log(Log.ERROR, this, er);
             }
@@ -1182,7 +1184,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         final java.util.concurrent.ExecutorService pool = CHECKER_POOL;
 
         // thread-safe collectors for phase A
-        final java.util.concurrent.ConcurrentLinkedQueue<ErrRec> phaseAErrs = new java.util.concurrent.ConcurrentLinkedQueue<>();
+        final java.util.concurrent.ConcurrentLinkedQueue<KifFileChecker.ErrRec> phaseAErrs = new java.util.concurrent.ConcurrentLinkedQueue<>();
 
         // per-run caches to avoid repeating expensive KB lookups
         final java.util.concurrent.ConcurrentHashMap<String, Boolean> nbeCache = new java.util.concurrent.ConcurrentHashMap<>();
@@ -1198,7 +1200,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                     String em = "Quantifier not in statement";
                     int formulaLine = findFormulaInBuffer(fLocal.toString(), bufferLines);
                     if (formulaLine >= 0)
-                        phaseAErrs.add(new ErrRec(ErrorSource.ERROR, kif.filename, formulaLine, 0, 10, em));
+                        phaseAErrs.add(new KifFileChecker.ErrRec(ErrorSource.ERROR, kif.filename, formulaLine, 0, 10, em));
                     if (log) Log.log(Log.ERROR, this, em);
                 }
 
@@ -1284,20 +1286,20 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             processed = fp.preProcess(f, false, kb);
 
             if (f.errors != null && !f.errors.isEmpty()) {
-                java.util.List<ErrRec> _fErrs = new java.util.ArrayList<>();
+                java.util.List<KifFileChecker.ErrRec> _fErrs = new java.util.ArrayList<>();
                 for (String er : f.errors) {
                     int formulaLine = findFormulaInBuffer(f.toString(), bufferLines);
                     if (formulaLine >= 0) {
-                        _fErrs.add(new ErrRec(ErrorSource.ERROR, kif.filename, formulaLine, 0, 10, er));
+                        _fErrs.add(new KifFileChecker.ErrRec(ErrorSource.ERROR, kif.filename, formulaLine, 0, 10, er));
                     }
                     if (log) Log.log(Log.ERROR, this, er);
                 }
                 addErrorsBatch(_fErrs);
-                java.util.List<ErrRec> _fWarns = new java.util.ArrayList<>();
+                java.util.List<KifFileChecker.ErrRec> _fWarns = new java.util.ArrayList<>();
                 for (String w : f.warnings) {
                     int formulaLine = findFormulaInBuffer(f.toString(), bufferLines);
                     if (formulaLine >= 0) {
-                        _fWarns.add(new ErrRec(ErrorSource.WARNING, kif.filename, formulaLine, 0, 10, w));
+                        _fWarns.add(new KifFileChecker.ErrRec(ErrorSource.WARNING, kif.filename, formulaLine, 0, 10, w));
                     }
                     if (log) Log.log(Log.WARNING, this, w);
                 }
@@ -1305,11 +1307,11 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             }
 
             if (SUMOtoTFAform.errors != null && !SUMOtoTFAform.errors.isEmpty() && processed.size() == 1) {
-                java.util.List<ErrRec> _tfaErrs = new java.util.ArrayList<>();
+                java.util.List<KifFileChecker.ErrRec> _tfaErrs = new java.util.ArrayList<>();
                 for (String er : SUMOtoTFAform.errors) {
                     int formulaLine = findFormulaInBuffer(f.toString(), bufferLines);
                     if (formulaLine >= 0) {
-                        _tfaErrs.add(new ErrRec(ErrorSource.ERROR, kif.filename, formulaLine, 0, 10, er));
+                        _tfaErrs.add(new KifFileChecker.ErrRec(ErrorSource.ERROR, kif.filename, formulaLine, 0, 10, er));
                     }
                     if (log) Log.log(Log.ERROR, this, er);
                 }
@@ -1318,11 +1320,11 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             }
 
             if (!KButilities.isValidFormula(kb, f.toString())) {
-                java.util.List<ErrRec> _kbErrs = new java.util.ArrayList<>();
+                java.util.List<KifFileChecker.ErrRec> _kbErrs = new java.util.ArrayList<>();
                 for (String er : KButilities.errors) {
                     int formulaLine = findFormulaInBuffer(f.toString(), bufferLines);
                     if (formulaLine >= 0) {
-                        _kbErrs.add(new ErrRec(ErrorSource.ERROR, kif.filename, formulaLine, 0, 10, er));
+                        _kbErrs.add(new KifFileChecker.ErrRec(ErrorSource.ERROR, kif.filename, formulaLine, 0, 10, er));
                     }
                     if (log) Log.log(Log.ERROR, this, er);
                 }
@@ -1355,21 +1357,21 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             // size chunks by cores to keep tasks coarse-grained
             final int chunk = Math.max(50, n / Math.max(2, Runtime.getRuntime().availableProcessors() - 1));
 
-            final java.util.List<java.util.concurrent.Callable<java.util.List<ErrRec>>> tasks =
+            final java.util.List<java.util.concurrent.Callable<java.util.List<KifFileChecker.ErrRec>>> tasks =
                     new java.util.ArrayList<>();
 
             for (int start = 0; start < n; start += chunk) {
                 final int s = start;
                 final int e = Math.min(n, start + chunk);
                 tasks.add(() -> {
-                    java.util.List<ErrRec> local = new java.util.ArrayList<>();
+                    java.util.List<KifFileChecker.ErrRec> local = new java.util.ArrayList<>();
                     for (int lineNum = s; lineNum < e; lineNum++) {
                         final String line = bufferLines[lineNum];
                         int searchStart = 0;
                         while (searchStart < line.length()) {
                             int pos = findTermInLine(line, term, searchStart);
                             if (pos == -1) break;
-                            local.add(new ErrRec(
+                            local.add(new KifFileChecker.ErrRec(
                                 errorType, kif.filename, lineNum, pos, pos + term.length(), errorMessage
                             ));
                             searchStart = pos + term.length();
@@ -1381,12 +1383,12 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
             try {
                 // run on our dedicated pool (NOT the clamped common pool)
-                java.util.List<java.util.concurrent.Future<java.util.List<ErrRec>>> futures =
+                java.util.List<java.util.concurrent.Future<java.util.List<KifFileChecker.ErrRec>>> futures =
                         CHECKER_POOL.invokeAll(tasks);
 
                 // merge results
-                java.util.List<ErrRec> merged = new java.util.ArrayList<>();
-                for (java.util.concurrent.Future<java.util.List<ErrRec>> f : futures) {
+                java.util.List<KifFileChecker.ErrRec> merged = new java.util.ArrayList<>();
+                for (java.util.concurrent.Future<java.util.List<KifFileChecker.ErrRec>> f : futures) {
                     merged.addAll(f.get());
                 }
 
@@ -1394,14 +1396,14 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 addErrorsBatch(merged);
             } catch (InterruptedException | ExecutionException ex) {
                 // safe fallback: sequential scan, same results but still batched onto the EDT
-                java.util.List<ErrRec> fallback = new java.util.ArrayList<>();
+                java.util.List<KifFileChecker.ErrRec> fallback = new java.util.ArrayList<>();
                 for (int lineNum = 0; lineNum < bufferLines.length; lineNum++) {
                     final String line = bufferLines[lineNum];
                     int searchStart = 0;
                     while (searchStart < line.length()) {
                         int pos = findTermInLine(line, term, searchStart);
                         if (pos == -1) break;
-                        fallback.add(new ErrRec(
+                        fallback.add(new KifFileChecker.ErrRec(
                             errorType, kif.filename, lineNum, pos, pos + term.length(), errorMessage
                         ));
                         searchStart = pos + term.length();
