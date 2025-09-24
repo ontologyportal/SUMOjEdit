@@ -943,26 +943,30 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
      * SigmaKEE trees.
      */
     private void clearWarnAndErr() {
-        // Clear the error source
-        if (!StringUtil.emptyString(kif.filename)) {
-            errsrc.removeFileErrors(kif.filename);
-        }
 
-        // Clear the ErrorList UI - no EDT wrapping needed for actions
-        jEdit.getAction("error-list-clear").invoke(view);
-        errsrc.clear();
+        ThreadUtilities.runInBackground(() -> {
+            
+            // Clear the error source
+            if (!StringUtil.emptyString(kif.filename)) {
+                errsrc.removeFileErrors(kif.filename);
+            }
 
-        // Clear all KIF collections
-        clearKif();
+            // Clear the ErrorList UI - no EDT wrapping needed for actions
+            jEdit.getAction("error-list-clear").invoke(view);
+            errsrc.clear();
 
-        // Clear all error collections from various components
-        KButilities.clearErrors();
-        if (kb != null) {
-            kb.errors.clear();
-            kb.warnings.clear();
-        }
-        FormulaPreprocessor.errors.clear();
-        SUMOtoTFAform.errors.clear();
+            // Clear all KIF collections
+            clearKif();
+
+            // Clear all error collections from various components
+            KButilities.clearErrors();
+            if (kb != null) {
+                kb.errors.clear();
+                kb.warnings.clear();
+            }
+            FormulaPreprocessor.errors.clear();
+            SUMOtoTFAform.errors.clear();
+        });
     }
 
         // Clear KIF and KB errors (these can be done on any thread)
