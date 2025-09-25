@@ -84,40 +84,89 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             // }
         // }
 
-    // --- Debounced, single-EDT-batch error adder to avoid CME from ErrorList ---
-    private final java.util.List<KifFileChecker.ErrRec> _pendingErrs = new java.util.ArrayList<>();
-    private volatile boolean _flushScheduled = false;
+        // --- Debounced, single-EDT-batch error adder to avoid CME from ErrorList ---
+        private final java.util.List<KifFileChecker.ErrRec> _pendingErrs = new java.util.ArrayList<>();
+        private volatile boolean _flushScheduled = false;
 
-    private void addErrorsBatch(java.util.List<KifFileChecker.ErrRec> batch) {
-        if (batch == null || batch.isEmpty()) return;
+        // === Error message snippet helpers (limit 100 chars) ===
+        private static final int SNIPPET_MAX = 100;
 
-        synchronized (_pendingErrs) {
-            _pendingErrs.addAll(batch);
-            if (_flushScheduled) return;
-            _flushScheduled = true;
+        private static String truncateWithEllipsis(String s, int max) {
+            if (s == null) return "";
+            s = s.strip();
+            if (s.length() <= max) return s;
+            return s.substring(0, max) + "…";
         }
 
-        // Coalesce to ONE runnable on the EDT
-        ThreadUtilities.runInDispatchThread(() -> {
-            java.util.List<KifFileChecker.ErrRec> toAdd;
+        /** Read a specific 0-based line from disk safely (non-EDT, no jEdit deps). */
+        private static String safeSnippetFromFile(String filePath, int zeroBasedLine) {
+            try {
+                java.util.List<String> lines = java.nio.file.Files.readAllLines(
+                        java.nio.file.Paths.get(filePath));
+                if (zeroBasedLine >= 0 && zeroBasedLine < lines.size()) {
+                    return truncateWithEllipsis(lines.get(zeroBasedLine), SNIPPET_MAX);
+                }
+            } catch (Throwable ignore) {}
+            return "";
+        }
+
+        /** Fetch line text from the active buffer (EDT only). Falls back to disk if needed. */
+        private String snippetFromActiveBufferOrFile(String filePath, int zeroBasedLine) {
+            try {
+                if (view != null && view.getBuffer() != null) {
+                    String current = view.getBuffer().getPath();
+                    if (current != null && current.equals(filePath)) {
+                        int lc = view.getBuffer().getLineCount();
+                        if (zeroBasedLine >= 0 && zeroBasedLine < lc) {
+                            int start = view.getBuffer().getLineStartOffset(zeroBasedLine);
+                            int end = view.getBuffer().getLineEndOffset(zeroBasedLine);
+                            String text = view.getBuffer().getText(start, end - start);
+                            return truncateWithEllipsis(text.stripTrailing(), SNIPPET_MAX);
+                        }
+                    }
+                }
+            } catch (Throwable ignore) {}
+            return safeSnippetFromFile(filePath, zeroBasedLine);
+        }
+
+        /** Append formatted snippet to a base message. */
+        private String appendSnippet(String baseMsg, String filePath, int zeroBasedLine) {
+            String snip = snippetFromActiveBufferOrFile(filePath, zeroBasedLine);
+            if (snip.isEmpty()) return baseMsg;
+            return baseMsg + " — " + snip;
+        }
+
+        private void addErrorsBatch(java.util.List<KifFileChecker.ErrRec> batch) {
+            if (batch == null || batch.isEmpty()) return;
+
             synchronized (_pendingErrs) {
-                toAdd = new java.util.ArrayList<>(_pendingErrs);
-                _pendingErrs.clear();
-                _flushScheduled = false;
+                _pendingErrs.addAll(batch);
+                if (_flushScheduled) return;
+                _flushScheduled = true;
             }
 
-            // Pause ErrorList notifications while we bulk-add
-            errorlist.ErrorSource.unregisterErrorSource(errsrc);
-            try {
-                for (KifFileChecker.ErrRec e : toAdd) {
-                    errsrc.addError(e.type, e.file, e.line, e.start, e.end, e.msg);
+            // Coalesce to ONE runnable on the EDT
+            ThreadUtilities.runInDispatchThread(() -> {
+                java.util.List<KifFileChecker.ErrRec> toAdd;
+                synchronized (_pendingErrs) {
+                    toAdd = new java.util.ArrayList<>(_pendingErrs);
+                    _pendingErrs.clear();
+                    _flushScheduled = false;
                 }
-            } finally {
-                // Re-enable notifications once, after all errors are in
-                errorlist.ErrorSource.registerErrorSource(errsrc);
-            }
-        });
-    }
+
+                // Pause ErrorList notifications while we bulk-add
+                errorlist.ErrorSource.unregisterErrorSource(errsrc);
+                try {
+                    for (KifFileChecker.ErrRec e : toAdd) {
+                        String msgWithSnippet = appendSnippet(e.msg, e.file, e.line);
+                        errsrc.addError(e.type, e.file, e.line, e.start, e.end, msgWithSnippet);
+                    }
+                } finally {
+                    // Re-enable notifications once, after all errors are in
+                    errorlist.ErrorSource.registerErrorSource(errsrc);
+                }
+            });
+        }
 
     // These DefaultErrors are not currently used, but good framework to have
     // in case of extra messages
@@ -887,9 +936,12 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             line = getLineNum(warn);
             offset = getOffset(warn);
             if (offset == 0) offset = 1;
+            int adjLine = (line == 0 ? line : line - 1);
+            String snip = safeSnippetFromFile(kif.filename, adjLine);
+            String msgWithSnippet = snip.isEmpty() ? warn : (warn + " — " + snip);
             DefaultErrorSource.DefaultError warning = new DefaultErrorSource.DefaultError(
                 errsrc, ErrorSource.WARNING, kif.filename,
-                line == 0 ? line : line-1, offset, offset+1, warn);
+                adjLine, offset, offset+1, msgWithSnippet);
             warnings.add(warning);
         }
 
@@ -897,9 +949,12 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             line = getLineNum(err);
             offset = getOffset(err);
             if (offset == 0) offset = 1;
+            int adjLine = (line == 0 ? line : line - 1);
+            String snip = safeSnippetFromFile(kif.filename, adjLine);
+            String msgWithSnippet = snip.isEmpty() ? err : (err + " — " + snip);
             DefaultErrorSource.DefaultError error = new DefaultErrorSource.DefaultError(
                 errsrc, ErrorSource.ERROR, kif.filename,
-                line == 0 ? line : line-1, offset, offset+1, err);
+                adjLine, offset, offset+1, msgWithSnippet);
             errors.add(error);
         }
 
