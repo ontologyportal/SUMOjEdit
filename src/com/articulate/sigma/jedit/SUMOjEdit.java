@@ -1140,17 +1140,17 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             view = jEdit.getActiveView();
         }
 
-        if (StringUtil.emptyString(kif.filename))
-            kif.filename = view.getBuffer().getPath();
-        String contents = view.getTextArea().getText();
+        // Freeze the file path NOW and keep using it for this run
+        final String filePath = view.getBuffer().getPath();
+        if (StringUtil.emptyString(kif.filename)) {
+            kif.filename = filePath; // keep for status/logs, but don't use for error entries
+        }
+        final String contents = view.getTextArea().getText();
 
         Runnable r = () -> {
-            checkErrorsBody(contents);
+            checkErrorsBody(contents, filePath);
             // Force ErrorList refresh on EDT
             ThreadUtilities.runInDispatchThread(() -> {
-                // Don't send null error - just show the ErrorList window
-                // The errors have already been added and ErrorList is already notified
-                // Show ErrorList window if hidden
                 if (view != null) {
                     view.getDockableWindowManager().showDockableWindow("error-list");
                 }
@@ -1201,7 +1201,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
      *
      * @param contents the SUO-KIF to check
      */
-    protected void checkErrorsBody(String contents) {
+    protected void checkErrorsBody(String contents, final String filePath) {
 
         /* Syntax errors first */
         SuokifVisitor sv = SuokifApp.process(contents);
@@ -1210,7 +1210,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             for (String er : sv.errors) {
                 int line = getLineNum(er);
                 int offset = getOffset(er);
-                syn.add(new KifFileChecker.ErrRec(ErrorSource.ERROR, kif.filename,
+                syn.add(new KifFileChecker.ErrRec(ErrorSource.ERROR, filePath,
                     line == 0 ? line : line - 1, offset, offset + 1, er));
                 if (log) Log.log(Log.ERROR, this, er);
             }
@@ -1258,7 +1258,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                     String em = "Quantifier not in statement";
                     int formulaLine = findFormulaInBuffer(fLocal.toString(), bufferLines);
                     if (formulaLine >= 0)
-                        phaseAErrs.add(new KifFileChecker.ErrRec(ErrorSource.ERROR, kif.filename, formulaLine, 0, 10, em));
+                        phaseAErrs.add(new KifFileChecker.ErrRec(ErrorSource.ERROR, filePath, formulaLine, 0, 10, em));
                     if (log) Log.log(Log.ERROR, this, em);
                 }
 
@@ -1334,7 +1334,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             final int typ = msg.startsWith("term not below") ? ErrorSource.ERROR :
                             msg.startsWith("unknown term")   ? ErrorSource.WARNING :
                                                                     ErrorSource.ERROR;
-            reportAllOccurrencesInBuffer(t, msg, bufferLines, typ);
+            reportAllOccurrencesInBuffer(filePath, t, msg, bufferLines, typ);
         }
 
         // ===== Phase B: serialize the existing preprocessing & validity checks =====
@@ -1348,7 +1348,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 for (String er : f.errors) {
                     int formulaLine = findFormulaInBuffer(f.toString(), bufferLines);
                     if (formulaLine >= 0) {
-                        _fErrs.add(new KifFileChecker.ErrRec(ErrorSource.ERROR, kif.filename, formulaLine, 0, 10, er));
+                        _fErrs.add(new KifFileChecker.ErrRec(ErrorSource.ERROR, filePath, formulaLine, 0, 10, er));
                     }
                     if (log) Log.log(Log.ERROR, this, er);
                 }
@@ -1357,7 +1357,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 for (String w : f.warnings) {
                     int formulaLine = findFormulaInBuffer(f.toString(), bufferLines);
                     if (formulaLine >= 0) {
-                        _fWarns.add(new KifFileChecker.ErrRec(ErrorSource.WARNING, kif.filename, formulaLine, 0, 10, w));
+                        _fWarns.add(new KifFileChecker.ErrRec(ErrorSource.WARNING, filePath, formulaLine, 0, 10, w));
                     }
                     if (log) Log.log(Log.WARNING, this, w);
                 }
@@ -1369,7 +1369,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 for (String er : SUMOtoTFAform.errors) {
                     int formulaLine = findFormulaInBuffer(f.toString(), bufferLines);
                     if (formulaLine >= 0) {
-                        _tfaErrs.add(new KifFileChecker.ErrRec(ErrorSource.ERROR, kif.filename, formulaLine, 0, 10, er));
+                       _tfaErrs.add(new KifFileChecker.ErrRec(ErrorSource.ERROR, filePath, formulaLine, 0, 10, er));
                     }
                     if (log) Log.log(Log.ERROR, this, er);
                 }
@@ -1382,7 +1382,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 for (String er : KButilities.errors) {
                     int formulaLine = findFormulaInBuffer(f.toString(), bufferLines);
                     if (formulaLine >= 0) {
-                        _kbErrs.add(new KifFileChecker.ErrRec(ErrorSource.ERROR, kif.filename, formulaLine, 0, 10, er));
+                        _kbErrs.add(new KifFileChecker.ErrRec(ErrorSource.ERROR, filePath, formulaLine, 0, 10, er));
                     }
                     if (log) Log.log(Log.ERROR, this, er);
                 }
@@ -1395,11 +1395,11 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         // Second pass: Report ALL occurrences of problematic terms in the buffer
         for (String problemTerm : nbeTerms) {
             String errorMsg = termErrors.get(problemTerm);
-            reportAllOccurrencesInBuffer(problemTerm, errorMsg, bufferLines, ErrorSource.ERROR);
+            reportAllOccurrencesInBuffer(filePath, problemTerm, errorMsg, bufferLines, ErrorSource.ERROR);
         }
         for (String problemTerm : unkTerms) {
             String errorMsg = termErrors.get(problemTerm);
-            reportAllOccurrencesInBuffer(problemTerm, errorMsg, bufferLines, ErrorSource.WARNING);
+            reportAllOccurrencesInBuffer(filePath, problemTerm, errorMsg, bufferLines, ErrorSource.WARNING);
         }
 
         // Handle any additional KIF warnings and errors
@@ -1407,9 +1407,21 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     }
 
     /**
+     * ***************************************************************
+     * Backward-compatible shim: delegate to the 2-arg version.
+     */
+    protected void checkErrorsBody(String contents) {
+        String fn = (this.kif != null && !StringUtil.emptyString(this.kif.filename))
+                ? this.kif.filename
+                : "untitled.kif";
+        checkErrorsBody(contents, fn);
+    }
+
+    /**
      * Find all occurrences of a term in the buffer and report errors for each
      */
-        private void reportAllOccurrencesInBuffer(String term, String errorMessage,
+        private void reportAllOccurrencesInBuffer(final String filePath,
+                                                String term, String errorMessage,
                                                 String[] bufferLines, int errorType) {
             final int n = bufferLines.length;
             // size chunks by cores to keep tasks coarse-grained
@@ -1430,7 +1442,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                             int pos = findTermInLine(line, term, searchStart);
                             if (pos == -1) break;
                             local.add(new KifFileChecker.ErrRec(
-                                errorType, kif.filename, lineNum, pos, pos + term.length(), errorMessage
+                                errorType, filePath, lineNum, pos, pos + term.length(), errorMessage
                             ));
                             searchStart = pos + term.length();
                         }
@@ -1462,7 +1474,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                         int pos = findTermInLine(line, term, searchStart);
                         if (pos == -1) break;
                         fallback.add(new KifFileChecker.ErrRec(
-                            errorType, kif.filename, lineNum, pos, pos + term.length(), errorMessage
+                            errorType, filePath, lineNum, pos, pos + term.length(), errorMessage
                         ));
                         searchStart = pos + term.length();
                     }
@@ -1848,7 +1860,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         if (args != null && args.length > 1 && args[0].equals("-d")) {
             String contents = String.join("\n", FileUtil.readLines(args[1], false));
             sje.kif.filename = args[1];
-            sje.checkErrorsBody(contents);
+            sje.checkErrorsBody(contents, args[1]);
         } else if (args != null && args.length > 0 && args[0].equals("-q")) {
             String contents = "(routeBetween ?X MenloParkCA MountainViewCA)";
             System.out.println("E input: " + contents);
