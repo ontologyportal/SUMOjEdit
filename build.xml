@@ -48,16 +48,15 @@
         </and>
     </condition>
 
-    <!-- Build number increment target using buildnumber task -->
+    <!-- Build number increment target - FIXED to prevent comma formatting -->
     <target name="increment-build-number">
         <!-- Create build.number file if it doesn't exist -->
         <mkdir dir="${basedir}"/>
+        
+        <!-- Use propertyfile with pattern="0" to prevent comma formatting -->
         <propertyfile file="${basedir}/build.number" comment="Build Number for SUMOjEdit">
-            <entry key="build.number" type="int" default="1000" operation="+" value="0"/>
+            <entry key="build.number" type="int" default="1000" operation="+" value="1" pattern="0"/>
         </propertyfile>
-
-        <!-- Use Ant's built-in buildnumber task which doesn't add commas -->
-        <buildnumber file="${basedir}/build.number"/>
 
         <!-- Load the incremented number -->
         <loadproperties srcFile="${basedir}/build.number"/>
@@ -162,8 +161,8 @@ public final class BuildInfo {
     </target>
 
     <target name="compile" depends="sigma.antlr" description="Compile ${app.name}">
-        <!-- Increment build number first -->
-        <buildnumber/>
+        <!-- Build number already incremented by init->generate-build-info->increment-build-number -->
+        <!-- REMOVED: <buildnumber/> call that was causing comma formatting -->
 
         <javac destdir="${build.home}/classes"
                debug="on"
