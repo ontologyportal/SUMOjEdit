@@ -44,6 +44,7 @@ import java.util.regex.Pattern;
 
 //import javax.swing.Action;
 import javax.swing.MenuElement;
+import javax.swing.text.View;
 
 import org.gjt.sp.jedit.*;
 //import org.gjt.sp.jedit.gui.RolloverButton;
@@ -51,6 +52,7 @@ import org.gjt.sp.jedit.io.VFSManager;
 import org.gjt.sp.jedit.menu.EnhancedMenu;
 import org.gjt.sp.jedit.msg.BufferUpdate;
 import org.gjt.sp.jedit.msg.EditPaneUpdate;
+import org.gjt.sp.jedit.msg.ViewUpdate;
 import org.gjt.sp.util.Log;
 import org.gjt.sp.util.ThreadUtilities;
 
@@ -70,7 +72,9 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     protected final KIF kif;
     protected KB kb;
     protected FormulaPreprocessor fp;
-    protected DefaultErrorSource errsrc;
+    // One ErrorSource per jEdit View so error lists persist per window
+    private final Map<org.gjt.sp.jedit.View, DefaultErrorSource> viewErrorSources = new WeakHashMap<>();
+    protected DefaultErrorSource errsrc;  // currently selected source for the active View
 
     // Use KifFileChecker.ErrRec instead (moved from here, line 77-86)
         // A tiny result holder
@@ -373,7 +377,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             }
 
             isInitialized = true;
-            errsrc = new DefaultErrorSource(getClass().getName(), view);
+            errsrc = ensureErrorSource(view);   // bind/select the source for this window
             processLoadedKifOrTptp();
 
             // Update status bar with build info after initialization
@@ -485,10 +489,10 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 //            editorExiting((EditorExiting)msg);
         if (msg instanceof EditPaneUpdate)
             editPaneUpdate((EditPaneUpdate)msg);
-//        if (msg instanceof VFSUpdate)
-//            vfsUpdate((VFSUpdate)msg);
-//        if (msg instanceof ViewUpdate)
-//            viewUpdate((ViewUpdate)msg);
+        //        if (msg instanceof VFSUpdate)
+        //            vfsUpdate((VFSUpdate)msg);
+        if (msg instanceof ViewUpdate)
+            viewUpdate((ViewUpdate)msg);
     }
 
     /** ***************************************************************
@@ -561,20 +565,51 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 //        System.out.println("VFS update"); // file saved
 //    }
 
-//    private void viewUpdate(ViewUpdate vu) {
-//
-//        if (view == null) return;
-//        if (vu.getView() == view) {
-//            if (vu.getWhat() == ViewUpdate.ACTIVATED)
-//                System.out.println("ViewUpdate.ACTIVATED");
-//            if (vu.getWhat() == ViewUpdate.CREATED)
-//                System.out.println("ViewUpdate.CREATED");
-//            if (vu.getWhat() == ViewUpdate.CLOSED) // jEdit exit
-//                System.out.println("ViewUpdate.CLOSED");
-//            if (vu.getWhat() == ViewUpdate.EDIT_PANE_CHANGED)
-//                System.out.println("ViewUpdate.EDIT_PANE_CHANGED");
-//        }
-//    }
+    /** Select per-View ErrorSource on ACTIVATE; clean up only when a View is CLOSED. */
+    private void viewUpdate(ViewUpdate vu) {
+        if (vu == null) return;
+
+        if (vu.getWhat() == ViewUpdate.ACTIVATED) {
+            final org.gjt.sp.jedit.View newView = vu.getView();
+            if (newView != null) {
+                this.view = newView;
+                // Select (do not recreate/unregister others)
+                this.errsrc = ensureErrorSource(newView);
+            }
+        } else if (vu.getWhat() == ViewUpdate.CLOSED) {
+            final org.gjt.sp.jedit.View closed = vu.getView();
+            if (closed != null) {
+                final DefaultErrorSource es = viewErrorSources.remove(closed);
+                if (es != null) {
+                    try { errorlist.ErrorSource.unregisterErrorSource(es); } catch (Throwable ignore) {}
+                }
+                if (this.view == closed) {
+                    this.view = jEdit.getActiveView();
+                    if (this.view != null) this.errsrc = ensureErrorSource(this.view);
+                    else this.errsrc = null;
+                }
+            }
+        }
+    }
+
+
+    /** Ensure the specified View has a registered ErrorSource and select it without touching others. */
+    private void switchErrorSourceTo(final org.gjt.sp.jedit.View v) {
+        this.errsrc = ensureErrorSource(v);
+    }
+
+    /** Get or create an ErrorSource for a View. Never unregister others here. */
+    private DefaultErrorSource ensureErrorSource(final org.gjt.sp.jedit.View v) {
+        DefaultErrorSource es = viewErrorSources.get(v);
+        if (es == null) {
+            // unique name per View to avoid collisions in ErrorList
+            final String sourceName = getClass().getName() + "@" + Integer.toHexString(System.identityHashCode(v));
+            es = new DefaultErrorSource(sourceName, v);
+            errorlist.ErrorSource.registerErrorSource(es);
+            viewErrorSources.put(v, es);
+        }
+        return es;
+    }
 
     @Override
     public void setFOF() {
@@ -1135,10 +1170,9 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         clearWarnAndErr();
         Log.log(Log.MESSAGE, this, ":checkErrors(): starting");
 
-        // Ensure we have the current view
-        if (view == null) {
-            view = jEdit.getActiveView();
-        }
+        // Always target the active window (supports multiple jEdit Views)
+        view = jEdit.getActiveView();
+        this.errsrc = ensureErrorSource(view); // select/create for this window (do NOT unregister others)
 
         // Freeze the file path NOW and keep using it for this run
         final String filePath = view.getBuffer().getPath();
