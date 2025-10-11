@@ -76,7 +76,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     private final Map<org.gjt.sp.jedit.View, DefaultErrorSource> viewErrorSources = new WeakHashMap<>();
     protected DefaultErrorSource errsrc;  // currently selected source for the active View
 
-    // Use KifFileChecker.ErrRec instead (moved from here, line 77-86)
+    // Use ErrRec instead (moved from here, line 77-86)
         // A tiny result holder
         // private static final class ErrRec {
             // final int type;                // ErrorSource.ERROR or ErrorSource.WARNING
@@ -89,7 +89,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         // }
 
         // --- Debounced, single-EDT-batch error adder to avoid CME from ErrorList ---
-        private final java.util.List<KifFileChecker.ErrRec> _pendingErrs = new java.util.ArrayList<>();
+        private final java.util.List<ErrRec> _pendingErrs = new java.util.ArrayList<>();
         private volatile boolean _flushScheduled = false;
 
         // === Error message snippet helpers (limit 100 chars) ===
@@ -140,7 +140,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             return baseMsg + " — " + snip;
         }
 
-        private void addErrorsBatch(java.util.List<KifFileChecker.ErrRec> batch) {
+        private void addErrorsBatch(java.util.List<ErrRec> batch) {
             if (batch == null || batch.isEmpty()) return;
 
             synchronized (_pendingErrs) {
@@ -151,7 +151,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
             // Coalesce to ONE runnable on the EDT
             ThreadUtilities.runInDispatchThread(() -> {
-                java.util.List<KifFileChecker.ErrRec> toAdd;
+                java.util.List<ErrRec> toAdd;
                 synchronized (_pendingErrs) {
                     toAdd = new java.util.ArrayList<>(_pendingErrs);
                     _pendingErrs.clear();
@@ -161,7 +161,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 // Pause ErrorList notifications while we bulk-add
                 errorlist.ErrorSource.unregisterErrorSource(errsrc);
                 try {
-                    for (KifFileChecker.ErrRec e : toAdd) {
+                    for (ErrRec e : toAdd) {
                         String msgWithSnippet = appendSnippet(e.msg, e.file, e.line);
                         errsrc.addError(e.type, e.file, e.line, e.start, e.end, msgWithSnippet);
                     }
@@ -885,8 +885,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
         boolean retVal = true;
         if (contents == null || contents.isBlank() || contents.length() < 2) {
-            java.util.List<KifFileChecker.ErrRec> _chk = new java.util.ArrayList<>();
-            _chk.add(new KifFileChecker.ErrRec(ErrorSource.WARNING, kif.filename, 1, 0, 0, msg));
+            java.util.List<ErrRec> _chk = new java.util.ArrayList<>();
+            _chk.add(new ErrRec(ErrorSource.WARNING, kif.filename, 1, 0, 0, msg));
             addErrorsBatch(_chk);
             if (log) Log.log(Log.WARNING, this, "checkEditorContents(): " + msg);
             retVal = false;
@@ -1237,207 +1237,21 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
      */
     protected void checkErrorsBody(String contents, final String filePath) {
 
-        /* Syntax errors first */
-        SuokifVisitor sv = SuokifApp.process(contents);
-        if (!sv.errors.isEmpty()) {
-            java.util.List<KifFileChecker.ErrRec> syn = new java.util.ArrayList<>();
-            for (String er : sv.errors) {
-                int line = getLineNum(er);
-                int offset = getOffset(er);
-                syn.add(new KifFileChecker.ErrRec(ErrorSource.ERROR, filePath,
-                    line == 0 ? line : line - 1, offset, offset + 1, er));
-                if (log) Log.log(Log.ERROR, this, er);
+        List<ErrRec> msgs = KifFileChecker.check(contents, filePath);
+        addErrorsDirect(msgs);
+    }
+
+    private void addErrorsDirect(java.util.List<ErrRec> errors) {
+        if (errors == null || errors.isEmpty()) return;
+        errorlist.ErrorSource.unregisterErrorSource(errsrc);
+        try {
+            for (ErrRec e : errors) {
+                String msgWithSnippet = appendSnippet(e.msg, e.file, e.line);
+                errsrc.addError(e.type, e.file, e.line, e.start, e.end, msgWithSnippet);
             }
-            addErrorsBatch(syn);   // single EDT hop
-            return; // fix syntax errors first
+        } finally {
+            errorlist.ErrorSource.registerErrorSource(errsrc);
         }
-
-        if (!parseKif(contents))
-            return; // fix parse errors before continuing
-        /* End syntax errors */
-
-        Log.log(Log.MESSAGE, this, ":checkErrorsBody(): success loading kif file with " + contents.length() + " characters");
-        Log.log(Log.MESSAGE, this, ":checkErrorsBody(): filename: " + kif.filename);
-
-        // Split the buffer into lines for accurate position calculation
-        String[] bufferLines = contents.split("\n", -1);
-
-        // Track all problematic terms we find (thread-safe for parallel phase)
-        final java.util.Set<String> nbeTerms =
-            java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
-        final java.util.Set<String> unkTerms =
-            java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
-        final java.util.concurrent.ConcurrentHashMap<String,String> termErrors =
-            new java.util.concurrent.ConcurrentHashMap<>();
-
-        Set<Formula> processed;
-
-        // ===== Phase A: reuse shared worker pool & add per-run caches =====
-        final java.util.concurrent.ExecutorService pool = CHECKER_POOL;
-
-        // thread-safe collectors for phase A
-        final java.util.concurrent.ConcurrentLinkedQueue<KifFileChecker.ErrRec> phaseAErrs = new java.util.concurrent.ConcurrentLinkedQueue<>();
-
-        // per-run caches to avoid repeating expensive KB lookups
-        final java.util.concurrent.ConcurrentHashMap<String, Boolean> nbeCache = new java.util.concurrent.ConcurrentHashMap<>();
-        final java.util.concurrent.ConcurrentHashMap<String, FileSpec> defnCache = new java.util.concurrent.ConcurrentHashMap<>();
-
-        java.util.List<java.util.concurrent.Future<?>> tasks = new java.util.ArrayList<>();
-
-        for (Formula f : kif.formulaMap.values()) {
-            final Formula fLocal = f; // capture
-            tasks.add(pool.submit(() -> {
-                // (1) Formula-level quick diagnostics (no shared-static mutation)
-                if (Diagnostics.quantifierNotInStatement(fLocal)) {
-                    String em = "Quantifier not in statement";
-                    int formulaLine = findFormulaInBuffer(fLocal.toString(), bufferLines);
-                    if (formulaLine >= 0)
-                        phaseAErrs.add(new KifFileChecker.ErrRec(ErrorSource.ERROR, filePath, formulaLine, 0, 10, em));
-                    if (log) Log.log(Log.ERROR, this, em);
-                }
-
-                Set<String> resultA = Diagnostics.singleUseVariables(fLocal);
-                if (resultA != null && !resultA.isEmpty()) {
-                    for (String res : resultA) {
-                        String em = "Variable(s) only used once: " + res;
-                        // Defer heavy per-line reporting; just record the term → message
-                        termErrors.putIfAbsent(res, em);
-                        if (log) Log.log(Log.WARNING, this, em);
-                    }
-                }
-
-                Set<String> unquantLocal = Diagnostics.unquantInConsequent(fLocal);
-                if (unquantLocal != null && !unquantLocal.isEmpty()) {
-                    for (String uq : unquantLocal) {
-                        String em = "Unquantified var(s) " + uq + " in consequent";
-                        termErrors.putIfAbsent(uq, em);
-                        if (log) Log.log(Log.ERROR, this, em);
-                    }
-                }
-
-                String badArity = PredVarInst.hasCorrectArity(fLocal, kb);
-                if (!StringUtil.emptyString(badArity)) {
-                    String em = "Arity error of predicate: " + badArity;
-                    termErrors.putIfAbsent(badArity, em);
-                    if (log) Log.log(Log.ERROR, this, em);
-                }
-
-                // (2) Per-term classification (unknown vs not-below-Entity) – with caches
-                Set<String> terms = fLocal.collectTerms();
-                for (String t : terms) {
-                    if (Diagnostics.LOG_OPS.contains(t) || "Entity".equals(t)
-                            || Formula.isVariable(t) || StringUtil.isNumeric(t)
-                            || StringUtil.isQuotedString(t)) {
-                        continue;
-                    }
-
-                    // Cache: not-below-Entity check
-                    boolean isNBE = nbeCache.computeIfAbsent(t, k -> Diagnostics.termNotBelowEntity(k, kb));
-                    if (isNBE) {
-                        nbeTerms.add(t);
-                        termErrors.put(t, "term not below Entity: " + t);
-                        if (log) Log.log(Log.ERROR, this, "term not below Entity: " + t);
-                        continue; // already classified, skip unknown check
-                    }
-
-                    // Cache: definition lookup (only if not NBE)
-                    FileSpec def = defnCache.computeIfAbsent(t, k -> findDefn(k));
-                    if (def == null && !nbeTerms.contains(t)) {
-                        unkTerms.add(t);
-                        termErrors.put(t, "unknown term: " + t);
-                        if (log) Log.log(Log.WARNING, this, "unknown term: " + t);
-                    }
-                }
-            }));
-        }
-
-        // wait for phase A to finish
-        for (java.util.concurrent.Future<?> fut : tasks) {
-            try { fut.get(); } catch (InterruptedException | ExecutionException e) { Log.log(Log.ERROR, this, "Phase A task", e); }
-        }
-        // DO NOT shutdown the shared CHECKER_POOL here; it's reused across runs
-
-        // publish phase-A formula-level errors (coalesced through our debounced flusher)
-        addErrorsBatch(new java.util.ArrayList<>(phaseAErrs));
-
-
-        // Line-level reporting of collected term issues (batched per term inside helper)
-        for (Map.Entry<String,String> e : termErrors.entrySet()) {
-            final String t = e.getKey();
-            final String msg = e.getValue();
-            final int typ = msg.startsWith("term not below") ? ErrorSource.ERROR :
-                            msg.startsWith("unknown term")   ? ErrorSource.WARNING :
-                                                                    ErrorSource.ERROR;
-            reportAllOccurrencesInBuffer(filePath, t, msg, bufferLines, typ);
-        }
-
-        // ===== Phase B: serialize the existing preprocessing & validity checks =====
-        for (Formula f : kif.formulaMap.values()) {
-            // Process formula (unchanged semantics)
-            // Process formula
-            processed = fp.preProcess(f, false, kb);
-
-            if (f.errors != null && !f.errors.isEmpty()) {
-                java.util.List<KifFileChecker.ErrRec> _fErrs = new java.util.ArrayList<>();
-                for (String er : f.errors) {
-                    int formulaLine = findFormulaInBuffer(f.toString(), bufferLines);
-                    if (formulaLine >= 0) {
-                        _fErrs.add(new KifFileChecker.ErrRec(ErrorSource.ERROR, filePath, formulaLine, 0, 10, er));
-                    }
-                    if (log) Log.log(Log.ERROR, this, er);
-                }
-                addErrorsBatch(_fErrs);
-                java.util.List<KifFileChecker.ErrRec> _fWarns = new java.util.ArrayList<>();
-                for (String w : f.warnings) {
-                    int formulaLine = findFormulaInBuffer(f.toString(), bufferLines);
-                    if (formulaLine >= 0) {
-                        _fWarns.add(new KifFileChecker.ErrRec(ErrorSource.WARNING, filePath, formulaLine, 0, 10, w));
-                    }
-                    if (log) Log.log(Log.WARNING, this, w);
-                }
-                addErrorsBatch(_fWarns);
-            }
-
-            if (SUMOtoTFAform.errors != null && !SUMOtoTFAform.errors.isEmpty() && processed.size() == 1) {
-                java.util.List<KifFileChecker.ErrRec> _tfaErrs = new java.util.ArrayList<>();
-                for (String er : SUMOtoTFAform.errors) {
-                    int formulaLine = findFormulaInBuffer(f.toString(), bufferLines);
-                    if (formulaLine >= 0) {
-                       _tfaErrs.add(new KifFileChecker.ErrRec(ErrorSource.ERROR, filePath, formulaLine, 0, 10, er));
-                    }
-                    if (log) Log.log(Log.ERROR, this, er);
-                }
-                addErrorsBatch(_tfaErrs);
-                SUMOtoTFAform.errors.clear();
-            }
-
-            if (!KButilities.isValidFormula(kb, f.toString())) {
-                java.util.List<KifFileChecker.ErrRec> _kbErrs = new java.util.ArrayList<>();
-                for (String er : KButilities.errors) {
-                    int formulaLine = findFormulaInBuffer(f.toString(), bufferLines);
-                    if (formulaLine >= 0) {
-                        _kbErrs.add(new KifFileChecker.ErrRec(ErrorSource.ERROR, filePath, formulaLine, 0, 10, er));
-                    }
-                    if (log) Log.log(Log.ERROR, this, er);
-                }
-                addErrorsBatch(_kbErrs);
-                KButilities.errors.clear();
-            }
-        }
-
-
-        // Second pass: Report ALL occurrences of problematic terms in the buffer
-        for (String problemTerm : nbeTerms) {
-            String errorMsg = termErrors.get(problemTerm);
-            reportAllOccurrencesInBuffer(filePath, problemTerm, errorMsg, bufferLines, ErrorSource.ERROR);
-        }
-        for (String problemTerm : unkTerms) {
-            String errorMsg = termErrors.get(problemTerm);
-            reportAllOccurrencesInBuffer(filePath, problemTerm, errorMsg, bufferLines, ErrorSource.WARNING);
-        }
-
-        // Handle any additional KIF warnings and errors
-//        logKifWarnAndErr();
     }
 
     /**
@@ -1458,24 +1272,23 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                                                 String term, String errorMessage,
                                                 String[] bufferLines, int errorType) {
             final int n = bufferLines.length;
-            // size chunks by cores to keep tasks coarse-grained
             final int chunk = Math.max(50, n / Math.max(2, Runtime.getRuntime().availableProcessors() - 1));
 
-            final java.util.List<java.util.concurrent.Callable<java.util.List<KifFileChecker.ErrRec>>> tasks =
+            final java.util.List<java.util.concurrent.Callable<java.util.List<ErrRec>>> tasks =
                     new java.util.ArrayList<>();
 
             for (int start = 0; start < n; start += chunk) {
                 final int s = start;
                 final int e = Math.min(n, start + chunk);
                 tasks.add(() -> {
-                    java.util.List<KifFileChecker.ErrRec> local = new java.util.ArrayList<>();
+                    java.util.List<ErrRec> local = new java.util.ArrayList<>();
                     for (int lineNum = s; lineNum < e; lineNum++) {
                         final String line = bufferLines[lineNum];
                         int searchStart = 0;
                         while (searchStart < line.length()) {
                             int pos = findTermInLine(line, term, searchStart);
                             if (pos == -1) break;
-                            local.add(new KifFileChecker.ErrRec(
+                            local.add(new ErrRec(
                                 errorType, filePath, lineNum, pos, pos + term.length(), errorMessage
                             ));
                             searchStart = pos + term.length();
@@ -1487,12 +1300,12 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
             try {
                 // run on our dedicated pool (NOT the clamped common pool)
-                java.util.List<java.util.concurrent.Future<java.util.List<KifFileChecker.ErrRec>>> futures =
+                java.util.List<java.util.concurrent.Future<java.util.List<ErrRec>>> futures =
                         CHECKER_POOL.invokeAll(tasks);
 
                 // merge results
-                java.util.List<KifFileChecker.ErrRec> merged = new java.util.ArrayList<>();
-                for (java.util.concurrent.Future<java.util.List<KifFileChecker.ErrRec>> f : futures) {
+                java.util.List<ErrRec> merged = new java.util.ArrayList<>();
+                for (java.util.concurrent.Future<java.util.List<ErrRec>> f : futures) {
                     merged.addAll(f.get());
                 }
 
@@ -1500,14 +1313,14 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 addErrorsBatch(merged);
             } catch (InterruptedException | ExecutionException ex) {
                 // safe fallback: sequential scan, same results but still batched onto the EDT
-                java.util.List<KifFileChecker.ErrRec> fallback = new java.util.ArrayList<>();
+                java.util.List<ErrRec> fallback = new java.util.ArrayList<>();
                 for (int lineNum = 0; lineNum < bufferLines.length; lineNum++) {
                     final String line = bufferLines[lineNum];
                     int searchStart = 0;
                     while (searchStart < line.length()) {
                         int pos = findTermInLine(line, term, searchStart);
                         if (pos == -1) break;
-                        fallback.add(new KifFileChecker.ErrRec(
+                        fallback.add(new ErrRec(
                             errorType, filePath, lineNum, pos, pos + term.length(), errorMessage
                         ));
                         searchStart = pos + term.length();
