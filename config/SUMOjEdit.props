@@ -56,6 +56,10 @@ plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.menu=\
   sumojedit.from-tptp \
   sumojedit.to-tptp \
   - \
+  sumojedit.check-tptp-errors \
+  sumojedit.format-tptp \
+  sumojedit.configure-tptp4x \
+  - \
   sumojedit.ac.user-guide \
   - \
   sumojedit.ac.mode.ghost \
@@ -75,6 +79,11 @@ sumojedit.chooseE.label=select EProver
 sumojedit.query-exp.label=query on highlighted expression
 sumojedit.to-tptp.label=SUO-KIF to TPTP
 sumojedit.from-tptp.label=SUO-KIF from TPTP
+
+# ===== TPTP Error Checking and Formatting action labels =====
+sumojedit.check-tptp-errors.label=Check TPTP Errors
+sumojedit.format-tptp.label=Format TPTP
+sumojedit.configure-tptp4x.label=Configure TPTP4X Path
 
 # ===== User Guide menu item label =====
 sumojedit.ac.user-guide.label=AutoComplete (AC) User Guide

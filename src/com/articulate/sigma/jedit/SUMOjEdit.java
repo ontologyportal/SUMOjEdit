@@ -1415,14 +1415,14 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             TPTPVisitor sv;
             Map<String, TPTPFormula> hm;
             for (Formula f : ordered) {
-                //Log.log(Log.WARNING,this,"toTPTP(): SUO-KIF: " + f.getFormula());
-//                pred = f.car();
-                //Log.log(Log.WARNING,this,"toTPTP pred: " + pred);
-                //Log.log(Log.WARNING,this,"toTPTP kb: " + kb);
-                //Log.log(Log.WARNING,this,"toTPTP kb cache: " + kb.kbCache);
-                //Log.log(Log.WARNING,this,"toTPTP gather pred vars: " + PredVarInst.gatherPredVars(kb,f));
-                //if (f.predVarCache != null && f.predVarCache.size() > 0)
-                //  Log.log(Log.WARNING,this,"toTPTP Formula.isHigherOrder(): pred var cache: " + f.predVarCache);
+//              Log.log(Log.WARNING,this,"toTPTP(): SUO-KIF: " + f.getFormula());
+//              pred = f.car();
+//              Log.log(Log.WARNING,this,"toTPTP pred: " + pred);
+//              Log.log(Log.WARNING,this,"toTPTP kb: " + kb);
+//              Log.log(Log.WARNING,this,"toTPTP kb cache: " + kb.kbCache);
+//              Log.log(Log.WARNING,this,"toTPTP gather pred vars: " + PredVarInst.gatherPredVars(kb,f));
+//              if (f.predVarCache != null && f.predVarCache.size() > 0)
+//              Log.log(Log.WARNING,this,"toTPTP Formula.isHigherOrder(): pred var cache: " + f.predVarCache);
                 if (f.isHigherOrder(kb) || (f.predVarCache != null && !f.predVarCache.isEmpty()))
                     continue;
                 tptpStr = "fof(f4434,axiom," + SUMOformulaToTPTPformula.process(f, false) + ",[file('kb_" + f.getSourceFile() + "_" + f.startLine + "',unknown)]).";
@@ -1479,6 +1479,116 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         }
         Log.log(Log.MESSAGE, this, ":fromTPTP(): complete");
     }
+
+    // ========== TPTP Error Checking and Formatting Functionality ==========
+
+    /**
+     * Check TPTP file for errors and warnings.
+     */
+    @Override  
+    public void checkTPTPErrors() {
+        clearWarnAndErr();
+        Log.log(Log.MESSAGE, this, ":checkTPTPErrors(): starting");
+        
+        // Get current view and file
+        view = jEdit.getActiveView();
+        this.errsrc = ensureErrorSource(view);
+        
+        final String filePath = view.getBuffer().getPath();
+        final String contents = view.getTextArea().getText();
+        
+        // Check if this is a TPTP file
+        if (!filePath.toLowerCase().endsWith(".tptp") && 
+            !filePath.toLowerCase().endsWith(".p")) {
+            List<ErrRec> msgs = new ArrayList<>();
+            msgs.add(new ErrRec(ErrorSource.WARNING, filePath, 0, 0, 1, 
+                "Not a TPTP file. Use '.tptp' or '.p' extension."));
+            addErrorsDirect(msgs);
+            return;
+        }
+        
+        Runnable r = () -> {
+            List<ErrRec> errors = TPTPErrorChecker.check(contents, filePath);
+            addErrorsDirect(errors);
+            
+            // Show ErrorList window
+            ThreadUtilities.runInDispatchThread(() -> {
+                if (view != null) {
+                    view.getDockableWindowManager().showDockableWindow("error-list");
+                }
+            });
+            
+            Log.log(Log.MESSAGE, this, ":checkTPTPErrors(): complete");
+        };
+        
+        Runnable rs = create(r, () -> "Checking TPTP errors");
+        startBackgroundThread(rs);
+    }
+    
+    /**
+     * Format TPTP content.
+     */
+    @Override
+    public void formatTPTP() {
+        clearWarnAndErr();
+        Log.log(Log.MESSAGE, this, ":formatTPTP(): starting");
+        
+        String contents = view.getTextArea().getSelectedText();
+        if (contents == null || contents.isEmpty()) {
+            contents = view.getTextArea().getText();
+        }
+        
+        if (!checkEditorContents(contents, "Please select TPTP content to format or use CTRL+A")) {
+            return;
+        }
+        
+        final String contentsToFormat = contents;  // ← NEW LINE: Create final copy for lambda
+        
+        Runnable r = () -> {
+            String formatted = TPTPFormatter.format(contentsToFormat);  // ← CHANGED: Use final copy
+            
+            ThreadUtilities.runInDispatchThread(() -> {
+                if (view.getTextArea().getSelectedText() != null && 
+                    !view.getTextArea().getSelectedText().isEmpty()) {
+                    view.getTextArea().setSelectedText(formatted);
+                } else {
+                    view.getTextArea().setText(formatted);
+                }
+            });
+            
+            Log.log(Log.MESSAGE, this, ":formatTPTP(): complete");
+        };
+        
+        Runnable rs = create(r, () -> "Formatting TPTP");
+        startBackgroundThread(rs);
+    }
+    
+    /**
+     * Configure TPTP4X path.
+     */
+    @Override
+    public void configureTPTP4X() {
+        String currentPath = System.getenv("TPTP4X_PATH");
+        if (currentPath == null) {
+            currentPath = jEdit.getProperty("sumojedit.tptp4x.path", "");
+        }
+        
+        String newPath = javax.swing.JOptionPane.showInputDialog(
+            view,
+            "Enter path to tptp4X executable:",
+            currentPath
+        );
+        
+        if (newPath != null && !newPath.trim().isEmpty()) {
+            jEdit.setProperty("sumojedit.tptp4x.path", newPath.trim());
+            TPTPErrorChecker.setTPTP4XPath(newPath.trim());
+            TPTPFormatter.setTPTP4XPath(newPath.trim());
+            
+            view.getStatus().setMessageAndClear("TPTP4X path configured: " + newPath);
+        }
+    }
+
+    // ========== END OF NEW METHODS ==========
 
     // === BEGIN: Drop-down AutoComplete (self-contained, Java 11 compatible) ===
 
