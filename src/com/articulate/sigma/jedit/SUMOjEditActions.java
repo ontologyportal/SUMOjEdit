@@ -117,4 +117,11 @@ interface SUMOjEditActions {
      * not do full pre-processing, just a syntax translation
      */
     void fromTPTP();
+
+    // New TPTP-specific actions
+    void checkTPTPErrors();
+
+    void formatTPTP();
+    
+    void configureTPTP4X();
 }

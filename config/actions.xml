@@ -61,6 +61,31 @@
         </CODE>
     </ACTION>
 
+    <!-- ===== TPTP Error Checking and Formatting Functionality ===== -->
+
+    <!-- TPTP Error Checker action -->
+    <ACTION NAME="sumojedit.check-tptp-errors">
+        <CODE>
+            jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.checkTPTPErrors();
+        </CODE>
+    </ACTION>
+
+    <!-- TPTP Formatter action -->
+    <ACTION NAME="sumojedit.format-tptp">
+        <CODE>
+            jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.formatTPTP();
+        </CODE>
+    </ACTION>
+
+    <!-- TPTP4X Configuration action -->
+    <ACTION NAME="sumojedit.configure-tptp4x">
+        <CODE>
+            jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.configureTPTP4X();
+        </CODE>
+    </ACTION>
+
+<!-- ===== END OF NEW TPTP ACTIONS ===== -->
+
     <!-- ===== AutoComplete menu item with AC-mode + robust fallback ===== -->
     <ACTION NAME="sumojedit.autoComplete">
         <CODE>
