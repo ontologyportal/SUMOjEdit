@@ -118,10 +118,7 @@ interface SUMOjEditActions {
      */
     void fromTPTP();
 
-    // New TPTP-specific actions
-    void checkTPTPErrors();
-
-    void formatTPTP();
-    
-    void configureTPTP4X();
+    // --- TPTP via tptp4X ---
+    void tptpFormatBuffer();
+    void tptpCheckBuffer();
 }
