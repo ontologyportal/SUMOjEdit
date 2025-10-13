@@ -1415,14 +1415,14 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             TPTPVisitor sv;
             Map<String, TPTPFormula> hm;
             for (Formula f : ordered) {
-//              Log.log(Log.WARNING,this,"toTPTP(): SUO-KIF: " + f.getFormula());
-//              pred = f.car();
-//              Log.log(Log.WARNING,this,"toTPTP pred: " + pred);
-//              Log.log(Log.WARNING,this,"toTPTP kb: " + kb);
-//              Log.log(Log.WARNING,this,"toTPTP kb cache: " + kb.kbCache);
-//              Log.log(Log.WARNING,this,"toTPTP gather pred vars: " + PredVarInst.gatherPredVars(kb,f));
-//              if (f.predVarCache != null && f.predVarCache.size() > 0)
-//              Log.log(Log.WARNING,this,"toTPTP Formula.isHigherOrder(): pred var cache: " + f.predVarCache);
+                //Log.log(Log.WARNING,this,"toTPTP(): SUO-KIF: " + f.getFormula());
+//                pred = f.car();
+                //Log.log(Log.WARNING,this,"toTPTP pred: " + pred);
+                //Log.log(Log.WARNING,this,"toTPTP kb: " + kb);
+                //Log.log(Log.WARNING,this,"toTPTP kb cache: " + kb.kbCache);
+                //Log.log(Log.WARNING,this,"toTPTP gather pred vars: " + PredVarInst.gatherPredVars(kb,f));
+                //if (f.predVarCache != null && f.predVarCache.size() > 0)
+                //  Log.log(Log.WARNING,this,"toTPTP Formula.isHigherOrder(): pred var cache: " + f.predVarCache);
                 if (f.isHigherOrder(kb) || (f.predVarCache != null && !f.predVarCache.isEmpty()))
                     continue;
                 tptpStr = "fof(f4434,axiom," + SUMOformulaToTPTPformula.process(f, false) + ",[file('kb_" + f.getSourceFile() + "_" + f.startLine + "',unknown)]).";
@@ -1479,116 +1479,6 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         }
         Log.log(Log.MESSAGE, this, ":fromTPTP(): complete");
     }
-
-    // ========== TPTP Error Checking and Formatting Functionality ==========
-
-    /**
-     * Check TPTP file for errors and warnings.
-     */
-    @Override  
-    public void checkTPTPErrors() {
-        clearWarnAndErr();
-        Log.log(Log.MESSAGE, this, ":checkTPTPErrors(): starting");
-        
-        // Get current view and file
-        view = jEdit.getActiveView();
-        this.errsrc = ensureErrorSource(view);
-        
-        final String filePath = view.getBuffer().getPath();
-        final String contents = view.getTextArea().getText();
-        
-        // Check if this is a TPTP file
-        if (!filePath.toLowerCase().endsWith(".tptp") && 
-            !filePath.toLowerCase().endsWith(".p")) {
-            List<ErrRec> msgs = new ArrayList<>();
-            msgs.add(new ErrRec(ErrorSource.WARNING, filePath, 0, 0, 1, 
-                "Not a TPTP file. Use '.tptp' or '.p' extension."));
-            addErrorsDirect(msgs);
-            return;
-        }
-        
-        Runnable r = () -> {
-            List<ErrRec> errors = TPTPErrorChecker.check(contents, filePath);
-            addErrorsDirect(errors);
-            
-            // Show ErrorList window
-            ThreadUtilities.runInDispatchThread(() -> {
-                if (view != null) {
-                    view.getDockableWindowManager().showDockableWindow("error-list");
-                }
-            });
-            
-            Log.log(Log.MESSAGE, this, ":checkTPTPErrors(): complete");
-        };
-        
-        Runnable rs = create(r, () -> "Checking TPTP errors");
-        startBackgroundThread(rs);
-    }
-    
-    /**
-     * Format TPTP content.
-     */
-    @Override
-    public void formatTPTP() {
-        clearWarnAndErr();
-        Log.log(Log.MESSAGE, this, ":formatTPTP(): starting");
-        
-        String contents = view.getTextArea().getSelectedText();
-        if (contents == null || contents.isEmpty()) {
-            contents = view.getTextArea().getText();
-        }
-        
-        if (!checkEditorContents(contents, "Please select TPTP content to format or use CTRL+A")) {
-            return;
-        }
-        
-        final String contentsToFormat = contents;  // ← NEW LINE: Create final copy for lambda
-        
-        Runnable r = () -> {
-            String formatted = TPTPFormatter.format(contentsToFormat);  // ← CHANGED: Use final copy
-            
-            ThreadUtilities.runInDispatchThread(() -> {
-                if (view.getTextArea().getSelectedText() != null && 
-                    !view.getTextArea().getSelectedText().isEmpty()) {
-                    view.getTextArea().setSelectedText(formatted);
-                } else {
-                    view.getTextArea().setText(formatted);
-                }
-            });
-            
-            Log.log(Log.MESSAGE, this, ":formatTPTP(): complete");
-        };
-        
-        Runnable rs = create(r, () -> "Formatting TPTP");
-        startBackgroundThread(rs);
-    }
-    
-    /**
-     * Configure TPTP4X path.
-     */
-    @Override
-    public void configureTPTP4X() {
-        String currentPath = System.getenv("TPTP4X_PATH");
-        if (currentPath == null) {
-            currentPath = jEdit.getProperty("sumojedit.tptp4x.path", "");
-        }
-        
-        String newPath = javax.swing.JOptionPane.showInputDialog(
-            view,
-            "Enter path to tptp4X executable:",
-            currentPath
-        );
-        
-        if (newPath != null && !newPath.trim().isEmpty()) {
-            jEdit.setProperty("sumojedit.tptp4x.path", newPath.trim());
-            TPTPErrorChecker.setTPTP4XPath(newPath.trim());
-            TPTPFormatter.setTPTP4XPath(newPath.trim());
-            
-            view.getStatus().setMessageAndClear("TPTP4X path configured: " + newPath);
-        }
-    }
-
-    // ========== END OF NEW METHODS ==========
 
     // === BEGIN: Drop-down AutoComplete (self-contained, Java 11 compatible) ===
 
@@ -1845,5 +1735,144 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         } else {
             showHelp();
         }
+    }
+
+        // ===== TPTP integration via external tptp4X =====
+    private static final String PROP_TPTP4X_PATH = "sumojedit.tptp4x.path";
+    private static final java.util.regex.Pattern TPTP_LOC = java.util.regex.Pattern.compile("(\\d+):(\\d+):\\s*(.*)");
+    private static final java.util.Set<String> TPTP_EXTS = java.util.Set.of("tptp","p","fof","cnf","tff","thf");
+
+    private String resolveTptp4xPath() {
+        String p = jEdit.getProperty(PROP_TPTP4X_PATH);
+        return (p != null && !p.isBlank()) ? p : System.getProperty("user.home") + "/bin/tptp4X";
+    }
+
+    private static boolean isTptpFile(String path) {
+        if (path == null) return false;
+        int i = path.lastIndexOf('.');
+        if (i < 0) return false;
+        String ext = path.substring(i+1).toLowerCase(java.util.Locale.ROOT);
+        return TPTP_EXTS.contains(ext);
+    }
+
+    private static java.nio.file.Path writeTemp(String text, String suffix) throws java.io.IOException {
+        var tmp = java.nio.file.Files.createTempFile("sje-", suffix);
+        java.nio.file.Files.writeString(tmp, text);
+        return tmp;
+    }
+
+    private static final class ProcOut {
+        final String out, err; final int code;
+        ProcOut(String o, String e, int c){ out=o; err=e; code=c; }
+    }
+
+    private ProcOut runTptp4x(java.nio.file.Path file, String... args)
+            throws java.io.IOException, InterruptedException {
+        java.util.List<String> cmd = new java.util.ArrayList<>();
+        cmd.add(resolveTptp4xPath());
+        java.util.Collections.addAll(cmd, args);
+        cmd.add(file.toString());
+        ProcessBuilder pb = new ProcessBuilder(cmd);
+        Process pr = pb.start();
+        String out = new String(pr.getInputStream().readAllBytes());
+        String err = new String(pr.getErrorStream().readAllBytes());
+        int code = pr.waitFor();
+        return new ProcOut(out, err, code);
+    }
+
+    private java.util.List<ErrRec> parseTptpOutput(String filePath, String text, int errType) {
+        java.util.List<ErrRec> list = new java.util.ArrayList<>();
+        if (text == null || text.isBlank()) return list;
+        for (String ln : text.split("\\R")) {
+            if (ln.isBlank()) continue;
+            var m = TPTP_LOC.matcher(ln);
+            if (m.find()) {
+                int line = Math.max(0, Integer.parseInt(m.group(1)) - 1);
+                int col  = Math.max(0, Integer.parseInt(m.group(2)) - 1);
+                String msg = m.group(3).isBlank() ? "tptp4X" : m.group(3).trim();
+                list.add(new ErrRec(errType, filePath, line, col, col+1, msg));
+            } else {
+                // No line/col available; attach to start of file so user still sees it
+                list.add(new ErrRec(errType, filePath, 0, 0, 1, ln.trim()));
+            }
+        }
+        return list;
+    }
+
+    @Override
+    public void tptpFormatBuffer() {
+        clearWarnAndErr();
+        final var view = jEdit.getActiveView();
+        final var ta   = view.getTextArea();
+        final var buf  = view.getBuffer();
+//        if (kif != null && (kif.filename == null || kif.filename.isBlank()))
+//            kif.filename = buf.getPath();
+
+        final String filePath = (buf.getPath() != null && !buf.getPath().isBlank())
+            ? buf.getPath()
+            : buf.getName();  // unsaved buffers: fall back to buffer name (not a directory)
+        final String selected = ta.getSelectedText();
+        final String text     = (selected != null && !selected.isBlank()) ? selected : ta.getText();
+
+        final boolean replaceWhole = (selected == null || selected.isBlank()) && isTptpFile(filePath);
+
+        startBackgroundThread(create(() -> {
+            try {
+                var tmp = writeTemp(text, ".tptp");
+                // Pretty, long TPTP, human-indented output
+                var po  = runTptp4x(tmp, "-f","tptp", "-u","human");
+                if (po.code == 0 && !po.out.isBlank()) {
+                    ThreadUtilities.runInDispatchThread(() -> {
+                        if (replaceWhole) ta.setText(po.out);
+                        else if (selected != null && !selected.isBlank()) ta.setSelectedText(po.out);
+                        else { jEdit.newFile(view); view.getTextArea().setText(po.out); }
+                    });
+                } else {
+                    // Surface messages (warnings) so user sees what went wrong
+                    addErrorsDirect(parseTptpOutput(filePath, po.err.isBlank()? po.out : po.err, ErrorSource.WARNING));
+                }
+            } catch (Throwable t) {
+                addErrorsDirect(java.util.List.of(
+                    new ErrRec(ErrorSource.ERROR, filePath, 0, 0, 1, "Format failed: " + t.getMessage())
+                ));
+            }
+        }, () -> "Format TPTP"));
+    }
+
+    @Override
+    public void tptpCheckBuffer() {
+        clearWarnAndErr();
+        final var view = jEdit.getActiveView();
+        final var ta   = view.getTextArea();
+        final var buf  = view.getBuffer();
+        final String filePath = (buf.getPath() != null && !buf.getPath().isBlank())
+            ? buf.getPath()
+            : buf.getName();  // unsaved buffers: fall back to buffer name (not a directory)
+        final String selected = ta.getSelectedText();
+        final String text     = (selected != null && !selected.isBlank()) ? selected : ta.getText();
+
+        // Write to temp and ask tptp4X for diagnostics
+        startBackgroundThread(create(() -> {
+            try {
+                var tmp = writeTemp(text, ".tptp");
+                // -w for warnings, -z for SZS status, -u machine for single-line output
+                var po  = runTptp4x(tmp, "-w", "-z", "-u", "machine");
+
+                var recs = new java.util.ArrayList<ErrRec>();
+                if (!po.err.isBlank()) recs.addAll(parseTptpOutput(filePath, po.err, ErrorSource.ERROR));
+                if (!po.out.isBlank()) recs.addAll(parseTptpOutput(filePath, po.out, ErrorSource.WARNING));
+                if (recs.isEmpty()) {
+                    recs.add(new ErrRec(ErrorSource.WARNING, filePath, 0, 0, 1, "tptp4X: no issues reported"));
+                }
+                addErrorsDirect(recs);
+
+                ThreadUtilities.runInDispatchThread(() ->
+                    view.getDockableWindowManager().showDockableWindow("error-list"));
+            } catch (Throwable t) {
+                addErrorsDirect(java.util.List.of(
+                    new ErrRec(ErrorSource.ERROR, filePath, 0, 0, 1, "Check failed: " + t.getMessage())
+                ));
+            }
+        }, () -> "Check TPTP"));
     }
 }
