@@ -399,37 +399,43 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
         Runnable r = () -> {
             boolean isKif = Files.getFileExtension(view.getBuffer().getPath()).equalsIgnoreCase("kif");
-            boolean isTptp = Files.getFileExtension(view.getBuffer().getPath()).equalsIgnoreCase("tptp");
-            if (isKif || isTptp) {
+
+            // Treat these as “TPTP-ish” so menus stay enabled
+            final String ext = Files.getFileExtension(view.getBuffer().getPath()).toLowerCase();
+            final java.util.Set<String> tptpExts = new java.util.HashSet<>(
+                    java.util.Arrays.asList("tptp","p","fof","cnf","tff","thf"));
+            boolean isTptpLike = tptpExts.contains(ext);
+
+            if (isKif || isTptpLike) {
                 togglePluginMenus(true);
                 if (isKif) {
                     kif.filename = view.getBuffer().getPath();
-                    if (kb != null && !kb.constituents.contains(kif.filename) && new File(kif.filename).length() > 1L /*&& !KBmanager.getMgr().infFileOld()*/) {
+                    if (kb != null && !kb.constituents.contains(kif.filename)
+                            && new File(kif.filename).length() > 1L) {
                         togglePluginMenus(false);
                         Color clr = view.getStatus().getBackground();
                         ThreadUtilities.runInDispatchThread(() -> {
                             view.getStatus().setBackground(Color.GREEN);
                             view.getStatus().setMessage("processing " + kif.filename);
                         });
-                        tellTheKbAboutLoadedKif(); // adds kif as a constituent into the KB
+                        tellTheKbAboutLoadedKif();
                         checkErrors();
                         ThreadUtilities.runInDispatchThread(() -> {
                             view.getStatus().setBackground(clr);
                             view.getStatus().setMessageAndClear("processing " + kif.filename + " complete");
                         });
                         togglePluginMenus(true);
-                        // TODO: remove loaded KIF from KB?
                     }
                 }
-                ErrorSource.registerErrorSource(errsrc); // just returns if already registered
+                ErrorSource.registerErrorSource(errsrc);
             } else {
                 togglePluginMenus(false);
-                if (errsrc != null)
-                    unload();
+                if (errsrc != null) unload();
             }
             Log.log(Log.MESSAGE, this, ":processLoadedKifOrTptp(): complete");
             if (pluginStart > 0) {
-                Log.log(Log.MESSAGE, this, ":initial startup completed in " + (System.currentTimeMillis() - pluginStart) / KButilities.ONE_K + " secs");
+                Log.log(Log.MESSAGE, this, ":initial startup completed in " +
+                        (System.currentTimeMillis() - pluginStart) / KButilities.ONE_K + " secs");
                 pluginStart = 0L;
             }
         };
