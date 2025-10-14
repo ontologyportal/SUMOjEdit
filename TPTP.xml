@@ -91,13 +91,13 @@
 		<KEYWORDS>
 
 			<!-- Keywords that are 0 arity built-in predicates -->
-			<KEYWORD1>true</KEYWORD1>
-			<KEYWORD1>fail</KEYWORD1>
-			<KEYWORD1>!</KEYWORD1> <!-- cut -->
-			<KEYWORD1>at_end_of_stream</KEYWORD1>
-			<KEYWORD1>nl</KEYWORD1>
-			<KEYWORD1>repeat</KEYWORD1>
-			<KEYWORD1>halt</KEYWORD1>
+			<KEYWORD1>$true</KEYWORD1>
+			<KEYWORD1>$false</KEYWORD1>
+			<KEYWORD1>~</KEYWORD1> <!-- cut -->
+			<KEYWORD1>$less</KEYWORD1>
+			<KEYWORD1>tff</KEYWORD1>
+			<KEYWORD1>thf</KEYWORD1>
+			<KEYWORD1>fof</KEYWORD1>
 
 			<!-- Keywords that are built-in predicates with arity greater than or equal to 1 -->
 			<FUNCTION>call</FUNCTION>

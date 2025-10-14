@@ -10,4 +10,13 @@
           FILE_NAME_GLOB="*.kif" />
     <MODE NAME="tptp"		FILE="TPTP.xml"
           FILE_NAME_GLOB="*.tptp" />
+    <MODE NAME="p"		FILE="TPTP.xml"
+          FILE_NAME_GLOB="*.p" />
+    <MODE NAME="tff"		FILE="TPTP.xml"
+          FILE_NAME_GLOB="*.tff" />
+    <MODE NAME="fof"		FILE="TPTP.xml"
+          FILE_NAME_GLOB="*.fof" />
+    <MODE NAME="thf"		FILE="TPTP.xml"
+          FILE_NAME_GLOB="*.thf />                              
+	<MODE NAME="THF" FILE="TPTP.xml" FILE_NAME_GLOB="*.{p,tptp,fof,tff,thf}"/>
 </MODES>
