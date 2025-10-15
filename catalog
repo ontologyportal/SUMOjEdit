@@ -6,17 +6,10 @@
 <!DOCTYPE MODES SYSTEM "catalog.dtd">
 
 <MODES>
-    <MODE NAME="kif"		FILE="kif.xml"
+    <MODE NAME="kif" FILE="kif.xml"
           FILE_NAME_GLOB="*.kif" />
-    <MODE NAME="tptp"		FILE="TPTP.xml"
-          FILE_NAME_GLOB="*.tptp" />
-    <MODE NAME="p"		FILE="TPTP.xml"
-          FILE_NAME_GLOB="*.p" />
-    <MODE NAME="tff"		FILE="TPTP.xml"
-          FILE_NAME_GLOB="*.tff" />
-    <MODE NAME="fof"		FILE="TPTP.xml"
-          FILE_NAME_GLOB="*.fof" />
-    <MODE NAME="thf"		FILE="TPTP.xml"
-          FILE_NAME_GLOB="*.thf />                              
-	<MODE NAME="THF" FILE="TPTP.xml" FILE_NAME_GLOB="*.{p,tptp,fof,tff,thf}"/>
+
+    <!-- Use the same TPTP mode for all relevant extensions -->
+    <MODE NAME="tptp" FILE="TPTP.xml"
+          FILE_NAME_GLOB="*.{tptp,thf,tff,fof,cnf,p}" />
 </MODES>

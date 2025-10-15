@@ -957,10 +957,43 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     public void formatSelect() {
 
         clearWarnAndErr();
+
+        // Use jEdit's Buffer explicitly to avoid java.nio.Buffer collision
+        final org.gjt.sp.jedit.Buffer buf = view.getBuffer();
+        final String filePath = (buf != null ? buf.getPath() : null);
+
+        // For THF/TFF/FOF/CNF/P/TPTP, use the tptp4x-based formatter
+        if (isTptpFile(filePath)) {
+            tptpFormatBuffer();
+            return;
+        }
+
+        // KIF path unchanged
         String contents = view.getTextArea().getSelectedText();
         String result = formatSelectBody(contents);
         if (!StringUtil.emptyString(result))
             view.getTextArea().setSelectedText(result);
+    }
+
+    // NEW: Route whole-buffer formatting to tptp4X for TPTP-like files
+    public void formatBuffer() {
+
+        clearWarnAndErr();
+
+        final org.gjt.sp.jedit.Buffer buf = view.getBuffer();
+        final String filePath = (buf != null ? buf.getPath() : null);
+
+        // THF/TFF/FOF/CNF/P/TPTP -> external tptp4X pretty-printer
+        if (isTptpFile(filePath)) {
+            tptpFormatBuffer();
+            return;
+        }
+
+        // KIF path unchanged (legacy path)
+        String contents = view.getTextArea().getText();
+        String result = formatSelectBody(contents);
+        if (!StringUtil.emptyString(result))
+            view.getTextArea().setText(result);
     }
 
     /** ***************************************************************
@@ -1182,6 +1215,14 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
         // Freeze the file path NOW and keep using it for this run
         final String filePath = view.getBuffer().getPath();
+
+        // TPTP-like files (thf/tff/fof/cnf/p/tptp) -> tptp4x checker
+        if (isTptpFile(filePath)) {
+            tptpCheckBuffer();
+            return;
+        }
+
+        // KIF path unchanged
         if (StringUtil.emptyString(kif.filename)) {
             kif.filename = filePath; // keep for status/logs, but don't use for error entries
         }
@@ -1251,9 +1292,45 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         if (errors == null || errors.isEmpty()) return;
         errorlist.ErrorSource.unregisterErrorSource(errsrc);
         try {
+            final org.gjt.sp.jedit.Buffer buf = (view != null ? view.getBuffer() : null);
+
             for (ErrRec e : errors) {
-                String msgWithSnippet = appendSnippet(e.msg, e.file, e.line);
-                errsrc.addError(e.type, e.file, e.line, e.start, e.end, msgWithSnippet);
+                int line = Math.max(0, e.line);
+                int startCol = Math.max(0, e.start);
+                int endCol = Math.max(startCol + 1, e.end);
+
+                // Clamp to actual buffer content if available
+                if (buf != null) {
+                    int maxLine = Math.max(0, buf.getLineCount() - 1);
+                    if (line > maxLine) line = maxLine;
+
+                    try {
+                        int lineLen = buf.getLineLength(line);
+                        int lineStart = buf.getLineStartOffset(line);
+                        String lineText = buf.getText(lineStart, lineLen);
+
+                        // If span is 1 char (common from col+1), expand to cover the token
+                        if (endCol <= startCol + 1) {
+                            int s = Math.min(startCol, Math.max(0, lineText.length()));
+                            int epos = s;
+                            while (epos < lineText.length()) {
+                                char ch = lineText.charAt(epos);
+                                if (!(Character.isLetterOrDigit(ch) || ch == '_' || ch == '-')) break;
+                                epos++;
+                            }
+                            endCol = Math.max(epos, startCol + 1);
+                        }
+
+                        // Keep within line bounds
+                        if (startCol > lineText.length()) startCol = Math.max(0, lineText.length() - 1);
+                        if (endCol > lineText.length())   endCol   = lineText.length();
+                    } catch (Throwable ignore) {
+                        // fall back to original indices
+                    }
+                }
+
+                String msgWithSnippet = appendSnippet(e.msg, e.file, line);
+                errsrc.addError(e.type, e.file, line, startCol, endCol, msgWithSnippet);
             }
         } finally {
             errorlist.ErrorSource.registerErrorSource(errsrc);
@@ -1745,12 +1822,32 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
         // ===== TPTP integration via external tptp4X =====
     private static final String PROP_TPTP4X_PATH = "sumojedit.tptp4x.path";
-    private static final java.util.regex.Pattern TPTP_LOC = java.util.regex.Pattern.compile("(\\d+):(\\d+):\\s*(.*)");
+    // Accept optional filename before line/col, e.g. "file.tff:12:34: msg"
+    private static final java.util.regex.Pattern TPTP_LOC =
+        java.util.regex.Pattern.compile("(?:[^:]+:)?(\\d+):(\\d+):\\s*(.*)");
     private static final java.util.Set<String> TPTP_EXTS = java.util.Set.of("tptp","p","fof","cnf","tff","thf");
 
     private String resolveTptp4xPath() {
         String p = jEdit.getProperty(PROP_TPTP4X_PATH);
         return (p != null && !p.isBlank()) ? p : System.getProperty("user.home") + "/bin/tptp4X";
+    }
+
+    // NEW: ensure tptp4X exists and is executable; surface a clear ErrorList message if not
+    private boolean ensureTptp4x(String filePath) {
+        String p = resolveTptp4xPath();
+        File f = new File(p);
+        if (!f.exists() || !f.canExecute()) {
+            addErrorsDirect(java.util.List.of(
+                new ErrRec(ErrorSource.ERROR,
+                           (filePath != null ? filePath : "untitled"),
+                           0, 0, 1,
+                           "tptp4X not found or not executable at: " + p +
+                           " (set jEdit property 'sumojedit.tptp4x.path')")));
+            ThreadUtilities.runInDispatchThread(() ->
+                view.getDockableWindowManager().showDockableWindow("error-list"));
+            return false;
+        }
+        return true;
     }
 
     private static boolean isTptpFile(String path) {
@@ -1822,9 +1919,18 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
         final boolean replaceWhole = (selected == null || selected.isBlank()) && isTptpFile(filePath);
 
+        // NEW: preserve the original extension for tptp4X input (helps parser selection)
+        final String ext;
+        {
+            int dot = filePath.lastIndexOf('.');
+            ext = (dot >= 0 && dot < filePath.length() - 1)
+                    ? filePath.substring(dot + 1).toLowerCase(java.util.Locale.ROOT)
+                    : "tptp";
+        }
+
         startBackgroundThread(create(() -> {
             try {
-                var tmp = writeTemp(text, ".tptp");
+                var tmp = writeTemp(text, "." + ext);
                 // Pretty, long TPTP, human-indented output
                 var po  = runTptp4x(tmp, "-f","tptp", "-u","human");
                 if (po.code == 0 && !po.out.isBlank()) {
@@ -1836,11 +1942,15 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 } else {
                     // Surface messages (warnings) so user sees what went wrong
                     addErrorsDirect(parseTptpOutput(filePath, po.err.isBlank()? po.out : po.err, ErrorSource.WARNING));
+                    ThreadUtilities.runInDispatchThread(() ->
+                        view.getDockableWindowManager().showDockableWindow("error-list"));
                 }
             } catch (Throwable t) {
                 addErrorsDirect(java.util.List.of(
                     new ErrRec(ErrorSource.ERROR, filePath, 0, 0, 1, "Format failed: " + t.getMessage())
                 ));
+                ThreadUtilities.runInDispatchThread(() ->
+                    view.getDockableWindowManager().showDockableWindow("error-list"));
             }
         }, () -> "Format TPTP"));
     }
@@ -1854,13 +1964,26 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         final String filePath = (buf.getPath() != null && !buf.getPath().isBlank())
             ? buf.getPath()
             : buf.getName();  // unsaved buffers: fall back to buffer name (not a directory)
-        final String selected = ta.getSelectedText();
-        final String text     = (selected != null && !selected.isBlank()) ? selected : ta.getText();
+
+        // ALWAYS check the entire buffer so tptp4X line numbers match jEdit’s
+        final String text = ta.getText();
+
+        // NEW: bail early with a clear message if tptp4X is missing
+        if (!ensureTptp4x(filePath)) return;
+
+        // NEW: preserve original extension for parser selection (tff/thf/fof/cnf/p/tptp)
+        final String ext;
+        {
+            int dot = filePath.lastIndexOf('.');
+            ext = (dot >= 0 && dot < filePath.length() - 1)
+                    ? filePath.substring(dot + 1).toLowerCase(java.util.Locale.ROOT)
+                    : "tptp";
+        }
 
         // Write to temp and ask tptp4X for diagnostics
         startBackgroundThread(create(() -> {
             try {
-                var tmp = writeTemp(text, ".tptp");
+                var tmp = writeTemp(text, "." + ext);
                 // -w for warnings, -z for SZS status, -u machine for single-line output
                 var po  = runTptp4x(tmp, "-w", "-z", "-u", "machine");
 
@@ -1878,6 +2001,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 addErrorsDirect(java.util.List.of(
                     new ErrRec(ErrorSource.ERROR, filePath, 0, 0, 1, "Check failed: " + t.getMessage())
                 ));
+                ThreadUtilities.runInDispatchThread(() ->
+                    view.getDockableWindowManager().showDockableWindow("error-list"));
             }
         }, () -> "Check TPTP"));
     }
