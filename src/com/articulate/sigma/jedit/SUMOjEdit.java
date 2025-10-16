@@ -491,8 +491,6 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
         if (msg instanceof BufferUpdate)
             bufferUpdate((BufferUpdate)msg);
-//        if (msg instanceof EditorExiting)
-//            editorExiting((EditorExiting)msg);
         if (msg instanceof EditPaneUpdate)
             editPaneUpdate((EditPaneUpdate)msg);
         //        if (msg instanceof VFSUpdate)
