@@ -491,6 +491,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
         if (msg instanceof BufferUpdate)
             bufferUpdate((BufferUpdate)msg);
+//        if (msg instanceof EditorExiting)
+//            editorExiting((EditorExiting)msg);
         if (msg instanceof EditPaneUpdate)
             editPaneUpdate((EditPaneUpdate)msg);
         //        if (msg instanceof VFSUpdate)
@@ -1900,58 +1902,46 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         return list;
     }
 
-    @Override
-    public void tptpFormatBuffer() {
-        clearWarnAndErr();
-        final var view = jEdit.getActiveView();
-        final var ta   = view.getTextArea();
-        final var buf  = view.getBuffer();
-//        if (kif != null && (kif.filename == null || kif.filename.isBlank()))
-//            kif.filename = buf.getPath();
+@Override
+public void tptpFormatBuffer() {
+    clearWarnAndErr();
+    final var view = jEdit.getActiveView();
+    final var ta   = view.getTextArea();
+    final var buf  = view.getBuffer();
 
-        final String filePath = (buf.getPath() != null && !buf.getPath().isBlank())
-            ? buf.getPath()
-            : buf.getName();  // unsaved buffers: fall back to buffer name (not a directory)
-        final String selected = ta.getSelectedText();
-        final String text     = (selected != null && !selected.isBlank()) ? selected : ta.getText();
+    final String filePath = (buf.getPath() != null && !buf.getPath().isBlank())
+        ? buf.getPath()
+        : buf.getName();
+    final String selected = ta.getSelectedText();
+    final String text     = (selected != null && !selected.isBlank()) ? selected : ta.getText();
+    final boolean replaceWhole = (selected == null || selected.isBlank()) && isTptpFile(filePath);
 
-        final boolean replaceWhole = (selected == null || selected.isBlank()) && isTptpFile(filePath);
-
-        // NEW: preserve the original extension for tptp4X input (helps parser selection)
-        final String ext;
-        {
-            int dot = filePath.lastIndexOf('.');
-            ext = (dot >= 0 && dot < filePath.length() - 1)
-                    ? filePath.substring(dot + 1).toLowerCase(java.util.Locale.ROOT)
-                    : "tptp";
-        }
-
-        startBackgroundThread(create(() -> {
-            try {
-                var tmp = writeTemp(text, "." + ext);
-                // Pretty, long TPTP, human-indented output
-                var po  = runTptp4x(tmp, "-f","tptp", "-u","human");
-                if (po.code == 0 && !po.out.isBlank()) {
-                    ThreadUtilities.runInDispatchThread(() -> {
-                        if (replaceWhole) ta.setText(po.out);
-                        else if (selected != null && !selected.isBlank()) ta.setSelectedText(po.out);
-                        else { jEdit.newFile(view); view.getTextArea().setText(po.out); }
-                    });
-                } else {
-                    // Surface messages (warnings) so user sees what went wrong
-                    addErrorsDirect(parseTptpOutput(filePath, po.err.isBlank()? po.out : po.err, ErrorSource.WARNING));
-                    ThreadUtilities.runInDispatchThread(() ->
-                        view.getDockableWindowManager().showDockableWindow("error-list"));
-                }
-            } catch (Throwable t) {
+    startBackgroundThread(create(() -> {
+        try {
+            String formatted = TPTPChecker.formatTptpText(text, filePath);
+            if (formatted != null && !formatted.isBlank()) {
+                ThreadUtilities.runInDispatchThread(() -> {
+                    if (replaceWhole) ta.setText(formatted);
+                    else if (selected != null && !selected.isBlank()) ta.setSelectedText(formatted);
+                    else { jEdit.newFile(view); view.getTextArea().setText(formatted); }
+                });
+            } else {
                 addErrorsDirect(java.util.List.of(
-                    new ErrRec(ErrorSource.ERROR, filePath, 0, 0, 1, "Format failed: " + t.getMessage())
+                    new ErrRec(ErrorSource.WARNING, filePath, 0, 0, 1, "TPTP formatting failed.")
                 ));
                 ThreadUtilities.runInDispatchThread(() ->
                     view.getDockableWindowManager().showDockableWindow("error-list"));
             }
-        }, () -> "Format TPTP"));
-    }
+        } catch (Throwable t) {
+            addErrorsDirect(java.util.List.of(
+                new ErrRec(ErrorSource.ERROR, filePath, 0, 0, 1, "Format failed: " + t.getMessage())
+            ));
+            ThreadUtilities.runInDispatchThread(() ->
+                view.getDockableWindowManager().showDockableWindow("error-list"));
+        }
+    }, () -> "Format TPTP"));
+}
+
 
     @Override
     public void tptpCheckBuffer() {
