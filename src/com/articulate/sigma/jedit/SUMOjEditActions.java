@@ -120,5 +120,4 @@ interface SUMOjEditActions {
 
     // --- TPTP via tptp4X ---
     void tptpFormatBuffer();
-    void tptpCheckBuffer();
 }

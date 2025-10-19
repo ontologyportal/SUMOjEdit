@@ -60,14 +60,9 @@
             jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.fromTPTP();
         </CODE>
     </ACTION>
-    <ACTION NAME="sumojedit.tptp.format-buffer">
+        <ACTION NAME="sumojedit.tptp.format-buffer">
         <CODE>
             jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.tptpFormatBuffer();
-        </CODE>
-    </ACTION>
-    <ACTION NAME="sumojedit.tptp.check-buffer">
-        <CODE>
-            jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.tptpCheckBuffer();
         </CODE>
     </ACTION>
 

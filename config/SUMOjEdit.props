@@ -56,7 +56,6 @@ plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.menu=\
   sumojedit.from-tptp \
   sumojedit.to-tptp \
   sumojedit.tptp.format-buffer \
-  sumojedit.tptp.check-buffer \
   - \
   sumojedit.ac.user-guide \
   - \
@@ -80,7 +79,6 @@ sumojedit.from-tptp.label=SUO-KIF from TPTP
 
 # --- TPTP (tptp4X) ---
 sumojedit.tptp.format-buffer.label=Format TPTP (tptp4X)
-sumojedit.tptp.check-buffer.label=Check TPTP (tptp4X)
 # Absolute path to tptp4X (overrideable in jEdit props)
 sumojedit.tptp4x.path=/Users/sdeng/workspace/SUMOjEdit/tptp4X
 
