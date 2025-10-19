@@ -1216,9 +1216,9 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         // Freeze the file path NOW and keep using it for this run
         final String filePath = view.getBuffer().getPath();
 
-        // TPTP-like files (thf/tff/fof/cnf/p/tptp) -> tptp4x checker
+        // TPTP-like files (thf/tff/fof/cnf/p/tptp): no checking (feature removed)
         if (isTptpFile(filePath)) {
-            tptpCheckBuffer();
+            Log.log(Log.MESSAGE, this, ":checkErrors(): TPTP checking disabled; skipping");
             return;
         }
 
@@ -1895,8 +1895,12 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 String msg = m.group(3).isBlank() ? "tptp4X" : m.group(3).trim();
                 list.add(new ErrRec(errType, filePath, line, col, col+1, msg));
             } else {
+                final String trimmed = ln.trim();
+                // Ignore pure comment lines so they never appear as bogus warnings
+                if (trimmed.startsWith("%")) continue;
+
                 // No line/col available; attach to start of file so user still sees it
-                list.add(new ErrRec(errType, filePath, 0, 0, 1, ln.trim()));
+                list.add(new ErrRec(errType, filePath, 0, 0, 1, trimmed));
             }
         }
         return list;
@@ -1908,18 +1912,18 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         final var view = jEdit.getActiveView();
         final var ta   = view.getTextArea();
         final var buf  = view.getBuffer();
-//        if (kif != null && (kif.filename == null || kif.filename.isBlank()))
-//            kif.filename = buf.getPath();
 
         final String filePath = (buf.getPath() != null && !buf.getPath().isBlank())
             ? buf.getPath()
             : buf.getName();  // unsaved buffers: fall back to buffer name (not a directory)
+
+        final boolean isTptp = isTptpFile(filePath);
         final String selected = ta.getSelectedText();
         final String text     = (selected != null && !selected.isBlank()) ? selected : ta.getText();
 
-        final boolean replaceWhole = (selected == null || selected.isBlank()) && isTptpFile(filePath);
+        final boolean replaceWhole = (selected == null || selected.isBlank()) && isTptp;
 
-        // NEW: preserve the original extension for tptp4X input (helps parser selection)
+        // Preserve original extension for tptp4X input (helps parser selection)
         final String ext;
         {
             int dot = filePath.lastIndexOf('.');
@@ -1930,8 +1934,18 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
         startBackgroundThread(create(() -> {
             try {
+                if (isTptp) {
+                    // NEW: preserve comments for both selection and whole-buffer paths
+                    final String merged = formatTptpPreserveCommentsClauseSafe(text, ext);
+                    ThreadUtilities.runInDispatchThread(() -> {
+                        if (replaceWhole) ta.setText(merged);
+                        else ta.setSelectedText(merged);
+                    });
+                    return;
+                }
+
+                // Non-TPTP fallback: old generic path
                 var tmp = writeTemp(text, "." + ext);
-                // Pretty, long TPTP, human-indented output
                 var po  = runTptp4x(tmp, "-f","tptp", "-u","human");
                 if (po.code == 0 && !po.out.isBlank()) {
                     ThreadUtilities.runInDispatchThread(() -> {
@@ -1940,8 +1954,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                         else { jEdit.newFile(view); view.getTextArea().setText(po.out); }
                     });
                 } else {
-                    // Surface messages (warnings) so user sees what went wrong
-                    addErrorsDirect(parseTptpOutput(filePath, po.err.isBlank()? po.out : po.err, ErrorSource.WARNING));
+                    addErrorsDirect(parseTptpOutput(filePath, po.err.isBlank() ? po.out : po.err, ErrorSource.WARNING));
                     ThreadUtilities.runInDispatchThread(() ->
                         view.getDockableWindowManager().showDockableWindow("error-list"));
                 }
@@ -1955,55 +1968,163 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         }, () -> "Format TPTP"));
     }
 
-    @Override
-    public void tptpCheckBuffer() {
-        clearWarnAndErr();
-        final var view = jEdit.getActiveView();
-        final var ta   = view.getTextArea();
-        final var buf  = view.getBuffer();
-        final String filePath = (buf.getPath() != null && !buf.getPath().isBlank())
-            ? buf.getPath()
-            : buf.getName();  // unsaved buffers: fall back to buffer name (not a directory)
+    /**
+     * Robust formatting that preserves all '%' comments exactly:
+     *  - Lines starting with '%' are copied verbatim.
+     *  - Inline comments (code ... '%' comment) are detected (outside quotes),
+     *    the code part is formatted, and the original '%' tail is reattached
+     *    to the LAST line of that formatted clause.
+     *  - Only complete clauses (ending with '.') are sent to tptp4X.
+     */
+    private String formatTptpPreserveCommentsClauseSafe(String text, String ext) {
+        final String[] lines = text.split("\\R", -1); // keep structure
+        final java.util.List<String> out = new java.util.ArrayList<>();
+        final StringBuilder clause = new StringBuilder();
 
-        // ALWAYS check the entire buffer so tptp4X line numbers match jEdit’s
-        final String text = ta.getText();
+        // We'll attach the next inline comment tail to the last formatted line of the flushed clause
+        final String[] pendingInlineComment = new String[1]; // null or original "% ..."
 
-        // NEW: bail early with a clear message if tptp4X is missing
-        if (!ensureTptp4x(filePath)) return;
+        // Find first '%' that is NOT inside single-quoted string (TPTP style)
+        java.util.function.IntUnaryOperator firstCommentPos = (/*unused*/ignored) -> { throw new UnsupportedOperationException(); };
+        firstCommentPos = (ignored) -> -1; // placeholder to satisfy Java syntax in this snippet
 
-        // NEW: preserve original extension for parser selection (tff/thf/fof/cnf/p/tptp)
-        final String ext;
-        {
-            int dot = filePath.lastIndexOf('.');
-            ext = (dot >= 0 && dot < filePath.length() - 1)
-                    ? filePath.substring(dot + 1).toLowerCase(java.util.Locale.ROOT)
-                    : "tptp";
+        java.util.function.Function<String,Integer> firstPctOutsideQuotes = (line) -> {
+            boolean inStr = false;
+            for (int i = 0; i < line.length(); i++) {
+                char c = line.charAt(i);
+                if (c == '\'') {
+                    // TPTP escapes quotes by doubling ''
+                    if (inStr) {
+                        if (i + 1 < line.length() && line.charAt(i + 1) == '\'') {
+                            i++; // skip escaped quote
+                        } else {
+                            inStr = false;
+                        }
+                    } else {
+                        inStr = true;
+                    }
+                } else if (c == '%' && !inStr) {
+                    return i;
+                }
+            }
+            return -1;
+        };
+
+        java.util.function.Consumer<String> flushClause = (inlineComment) -> {
+            if (clause.length() == 0) {
+                // Even with no clause, if there's an inline-only comment, just output it as-is.
+                if (inlineComment != null) out.add(inlineComment + "\n");
+                pendingInlineComment[0] = null;
+                return;
+            }
+            final String code = clause.toString();
+            String formatted = code;
+            try {
+                var tmp = writeTemp(code, "." + ext);
+                var po  = runTptp4x(tmp, "-f","tptp", "-u","human");
+                if (po.code == 0 && !po.out.isBlank()) {
+                    formatted = po.out.replace("\r\n","\n").replace("\r","\n");
+                }
+            } catch (Throwable ignore) { /* keep original */ }
+
+            // If we have an inline comment tail, attach it to the last line of 'formatted'
+            if (inlineComment != null) {
+                String[] flines = formatted.split("\\R", -1);
+                if (flines.length == 0) {
+                    // degenerate, just emit the comment line
+                    out.add(inlineComment + "\n");
+                } else {
+                    int last = flines.length - 1;
+                    // Preserve exact spacing before '%' by inserting a single space if needed
+                    if (!flines[last].endsWith(" ") && !inlineComment.startsWith(" ")) {
+                        flines[last] = flines[last] + " " + inlineComment;
+                    } else {
+                        flines[last] = flines[last] + inlineComment;
+                    }
+                    formatted = String.join("\n", flines);
+                }
+            }
+
+            out.add(formatted);
+            clause.setLength(0);
+            pendingInlineComment[0] = null;
+        };
+
+        for (String ln : lines) {
+            final String trimmed = ln.trim();
+
+            // Lines that are blank or start with '%' -> verbatim (but flush any pending clause first)
+            if (trimmed.isEmpty() || trimmed.startsWith("%")) {
+                flushClause.accept(pendingInlineComment[0]);  // handle any deferred inline comment
+                out.add(ln + (ln.endsWith("\n") ? "" : "\n")); // keep exact line (with \n)
+                continue;
+            }
+
+            // Detect inline comment outside quotes
+            final int ic = firstPctOutsideQuotes.apply(ln);
+            if (ic >= 0) {
+                String codePart = ln.substring(0, ic);
+                String commentTail = ln.substring(ic);  // includes '%' and whatever follows
+                // If code part is non-empty, add it to the clause buffer
+                if (!codePart.trim().isEmpty()) {
+                    clause.append(codePart).append('\n');
+                    // If codePart closes a clause, flush and attach the inline comment to the last formatted line
+                    if (codePart.trim().endsWith(".")) {
+                        flushClause.accept(commentTail);
+                    } else {
+                        // Clause not closed yet: remember the inline comment, but we will attach it
+                        // when we eventually flush (at the '.' or end of selection/buffer)
+                        pendingInlineComment[0] = commentTail;
+                    }
+                } else {
+                    // No code before '%': treat as a pure comment line
+                    flushClause.accept(pendingInlineComment[0]);
+                    out.add(ln + (ln.endsWith("\n") ? "" : "\n"));
+                }
+                continue;
+            }
+
+            // Normal code line (no inline '%'): accumulate into current clause
+            clause.append(ln).append('\n');
+            if (trimmed.endsWith(".")) {
+                // Clause boundary; flush with any pending inline comment to attach right now
+                flushClause.accept(pendingInlineComment[0]);
+            }
         }
 
-        // Write to temp and ask tptp4X for diagnostics
-        startBackgroundThread(create(() -> {
-            try {
-                var tmp = writeTemp(text, "." + ext);
-                // -w for warnings, -z for SZS status, -u machine for single-line output
-                var po  = runTptp4x(tmp, "-w", "-z", "-u", "machine");
-
-                var recs = new java.util.ArrayList<ErrRec>();
-                if (!po.err.isBlank()) recs.addAll(parseTptpOutput(filePath, po.err, ErrorSource.ERROR));
-                if (!po.out.isBlank()) recs.addAll(parseTptpOutput(filePath, po.out, ErrorSource.WARNING));
-                if (recs.isEmpty()) {
-                    recs.add(new ErrRec(ErrorSource.WARNING, filePath, 0, 0, 1, "tptp4X: no issues reported"));
+        // End of input: flush any pending clause; if there's a deferred inline comment, put it on a new line
+        if (clause.length() > 0) {
+            // No '.' seen; don't force a format pass—emit original clause
+            String code = clause.toString();
+            if (pendingInlineComment[0] != null) {
+                // attach the comment to the last line of the original code text
+                String[] fl = code.split("\\R", -1);
+                if (fl.length > 0) {
+                    int last = fl.length - 1;
+                    if (!fl[last].endsWith(" ") && !pendingInlineComment[0].startsWith(" ")) {
+                        fl[last] = fl[last] + " " + pendingInlineComment[0];
+                    } else {
+                        fl[last] = fl[last] + pendingInlineComment[0];
+                    }
+                    code = String.join("\n", fl);
+                } else {
+                    code = code + pendingInlineComment[0];
                 }
-                addErrorsDirect(recs);
-
-                ThreadUtilities.runInDispatchThread(() ->
-                    view.getDockableWindowManager().showDockableWindow("error-list"));
-            } catch (Throwable t) {
-                addErrorsDirect(java.util.List.of(
-                    new ErrRec(ErrorSource.ERROR, filePath, 0, 0, 1, "Check failed: " + t.getMessage())
-                ));
-                ThreadUtilities.runInDispatchThread(() ->
-                    view.getDockableWindowManager().showDockableWindow("error-list"));
             }
-        }, () -> "Check TPTP"));
+            out.add(code);
+            clause.setLength(0);
+            pendingInlineComment[0] = null;
+        } else if (pendingInlineComment[0] != null) {
+            // Just in case: no code to attach to; emit the inline comment as its own line
+            out.add(pendingInlineComment[0] + "\n");
+            pendingInlineComment[0] = null;
+        }
+
+        return String.join("", out);
     }
+
+    /** METHOD REMOVED */
+//  @Override
+//  public void tptpCheckBuffer()
+
 }
