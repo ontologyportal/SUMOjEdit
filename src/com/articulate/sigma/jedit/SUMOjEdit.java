@@ -1923,38 +1923,19 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
         final boolean replaceWhole = (selected == null || selected.isBlank()) && isTptp;
 
-        // Preserve original extension for tptp4X input (helps parser selection)
-        final String ext;
-        {
-            int dot = filePath.lastIndexOf('.');
-            ext = (dot >= 0 && dot < filePath.length() - 1)
-                    ? filePath.substring(dot + 1).toLowerCase(java.util.Locale.ROOT)
-                    : "tptp";
-        }
-
         startBackgroundThread(create(() -> {
             try {
-                if (isTptp) {
-                    // NEW: preserve comments for both selection and whole-buffer paths
-                    final String merged = formatTptpPreserveCommentsClauseSafe(text, ext);
+                String formatted = TPTPChecker.formatTptpText(text, filePath);
+                if (formatted != null && !formatted.isBlank()) {
                     ThreadUtilities.runInDispatchThread(() -> {
-                        if (replaceWhole) ta.setText(merged);
-                        else ta.setSelectedText(merged);
-                    });
-                    return;
-                }
-
-                // Non-TPTP fallback: old generic path
-                var tmp = writeTemp(text, "." + ext);
-                var po  = runTptp4x(tmp, "-f","tptp", "-u","human");
-                if (po.code == 0 && !po.out.isBlank()) {
-                    ThreadUtilities.runInDispatchThread(() -> {
-                        if (replaceWhole) ta.setText(po.out);
-                        else if (selected != null && !selected.isBlank()) ta.setSelectedText(po.out);
-                        else { jEdit.newFile(view); view.getTextArea().setText(po.out); }
+                        if (replaceWhole) ta.setText(formatted);
+                        else if (selected != null && !selected.isBlank()) ta.setSelectedText(formatted);
+                        else { jEdit.newFile(view); view.getTextArea().setText(formatted); }
                     });
                 } else {
-                    addErrorsDirect(parseTptpOutput(filePath, po.err.isBlank() ? po.out : po.err, ErrorSource.WARNING));
+                    addErrorsDirect(java.util.List.of(
+                        new ErrRec(ErrorSource.WARNING, filePath, 0, 0, 1, "TPTP formatting failed.")
+                    ));
                     ThreadUtilities.runInDispatchThread(() ->
                         view.getDockableWindowManager().showDockableWindow("error-list"));
                 }
@@ -2123,8 +2104,45 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         return String.join("", out);
     }
 
-    /** METHOD REMOVED */
-//  @Override
-//  public void tptpCheckBuffer()
+    public void tptpCheckBuffer() {
+        clearWarnAndErr();
+        final var view = jEdit.getActiveView();
+        final var ta   = view.getTextArea();
+        final var buf  = view.getBuffer();
+        final String filePath = (buf.getPath() != null && !buf.getPath().isBlank())
+            ? buf.getPath()
+            : buf.getName();  // unsaved buffers: fall back to buffer name (not a directory)
 
+        // ALWAYS check the entire buffer so tptp4X line numbers match jEdit’s
+        final String text = ta.getText();
+
+        // NEW: preserve original extension for parser selection (tff/thf/fof/cnf/p/tptp)
+        final String ext;
+        {
+            int dot = filePath.lastIndexOf('.');
+            ext = (dot >= 0 && dot < filePath.length() - 1)
+                    ? filePath.substring(dot + 1).toLowerCase(java.util.Locale.ROOT)
+                    : "tptp";
+        }
+
+        // Write to temp and ask tptp4X for diagnostics
+        startBackgroundThread(create(() -> {
+            try {
+                    List<ErrRec> recs = TPTPChecker.check(text, filePath);
+                if (recs.isEmpty()) {
+                    recs.add(new ErrRec(ErrorSource.WARNING, filePath, 0, 0, 1, "tptp4X: no issues reported"));
+                }
+                addErrorsDirect(recs);
+
+                ThreadUtilities.runInDispatchThread(() ->
+                    view.getDockableWindowManager().showDockableWindow("error-list"));
+            } catch (Throwable t) {
+                addErrorsDirect(java.util.List.of(
+                    new ErrRec(ErrorSource.ERROR, filePath, 0, 0, 1, "Check failed: " + t.getMessage())
+                ));
+                ThreadUtilities.runInDispatchThread(() ->
+                    view.getDockableWindowManager().showDockableWindow("error-list"));
+            }
+        }, () -> "Check TPTP"));
+    }
 }
