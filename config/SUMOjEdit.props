@@ -49,55 +49,54 @@ plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.menu=\
   - \
   sumojedit.setFOF \
   sumojedit.setTFF \
+  sumojedit.tptp.format-buffer \
   - \
   sumojedit.chooseE \
   sumojedit.chooseVamp \
   - \
   sumojedit.from-tptp \
   sumojedit.to-tptp \
-  sumojedit.tptp.format-buffer \
   - \
   sumojedit.ac.user-guide \
-  - \
   sumojedit.ac.mode.ghost \
   sumojedit.ac.mode.dropdown
 
-# action labels for actions supplied by actions.xml
+# ACTION LABELS FOR ACTIONS SUPPLIED BY actions.xml
+## ===== About SUMOjEdit =====
 sumojedit.show-version.label=About SUMOjEdit
+
+## ===== SUO-KIF Language Editing Tools =====
 sumojedit.show-stats.label=show statistics for buffer
 sumojedit.check-errors.label=check for SUO-KIF errors
-sumojedit.format-select.label=format axioms
+sumojedit.format-select.label=format SUO-KIF axioms
 sumojedit.goto-defn.label=go to definition
+sumojedit.query-exp.label=query on highlighted expression
 sumojedit.browse-term.label=browse term in Sigma
-sumojedit.setFOF.label=select FOF language
-sumojedit.setTFF.label=select TFF language
+
+## ===== Automated Theorem Prover (ATP) Tools =====
 sumojedit.chooseVamp.label=select Vampire
 sumojedit.chooseE.label=select EProver
-sumojedit.query-exp.label=query on highlighted expression
+
+## ===== Language Conversion Tools =====
 sumojedit.to-tptp.label=SUO-KIF to TPTP
 sumojedit.from-tptp.label=SUO-KIF from TPTP
 
-# --- TPTP (tptp4X) ---
-sumojedit.tptp.format-buffer.label=Format TPTP (tptp4X)
-# Absolute path to tptp4X (overrideable in jEdit props)
+## ===== TPTP-Language Editing Tools =====
+sumojedit.setFOF.label=select FOF language
+sumojedit.setTFF.label=select TFF language
+sumojedit.tptp.format-buffer.label=format TPTP axioms
+### Absolute path to tptp4X (overrideable in jEdit props)
 sumojedit.tptp4x.path=/Users/sdeng/workspace/SUMOjEdit/tptp4X
 
-
-# ===== User Guide menu item label =====
+## ===== AutoComplete (AC) =====
 sumojedit.ac.user-guide.label=AutoComplete (AC) User Guide
-
-# ==== NEW: Labels + default for AC mode actions ====
 sumojedit.ac.mode.ghost.label=AC: Ghost-Text Mode
 sumojedit.ac.mode.dropdown.label=AC: Drop-Down Mode
-
-# Default AC mode (read at startup and used by the toggles)
+### Default AC mode (read at startup and used by the toggles)
 sumojedit.ac.mode=BOTH
-
-# ===== NEW: User Guide dialog strings =====
-# Title for the dialog
+### Title for the AC User Guide
 sumo.ac.userguide.title=AutoComplete (AC) User Guide
-
-# Body text for the dialog (\n for line breaks). 
+### Body text for the dialog (\n for line breaks). 
 sumo.ac.userguide.text=Welcome to the AutoComplete (AC) User Guide.\n\n\
 The AC feature in SUMOjEdit helps make writing and editing ontology terms faster, easier, and less error-prone by predicting what you intend to type. This reduces keystrokes and helps ensure consistent use of terms across your files.\n\n\
 Depending on which suggestion types are enabled, AC completions will appear inline (ghost text), in a drop-down list, or both.\n\n\
