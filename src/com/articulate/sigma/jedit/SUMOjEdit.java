@@ -1947,41 +1947,82 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 final boolean hasOut  = (po.out != null && !po.out.isBlank());
                 final String diag     = (po.err == null || po.err.isBlank()) ? po.out : po.err;
 
-                // 1) If stdout has content, tentatively use it — but guard against truncation.
-                //    Heuristic: if non-empty line count drops by >1, or output < 60% of original,
-                //    treat it as partial and fall back to clause-safe formatter.
-                if (hasOut) {
-                    String formatted = po.out.replace("\r\n","\n").replace("\r","\n");
+                // 1) Decide what text to put back into the editor.
+                //    Goal right now: ensure the line AFTER the error is formatted.
+                final String outNormalized = (po.out == null ? "" : po.out.replace("\r\n","\n").replace("\r","\n"));
+                final boolean hasOutNorm = !outNormalized.isBlank();
+                final boolean toolErrored = (po.code != 0);
+                final String stderrText = (po.err == null ? "" : po.err);
 
-                    // quick structure comparison
-                    final int origLines = (int) java.util.Arrays.stream(original.split("\\R",-1))
-                                                .filter(s -> !s.trim().isEmpty()).count();
-                    final int fmtLines  = (int) java.util.Arrays.stream(formatted.split("\\R",-1))
-                                                .filter(s -> !s.trim().isEmpty()).count();
+                final int origLines = (int) java.util.Arrays.stream(original.split("\\R",-1))
+                                              .filter(s -> !s.trim().isEmpty()).count();
+                final int fmtLines  = (int) java.util.Arrays.stream(outNormalized.split("\\R",-1))
+                                              .filter(s -> !s.trim().isEmpty()).count();
+                final boolean looksTruncated =
+                        hasOutNorm && ((fmtLines + 1 < origLines) || (outNormalized.length() < (original.length() * 0.60)));
 
-                    final boolean looksTruncated =
-                            (fmtLines + 1 < origLines) || (formatted.length() < (original.length() * 0.60));
+                String toApply;
 
-                    if (looksTruncated) {
-                        // Fallback to clause-safe, comment-preserving formatter to avoid losing tail clauses
-                        try {
-                            formatted = formatTptpPreserveCommentsClauseSafe(original, ext);
-                        } catch (Throwable ignore) {
-                            // If fallback somehow fails, keep the tool's stdout (better than nothing)
-                        }
+                if (!toolErrored && !looksTruncated && hasOutNorm) {
+                    // Clean success: use tool's pretty-printed output.
+                    toApply = outNormalized;
+                } else {
+                    // Error or suspicious output: split into HEAD / ERROR-LINE / TAIL.
+                    // Prefer explicit line number; if missing, derive it from how many lines stdout produced.
+                    int errLine = parseTptpFirstErrorLine(stderrText); // 1-based; 0 if unknown
+
+                    if (errLine <= 0 && hasOutNorm) {
+                        // stdout usually contains only the HEAD up to the clause before the error.
+                        // So the first bad line is "number of lines in stdout + 1".
+                        errLine = deriveErrorLineFromStdout(outNormalized);
                     }
 
-                    final String finalFormatted = formatted;
-                    ThreadUtilities.runInDispatchThread(() -> {
-                        if (replaceWhole) ta.setText(finalFormatted);
-                        else if (selected != null && !selected.isBlank()) ta.setSelectedText(finalFormatted);
-                        else { jEdit.newFile(view); view.getTextArea().setText(finalFormatted); }
-                    });
+                    if (errLine > 0) {
+                        final String[] lines = original.split("\\R", -1); // keep empty trailing segments
+                        final int idxErr = Math.max(0, Math.min(errLine - 1, lines.length - 1));
+
+                        final String head = (idxErr > 0)
+                                ? String.join("\n", java.util.Arrays.copyOfRange(lines, 0, idxErr))
+                                : "";
+                        final String errOnly = lines[idxErr];
+                        final String tail = (idxErr + 1 < lines.length)
+                                ? String.join("\n", java.util.Arrays.copyOfRange(lines, idxErr + 1, lines.length))
+                                : "";
+
+                        String headFmt = head;
+                        String tailFmt = tail;
+
+                        try { if (!head.isBlank()) headFmt = formatTptpPreserveCommentsClauseSafe(head, ext); } catch (Throwable ignore) {}
+                        try { if (!tail.isBlank()) tailFmt = formatTptpPreserveCommentsClauseSafe(tail, ext); } catch (Throwable ignore) {}
+
+                        // Reassemble with the original error line intact between formatted blocks.
+                        if (!headFmt.isBlank() && !tailFmt.isBlank())
+                            toApply = headFmt + "\n" + errOnly + "\n" + tailFmt;
+                        else if (!headFmt.isBlank())
+                            toApply = headFmt + "\n" + errOnly + (tail.isBlank() ? "" : "\n" + tailFmt);
+                        else if (!tailFmt.isBlank())
+                            toApply = (head.isBlank() ? "" : headFmt + "\n") + errOnly + "\n" + tailFmt;
+                        else
+                            toApply = original; // last resort: preserve original
+                    } else {
+                        // Still no reliable split point — safest is to format what we can without losing anything.
+                        String safe = original;
+                        try { safe = formatTptpPreserveCommentsClauseSafe(original, ext); } catch (Throwable ignore) {}
+                        toApply = safe;
+                    }
                 }
 
-                // 2) Always surface diagnostics (warnings/errors), but don't block formatting
-                if (diag != null && !diag.isBlank()) {
-                    addErrorsDirect(parseTptpOutput(filePath, diag, ErrorSource.WARNING));
+                final String finalFormatted = toApply;
+                ThreadUtilities.runInDispatchThread(() -> {
+                    if (replaceWhole) ta.setText(finalFormatted);
+                    else if (selected != null && !selected.isBlank()) ta.setSelectedText(finalFormatted);
+                    else { jEdit.newFile(view); view.getTextArea().setText(finalFormatted); }
+                });
+
+                // 2) Surface diagnostics with correct severity: ERROR on non-zero exit, WARNING otherwise.
+                if (stderrText != null && !stderrText.isBlank()) {
+                    final int sev = toolErrored ? ErrorSource.ERROR : ErrorSource.WARNING;
+                    addErrorsDirect(parseTptpOutput(filePath, stderrText, sev));
                     ThreadUtilities.runInDispatchThread(() ->
                         view.getDockableWindowManager().showDockableWindow("error-list"));
                 }
@@ -2190,5 +2231,28 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                     view.getDockableWindowManager().showDockableWindow("error-list"));
             }
         }, () -> "Check TPTP"));
+    }
+
+    // Parse the first 1-based line number mentioned in tptp4X stderr; return 0 if unknown.
+    private static int parseTptpFirstErrorLine(final String stderr) {
+        if (stderr == null || stderr.isBlank()) return 0;
+        // Look for “line 123”, “at line 123”, “on line 123”, or “Line 123”
+        final java.util.regex.Pattern p = java.util.regex.Pattern.compile(
+                "(?:^|\\b)(?:at\\s+line|on\\s+line|line|Line)\\s+(\\d+)(?:\\b|\\D)",
+                java.util.regex.Pattern.MULTILINE);
+        final java.util.regex.Matcher m = p.matcher(stderr);
+        if (m.find()) {
+            try { return Integer.parseInt(m.group(1)); } catch (NumberFormatException ignore) {}
+        }
+        return 0;
+    }
+
+    // Fallback: derive the 1-based error line by counting how many lines stdout produced.
+    // Assumption: tptp4X pretty-printer writes only the HEAD (fully parsed prefix) before failing.
+    private static int deriveErrorLineFromStdout(final String stdoutNormalized) {
+        if (stdoutNormalized == null || stdoutNormalized.isBlank()) return 0;
+        // Count physical lines, keeping trailing empty lines consistent with our splits
+        final String[] lines = stdoutNormalized.split("\\R", -1);
+        return lines.length + 1; // next line is where the first failure began
     }
 }
