@@ -1923,19 +1923,65 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
         final boolean replaceWhole = (selected == null || selected.isBlank()) && isTptp;
 
+        // Ensure the external tool exists and is executable; surface a clear message if not.
+        if (isTptp && !ensureTptp4x(filePath)) {
+            return;
+        }
+
+        // Preserve original extension for parser selection (tff/thf/fof/cnf/p/tptp)
+        final String ext;
+        {
+            int dot = filePath.lastIndexOf('.');
+            ext = (dot >= 0 && dot < filePath.length() - 1)
+                    ? filePath.substring(dot + 1).toLowerCase(java.util.Locale.ROOT)
+                    : "tptp";
+        }
+
         startBackgroundThread(create(() -> {
             try {
-                String formatted = TPTPChecker.formatTptpText(text, filePath);
-                if (formatted != null && !formatted.isBlank()) {
+                // Write input to a temp file and call tptp4X using our path-aware runner
+                var tmp = writeTemp(text, "." + ext);
+                var po  = runTptp4x(tmp, "-f","tptp", "-u","human"); // pretty, human-indented
+
+                final String original = text.replace("\r\n","\n").replace("\r","\n");
+                final boolean hasOut  = (po.out != null && !po.out.isBlank());
+                final String diag     = (po.err == null || po.err.isBlank()) ? po.out : po.err;
+
+                // 1) If stdout has content, tentatively use it — but guard against truncation.
+                //    Heuristic: if non-empty line count drops by >1, or output < 60% of original,
+                //    treat it as partial and fall back to clause-safe formatter.
+                if (hasOut) {
+                    String formatted = po.out.replace("\r\n","\n").replace("\r","\n");
+
+                    // quick structure comparison
+                    final int origLines = (int) java.util.Arrays.stream(original.split("\\R",-1))
+                                                .filter(s -> !s.trim().isEmpty()).count();
+                    final int fmtLines  = (int) java.util.Arrays.stream(formatted.split("\\R",-1))
+                                                .filter(s -> !s.trim().isEmpty()).count();
+
+                    final boolean looksTruncated =
+                            (fmtLines + 1 < origLines) || (formatted.length() < (original.length() * 0.60));
+
+                    if (looksTruncated) {
+                        // Fallback to clause-safe, comment-preserving formatter to avoid losing tail clauses
+                        try {
+                            formatted = formatTptpPreserveCommentsClauseSafe(original, ext);
+                        } catch (Throwable ignore) {
+                            // If fallback somehow fails, keep the tool's stdout (better than nothing)
+                        }
+                    }
+
+                    final String finalFormatted = formatted;
                     ThreadUtilities.runInDispatchThread(() -> {
-                        if (replaceWhole) ta.setText(formatted);
-                        else if (selected != null && !selected.isBlank()) ta.setSelectedText(formatted);
-                        else { jEdit.newFile(view); view.getTextArea().setText(formatted); }
+                        if (replaceWhole) ta.setText(finalFormatted);
+                        else if (selected != null && !selected.isBlank()) ta.setSelectedText(finalFormatted);
+                        else { jEdit.newFile(view); view.getTextArea().setText(finalFormatted); }
                     });
-                } else {
-                    addErrorsDirect(java.util.List.of(
-                        new ErrRec(ErrorSource.WARNING, filePath, 0, 0, 1, "TPTP formatting failed.")
-                    ));
+                }
+
+                // 2) Always surface diagnostics (warnings/errors), but don't block formatting
+                if (diag != null && !diag.isBlank()) {
+                    addErrorsDirect(parseTptpOutput(filePath, diag, ErrorSource.WARNING));
                     ThreadUtilities.runInDispatchThread(() ->
                         view.getDockableWindowManager().showDockableWindow("error-list"));
                 }
