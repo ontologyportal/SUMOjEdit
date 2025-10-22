@@ -652,6 +652,158 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     }
 
     /** ***************************************************************
+     * Configure Automated Theorem Prover (ATP) options via a single dialog.
+     * Mirrors Sigma Ask/Tell controls. Saves selections in jEdit properties.
+     */
+    public void configureATP() {
+        final org.gjt.sp.jedit.View v = jEdit.getActiveView();
+        if (v == null) return;
+
+        // --- Load persisted defaults ---
+        String kbNameGuess = KBmanager.getMgr().getPref("sumokbname");
+        String kbName = jEdit.getProperty("sumojedit.atp.kb", (kbNameGuess != null && !kbNameGuess.isBlank()) ? kbNameGuess : "SUMO");
+        String flang  = jEdit.getProperty("sumojedit.atp.formalLanguage", "SUO-KIF");
+        int    maxAns = Math.max(1, parseIntSafe(jEdit.getProperty("sumojedit.atp.maxAnswers","1"), 1));
+        int    tlim   = Math.max(1, parseIntSafe(jEdit.getProperty("sumojedit.atp.timeLimitSec","30"), 30));
+        String mode   = jEdit.getProperty("sumojedit.atp.mode","tptp");       // tptp|tff|thf
+        boolean cwa  = Boolean.parseBoolean(jEdit.getProperty("sumojedit.atp.closedWorld","false"));
+        String eng    = jEdit.getProperty("sumojedit.atp.engine","vampire");  // leo3|eprover|vampire
+        String vampM  = jEdit.getProperty("sumojedit.atp.vampire.mode","casc"); // casc|avatar|custom
+        boolean mp    = Boolean.parseBoolean(jEdit.getProperty("sumojedit.atp.modusPonens","false"));
+        boolean drop1 = Boolean.parseBoolean(jEdit.getProperty("sumojedit.atp.dropOnePremise","false"));
+        boolean showEn= Boolean.parseBoolean(jEdit.getProperty("sumojedit.atp.showEnglish","true"));
+        boolean useLLM= Boolean.parseBoolean(jEdit.getProperty("sumojedit.atp.useLLM","false"));
+        String viewOpt= jEdit.getProperty("sumojedit.atp.proofView","tptp");  // tptp|suokif|algonl|llm
+
+        // --- Build UI ---
+        javax.swing.JPanel p = new javax.swing.JPanel(new java.awt.GridBagLayout());
+        java.awt.GridBagConstraints c = new java.awt.GridBagConstraints();
+        c.insets = new java.awt.Insets(2,6,2,6);
+        c.gridx=0; c.gridy=0; c.anchor=java.awt.GridBagConstraints.WEST;
+
+        // KB selector (editable)
+        p.add(new javax.swing.JLabel("KB:"), c);
+        final javax.swing.JComboBox<String> kbCombo = new javax.swing.JComboBox<>(new String[]{kbName, "SUMO"});
+        kbCombo.setEditable(true);
+        kbCombo.setSelectedItem(kbName);
+        c.gridx=1; c.fill=java.awt.GridBagConstraints.HORIZONTAL; c.weightx=1.0;
+        p.add(kbCombo, c);
+
+        // Formal Language
+        c.gridx=0; c.gridy++; c.weightx=0; c.fill=java.awt.GridBagConstraints.NONE;
+        p.add(new javax.swing.JLabel("Formal Language:"), c);
+        final javax.swing.JComboBox<String> flangBox =
+            new javax.swing.JComboBox<>(new String[]{"OWL","SUO-KIF","TPTP","traditionalLogic"});
+        flangBox.setSelectedItem(flang);
+        c.gridx=1; c.fill=java.awt.GridBagConstraints.HORIZONTAL; c.weightx=1.0;
+        p.add(flangBox, c);
+
+        // Max answers / time limit
+        c.gridx=0; c.gridy++; c.weightx=0; c.fill=java.awt.GridBagConstraints.NONE;
+        p.add(new javax.swing.JLabel("Maximum answers:"), c);
+        final javax.swing.JSpinner maxAnsSp = new javax.swing.JSpinner(new javax.swing.SpinnerNumberModel(maxAns,1,1000,1));
+        c.gridx=1; c.fill=java.awt.GridBagConstraints.NONE;
+        p.add(maxAnsSp, c);
+
+        c.gridx=0; c.gridy++; c.fill=java.awt.GridBagConstraints.NONE;
+        p.add(new javax.swing.JLabel("Query time limit (sec):"), c);
+        final javax.swing.JSpinner tlimSp = new javax.swing.JSpinner(new javax.swing.SpinnerNumberModel(tlim,1,3600,1));
+        c.gridx=1; p.add(tlimSp, c);
+
+        // Modes: tptp/tff/thf + CWA
+        c.gridx=0; c.gridy++; p.add(new javax.swing.JLabel("Mode:"), c);
+        final javax.swing.JRadioButton rTPTP = new javax.swing.JRadioButton("tptp mode", "tptp".equalsIgnoreCase(mode));
+        final javax.swing.JRadioButton rTFF  = new javax.swing.JRadioButton("tff mode",  "tff".equalsIgnoreCase(mode));
+        final javax.swing.JRadioButton rTHF  = new javax.swing.JRadioButton("thf mode",  "thf".equalsIgnoreCase(mode));
+        javax.swing.ButtonGroup gMode = new javax.swing.ButtonGroup();
+        gMode.add(rTPTP); gMode.add(rTFF); gMode.add(rTHF);
+        javax.swing.JPanel modeRow = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT,6,0));
+        modeRow.add(rTPTP); modeRow.add(rTFF); modeRow.add(rTHF);
+        c.gridx=1; p.add(modeRow, c);
+
+        c.gridx=1; c.gridy++; final javax.swing.JCheckBox cbCWA = new javax.swing.JCheckBox("Closed World Assumption", cwa);
+        p.add(cbCWA, c);
+
+        // Engine + Vampire submodes
+        c.gridx=0; c.gridy++; p.add(new javax.swing.JLabel("Inference engine:"), c);
+        final javax.swing.JRadioButton rLEO = new javax.swing.JRadioButton("LEO-III", "leo3".equalsIgnoreCase(eng));
+        final javax.swing.JRadioButton rE   = new javax.swing.JRadioButton("EProver", "eprover".equalsIgnoreCase(eng));
+        final javax.swing.JRadioButton rVam = new javax.swing.JRadioButton("Vampire", "vampire".equalsIgnoreCase(eng) || (!"leo3".equalsIgnoreCase(eng) && !"eprover".equalsIgnoreCase(eng)));
+        javax.swing.ButtonGroup gEng = new javax.swing.ButtonGroup(); gEng.add(rLEO); gEng.add(rE); gEng.add(rVam);
+        javax.swing.JPanel engRow = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT,6,0));
+        engRow.add(rLEO); engRow.add(rE); engRow.add(rVam);
+        c.gridx=1; p.add(engRow, c);
+
+        c.gridx=1; c.gridy++;
+        final javax.swing.JRadioButton rCASC   = new javax.swing.JRadioButton("CASC mode",   "casc".equalsIgnoreCase(vampM));
+        final javax.swing.JRadioButton rAvatar = new javax.swing.JRadioButton("Avatar mode", "avatar".equalsIgnoreCase(vampM));
+        final javax.swing.JRadioButton rCustom = new javax.swing.JRadioButton("Custom mode", "custom".equalsIgnoreCase(vampM));
+        javax.swing.ButtonGroup gVamp = new javax.swing.ButtonGroup(); gVamp.add(rCASC); gVamp.add(rAvatar); gVamp.add(rCustom);
+        javax.swing.JPanel vampRow = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT,6,0));
+        vampRow.add(new javax.swing.JLabel("Vampire:"));
+        vampRow.add(rCASC); vampRow.add(rAvatar); vampRow.add(rCustom);
+        p.add(vampRow, c);
+
+        // Strategy tweaks
+        c.gridx=1; c.gridy++;
+        final javax.swing.JCheckBox cbMP   = new javax.swing.JCheckBox("Modens Ponens", mp);
+        final javax.swing.JCheckBox cbDrop = new javax.swing.JCheckBox("Drop One-Premise Formulas", drop1);
+        javax.swing.JPanel stratRow = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT,6,0));
+        stratRow.add(cbMP); stratRow.add(cbDrop);
+        p.add(stratRow, c);
+
+        // Paraphrase options
+        c.gridx=1; c.gridy++;
+        final javax.swing.JCheckBox cbShowEn = new javax.swing.JCheckBox("Show English Paraphrases", showEn);
+        final javax.swing.JCheckBox cbUseLLM = new javax.swing.JCheckBox("Use LLM for Paraphrasing", useLLM);
+        javax.swing.JPanel paraRow = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT,6,0));
+        paraRow.add(cbShowEn); paraRow.add(cbUseLLM);
+        p.add(paraRow, c);
+
+        // Proof view selection
+        c.gridx=0; c.gridy++; p.add(new javax.swing.JLabel("Proof result view:"), c);
+        final javax.swing.JRadioButton vTPTP = new javax.swing.JRadioButton("TPTP language", "tptp".equalsIgnoreCase(viewOpt));
+        final javax.swing.JRadioButton vKIF  = new javax.swing.JRadioButton("SUO-KIF",        "suokif".equalsIgnoreCase(viewOpt));
+        final javax.swing.JRadioButton vALG  = new javax.swing.JRadioButton("Algorithmic NL", "algonl".equalsIgnoreCase(viewOpt));
+        final javax.swing.JRadioButton vLLM  = new javax.swing.JRadioButton("LLM paraphrase", "llm".equalsIgnoreCase(viewOpt));
+        javax.swing.ButtonGroup gView = new javax.swing.ButtonGroup(); gView.add(vTPTP); gView.add(vKIF); gView.add(vALG); gView.add(vLLM);
+        javax.swing.JPanel viewRow = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT,6,0));
+        viewRow.add(vTPTP); viewRow.add(vKIF); viewRow.add(vALG); viewRow.add(vLLM);
+        c.gridx=1; p.add(viewRow, c);
+
+        // Enable/disable Vampire submodes when Vampire selected
+        java.awt.event.ActionListener engToggle = e -> {
+            boolean ena = rVam.isSelected();
+            rCASC.setEnabled(ena); rAvatar.setEnabled(ena); rCustom.setEnabled(ena);
+        };
+        rLEO.addActionListener(engToggle); rE.addActionListener(engToggle); rVam.addActionListener(engToggle);
+        engToggle.actionPerformed(null);
+
+        int res = javax.swing.JOptionPane.showConfirmDialog(v, p, "Automated Theorem Prover (ATP)", javax.swing.JOptionPane.OK_CANCEL_OPTION, javax.swing.JOptionPane.PLAIN_MESSAGE);
+        if (res != javax.swing.JOptionPane.OK_OPTION) return;
+
+        // --- Persist selections ---
+        jEdit.setProperty("sumojedit.atp.kb",   String.valueOf(kbCombo.getSelectedItem()));
+        jEdit.setProperty("sumojedit.atp.formalLanguage", String.valueOf(flangBox.getSelectedItem()));
+        jEdit.setProperty("sumojedit.atp.maxAnswers", String.valueOf(((Number)maxAnsSp.getValue()).intValue()));
+        jEdit.setProperty("sumojedit.atp.timeLimitSec", String.valueOf(((Number)tlimSp.getValue()).intValue()));
+        jEdit.setProperty("sumojedit.atp.mode", rTHF.isSelected() ? "thf" : (rTFF.isSelected() ? "tff" : "tptp"));
+        jEdit.setProperty("sumojedit.atp.closedWorld", String.valueOf(cbCWA.isSelected()));
+        jEdit.setProperty("sumojedit.atp.engine", rLEO.isSelected() ? "leo3" : (rE.isSelected() ? "eprover" : "vampire"));
+        jEdit.setProperty("sumojedit.atp.vampire.mode", rAvatar.isSelected() ? "avatar" : (rCustom.isSelected() ? "custom" : "casc"));
+        jEdit.setProperty("sumojedit.atp.modusPonens", String.valueOf(cbMP.isSelected()));
+        jEdit.setProperty("sumojedit.atp.dropOnePremise", String.valueOf(cbDrop.isSelected()));
+        jEdit.setProperty("sumojedit.atp.showEnglish", String.valueOf(cbShowEn.isSelected()));
+        jEdit.setProperty("sumojedit.atp.useLLM", String.valueOf(cbUseLLM.isSelected()));
+        jEdit.setProperty("sumojedit.atp.proofView",
+                vKIF.isSelected() ? "suokif" : (vALG.isSelected() ? "algonl" : (vLLM.isSelected() ? "llm" : "tptp")));
+    }
+
+    private static int parseIntSafe(String s, int def) {
+        try { return Integer.parseInt(s.trim()); } catch (Throwable t) { return def; }
+    }
+
+    /** ***************************************************************
      */
     private String queryResultString(TPTP3ProofProcessor tpp) {
 
