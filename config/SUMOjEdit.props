@@ -47,12 +47,9 @@ plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.menu=\
   sumojedit.query-exp \
   sumojedit.show-stats \
   - \
-  sumojedit.setFOF \
-  sumojedit.setTFF \
-  sumojedit.tptp.format-buffer \
+  sumojedit.atp.configure \
   - \
-  sumojedit.chooseE \
-  sumojedit.chooseVamp \
+  sumojedit.tptp.format-buffer \
   - \
   sumojedit.from-tptp \
   sumojedit.to-tptp \
@@ -76,6 +73,7 @@ sumojedit.browse-term.label=browse term in Sigma
 ## ===== Automated Theorem Prover (ATP) Tools ===== ##
 sumojedit.chooseVamp.label=select Vampire
 sumojedit.chooseE.label=select EProver
+sumojedit.atp.configure.label=Automated Theorem Prover (ATP)
 
 ## ===== Language Conversion Tools ===== ##
 sumojedit.to-tptp.label=SUO-KIF to TPTP
@@ -109,3 +107,18 @@ If both Ghost Text and Drop-Down suggestions are enabled, AC offers both inline 
 You can toggle Ghost Text and Drop-Down modes on or off at any time via the Plugins menu > SUMOjEdit. A checkmark next to each indicates it is enabled, and a status message will confirm the change.\n\n\
 We'd love to hear your feedback! Tell us what you like about AC and how we can make it even better!\n\n\
 Close this dialog by clicking OK.
+
+# === ATP dialog defaults ===
+sumojedit.atp.kb=SUMO
+sumojedit.atp.formalLanguage=SUO-KIF
+sumojedit.atp.maxAnswers=1
+sumojedit.atp.timeLimitSec=30
+sumojedit.atp.mode=tptp      # tptp|tff|thf
+sumojedit.atp.closedWorld=false
+sumojedit.atp.engine=vampire  # leo3|eprover|vampire
+sumojedit.atp.vampire.mode=casc   # casc|avatar|custom
+sumojedit.atp.modusPonens=false
+sumojedit.atp.dropOnePremise=false
+sumojedit.atp.showEnglish=true
+sumojedit.atp.useLLM=false
+sumojedit.atp.proofView=tptp  # tptp|suokif|algonl|llm

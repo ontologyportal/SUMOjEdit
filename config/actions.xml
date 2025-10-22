@@ -25,24 +25,10 @@
             jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.browseTerm();
         </CODE>
     </ACTION>
-    <ACTION NAME="sumojedit.chooseE">
+    <!-- Automated Theorem Prover (ATP) dialog -->
+    <ACTION NAME="sumojedit.atp.configure">
         <CODE>
-            jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.chooseE();
-        </CODE>
-    </ACTION>
-    <ACTION NAME="sumojedit.chooseVamp">
-        <CODE>
-            jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.chooseVamp();
-        </CODE>
-    </ACTION>
-    <ACTION NAME="sumojedit.setFOF">
-        <CODE>
-            jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.setFOF();
-        </CODE>
-    </ACTION>
-    <ACTION NAME="sumojedit.setTFF">
-        <CODE>
-            jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.setTFF();
+            jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.configureATP();
         </CODE>
     </ACTION>
     <ACTION NAME="sumojedit.query-exp">
