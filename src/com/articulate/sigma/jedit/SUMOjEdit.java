@@ -771,18 +771,38 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         viewRow.add(vTPTP); viewRow.add(vKIF); viewRow.add(vALG); viewRow.add(vLLM);
         c.gridx=1; p.add(viewRow, c);
 
-        // Enable/disable Vampire submodes when Vampire selected
+        // Enable/disable Vampire submodes + MP/Drop when Vampire selected
         java.awt.event.ActionListener engToggle = e -> {
             boolean ena = rVam.isSelected();
             rCASC.setEnabled(ena); rAvatar.setEnabled(ena); rCustom.setEnabled(ena);
+            cbMP.setEnabled(ena);
+            if (!ena) { cbMP.setSelected(false); cbDrop.setSelected(false); cbDrop.setEnabled(false); }
         };
         rLEO.addActionListener(engToggle); rE.addActionListener(engToggle); rVam.addActionListener(engToggle);
-        engToggle.actionPerformed(null);
 
-        int res = javax.swing.JOptionPane.showConfirmDialog(v, p, "Automated Theorem Prover (ATP)", javax.swing.JOptionPane.OK_CANCEL_OPTION, javax.swing.JOptionPane.PLAIN_MESSAGE);
-        if (res != javax.swing.JOptionPane.OK_OPTION) return;
+        // Drop One-Premise depends on Modens Ponens
+        java.awt.event.ActionListener mpToggle = e -> {
+            boolean ena = cbMP.isSelected();
+            cbDrop.setEnabled(ena);
+            if (!ena) cbDrop.setSelected(false);
+        };
+        cbMP.addActionListener(mpToggle);
+
+        engToggle.actionPerformed(null);
+        mpToggle.actionPerformed(null);
+
+        // Custom buttons: Ask / Tell / Cancel
+        Object[] options = { "Ask", "Tell", "Cancel" };
+        int res = javax.swing.JOptionPane.showOptionDialog(
+                v, p, "Automated Theorem Prover (ATP)",
+                javax.swing.JOptionPane.DEFAULT_OPTION,
+                javax.swing.JOptionPane.PLAIN_MESSAGE,
+                null, options, options[0]);
+        if (res == 2 || res == javax.swing.JOptionPane.CLOSED_OPTION) return;
+        final String intent = (res == 1) ? "tell" : "ask";
 
         // --- Persist selections ---
+        jEdit.setProperty("sumojedit.atp.intent", intent);   // "ask" or "tell"
         jEdit.setProperty("sumojedit.atp.kb",   String.valueOf(kbCombo.getSelectedItem()));
         jEdit.setProperty("sumojedit.atp.formalLanguage", String.valueOf(flangBox.getSelectedItem()));
         jEdit.setProperty("sumojedit.atp.maxAnswers", String.valueOf(((Number)maxAnsSp.getValue()).intValue()));
