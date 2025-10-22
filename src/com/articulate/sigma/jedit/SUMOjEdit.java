@@ -1913,6 +1913,9 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         final var ta   = view.getTextArea();
         final var buf  = view.getBuffer();
 
+        // Select/create the ErrorSource bound to this window so messages always land visibly
+        this.errsrc = ensureErrorSource(view);
+
         final String filePath = (buf.getPath() != null && !buf.getPath().isBlank())
             ? buf.getPath()
             : buf.getName();  // unsaved buffers: fall back to buffer name (not a directory)
@@ -2020,9 +2023,41 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 });
 
                 // 2) Surface diagnostics with correct severity: ERROR on non-zero exit, WARNING otherwise.
-                if (stderrText != null && !stderrText.isBlank()) {
-                    final int sev = toolErrored ? ErrorSource.ERROR : ErrorSource.WARNING;
-                    addErrorsDirect(parseTptpOutput(filePath, stderrText, sev));
+                //    Parse BOTH stderr and stdout because some tptp4X builds emit warnings/notes to stdout.
+                final String stdoutText = (po.out == null ? "" : po.out);
+                final int sev = toolErrored ? ErrorSource.ERROR : ErrorSource.WARNING;
+
+                java.util.List<ErrRec> diags = new java.util.ArrayList<>();
+                diags.addAll(parseTptpOutput(filePath, stderrText, sev));
+                diags.addAll(parseTptpOutput(filePath, stdoutText, ErrorSource.WARNING));
+
+                // If the tool clearly failed or truncated output, and we derived an error line, but no diagnostics
+                // were parsed, synthesize a precise message so the user sees *something* at the right spot.
+                if (diags.isEmpty()) {
+                    // Reuse our earlier detection to locate the first bad line.
+                    int syntheticErrLine = 0;
+                    {
+                        int errLineFromStdErr = parseTptpFirstErrorLine(stderrText); // 1-based; 0 if unknown
+                        if (errLineFromStdErr > 0) {
+                            syntheticErrLine = errLineFromStdErr;
+                        } else if (hasOutNorm) {
+                            // stdout usually contains only the successfully pretty-printed HEAD
+                            syntheticErrLine = deriveErrorLineFromStdout(outNormalized);
+                        }
+                    }
+                    if (syntheticErrLine > 0) {
+                        int line0 = Math.max(0, syntheticErrLine - 1);
+                        diags.add(new ErrRec(
+                            toolErrored ? ErrorSource.ERROR : ErrorSource.WARNING,
+                            filePath,
+                            line0, 0, 1,
+                            "tptp4X: clause could not be parsed; formatter skipped this clause"
+                        ));
+                    }
+                }
+
+                if (!diags.isEmpty()) {
+                    addErrorsDirect(diags);
                     ThreadUtilities.runInDispatchThread(() ->
                         view.getDockableWindowManager().showDockableWindow("error-list"));
                 }
