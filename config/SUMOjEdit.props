@@ -44,12 +44,12 @@ plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.menu=\
   sumojedit.check-errors \
   sumojedit.format-select \
   sumojedit.goto-defn \
-  sumojedit.query-exp \
   sumojedit.show-stats \
   - \
-  sumojedit.atp.configure \
-  - \
   sumojedit.tptp.format-buffer \
+  - \
+  sumojedit.atp.configure \
+  sumojedit.query-exp \
   - \
   sumojedit.from-tptp \
   sumojedit.to-tptp \
@@ -73,11 +73,11 @@ sumojedit.browse-term.label=browse term in Sigma
 ## ===== Automated Theorem Prover (ATP) Tools ===== ##
 sumojedit.chooseVamp.label=select Vampire
 sumojedit.chooseE.label=select EProver
-sumojedit.atp.configure.label=Automated Theorem Prover (ATP)
+sumojedit.atp.configure.label=configure Autom. Theorem Prover (ATP)
 
 ## ===== Language Conversion Tools ===== ##
-sumojedit.to-tptp.label=SUO-KIF to TPTP
-sumojedit.from-tptp.label=SUO-KIF from TPTP
+sumojedit.to-tptp.label=Conversion: SUO-KIF to TPTP
+sumojedit.from-tptp.label=Conversoin: TPTP to SUO-KIF
 
 ## ===== TPTP-Language Editing Tools ===== ##
 sumojedit.setFOF.label=select FOF language

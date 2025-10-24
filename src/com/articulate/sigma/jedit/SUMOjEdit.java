@@ -653,7 +653,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
     /** ***************************************************************
      * Configure Automated Theorem Prover (ATP) options via a single dialog.
-     * Mirrors Sigma Ask/Tell controls. Saves selections in jEdit properties.
+     * This is a pure configurator. No Ask/Tell controls. Saves selections in jEdit properties.
      */
     public void configureATP() {
         final org.gjt.sp.jedit.View v = jEdit.getActiveView();
@@ -791,18 +791,16 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         engToggle.actionPerformed(null);
         mpToggle.actionPerformed(null);
 
-        // Custom buttons: Ask / Tell / Cancel
-        Object[] options = { "Ask", "Tell", "Cancel" };
+        // Buttons: Save Preferences / Cancel  (Configurator only; no Ask/Tell)
+        Object[] options = { "Save Preferences", "Cancel" };
         int res = javax.swing.JOptionPane.showOptionDialog(
-                v, p, "Automated Theorem Prover (ATP)",
+                v, p, "Configure Automated Theorem Prover (ATP)",
                 javax.swing.JOptionPane.DEFAULT_OPTION,
                 javax.swing.JOptionPane.PLAIN_MESSAGE,
                 null, options, options[0]);
-        if (res == 2 || res == javax.swing.JOptionPane.CLOSED_OPTION) return;
-        final String intent = (res == 1) ? "tell" : "ask";
+        if (res == 1 || res == javax.swing.JOptionPane.CLOSED_OPTION) return;
 
         // --- Persist selections ---
-        jEdit.setProperty("sumojedit.atp.intent", intent);   // "ask" or "tell"
         jEdit.setProperty("sumojedit.atp.kb",   String.valueOf(kbCombo.getSelectedItem()));
         jEdit.setProperty("sumojedit.atp.formalLanguage", String.valueOf(flangBox.getSelectedItem()));
         jEdit.setProperty("sumojedit.atp.maxAnswers", String.valueOf(((Number)maxAnsSp.getValue()).intValue()));
