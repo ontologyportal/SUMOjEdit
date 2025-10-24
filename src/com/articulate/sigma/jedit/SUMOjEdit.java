@@ -1460,6 +1460,12 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
     private void addErrorsDirect(java.util.List<ErrRec> errors) {
         if (errors == null || errors.isEmpty()) return;
+
+        // Normalize order to avoid interleaved or “next-formula” confusion.
+        errors.sort(java.util.Comparator
+            .comparingInt((ErrRec e) -> e.line)
+            .thenComparingInt(e -> e.start));
+
         errorlist.ErrorSource.unregisterErrorSource(errsrc);
         try {
             final org.gjt.sp.jedit.Buffer buf = (view != null ? view.getBuffer() : null);
@@ -1990,11 +1996,23 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         }
     }
 
-        // ===== TPTP integration via external tptp4X =====
+    // ===== TPTP integration via external tptp4X =====
     private static final String PROP_TPTP4X_PATH = "sumojedit.tptp4x.path";
-    // Accept optional filename before line/col, e.g. "file.tff:12:34: msg"
-    private static final java.util.regex.Pattern TPTP_LOC =
+    // Accepts either "file.tff:12:34: msg" or "Line 12 Char 34 ..." or "line 12, column 34: ..."
+    private static final java.util.regex.Pattern TPTP_LOC_COLON =
         java.util.regex.Pattern.compile("(?:[^:]+:)?(\\d+):(\\d+):\\s*(.*)");
+    private static final java.util.regex.Pattern TPTP_LOC_LINECHAR =
+        java.util.regex.Pattern.compile("(?i)\\bLine\\s+(\\d+)\\s+(?:Char|Column|Col)\\s+(\\d+)\\s*[:,-]?\\s*(.*)");
+    private static final java.util.regex.Pattern TPTP_LOC_LINE_COMMA_COL =
+        java.util.regex.Pattern.compile("(?i)\\bline\\s+(\\d+)\\s*,\\s*(?:column|col)\\s*(\\d+)\\s*[:,-]?\\s*(.*)");
+
+    // Strip any tail we should not show inside the message (we append our own snippet)
+    private static String stripTailAfterPercentDash(String s) {
+        if (s == null) return "";
+        // remove " — %something" or " %something" from the end of the message
+        return s.replaceFirst("\\s+—\\s+%.*$", "").replaceFirst("\\s+%.*$", "").trim();
+    }
+
     private static final java.util.Set<String> TPTP_EXTS = java.util.Set.of("tptp","p","fof","cnf","tff","thf");
 
     private String resolveTptp4xPath() {
@@ -2056,23 +2074,57 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     private java.util.List<ErrRec> parseTptpOutput(String filePath, String text, int errType) {
         java.util.List<ErrRec> list = new java.util.ArrayList<>();
         if (text == null || text.isBlank()) return list;
+
         for (String ln : text.split("\\R")) {
-            if (ln.isBlank()) continue;
-            var m = TPTP_LOC.matcher(ln);
+            if (ln == null) continue;
+            final String raw = ln.trim();
+            if (raw.isEmpty() || raw.startsWith("%")) continue;
+
+            java.util.regex.Matcher m;
+
+            // Style 1: "file.tff:12:34: message" or "12:34: message"
+            m = TPTP_LOC_COLON.matcher(raw);
             if (m.find()) {
                 int line = Math.max(0, Integer.parseInt(m.group(1)) - 1);
                 int col  = Math.max(0, Integer.parseInt(m.group(2)) - 1);
-                String msg = m.group(3).isBlank() ? "tptp4X" : m.group(3).trim();
-                list.add(new ErrRec(errType, filePath, line, col, col+1, msg));
-            } else {
-                final String trimmed = ln.trim();
-                // Ignore pure comment lines so they never appear as bogus warnings
-                if (trimmed.startsWith("%")) continue;
-
-                // No line/col available; attach to start of file so user still sees it
-                list.add(new ErrRec(errType, filePath, 0, 0, 1, trimmed));
+                String msg = stripTailAfterPercentDash(m.group(3));
+                if (msg.isEmpty()) msg = "tptp4X";
+                list.add(new ErrRec(errType, filePath, line, col, col + 1, msg));
+                continue;
             }
+
+            // Style 2: "Line 13 Char 4 Token 'tff' ...", "... expected ')'"
+            m = TPTP_LOC_LINECHAR.matcher(raw);
+            if (m.find()) {
+                int line = Math.max(0, Integer.parseInt(m.group(1)) - 1);
+                int col  = Math.max(0, Integer.parseInt(m.group(2)) - 1);
+                String msg = stripTailAfterPercentDash(m.group(3));
+                if (msg.isEmpty()) msg = raw;
+                list.add(new ErrRec(errType, filePath, line, col, col + 1, msg));
+                continue;
+            }
+
+            // Style 3: "line 258, column 17: ..."
+            m = TPTP_LOC_LINE_COMMA_COL.matcher(raw);
+            if (m.find()) {
+                int line = Math.max(0, Integer.parseInt(m.group(1)) - 1);
+                int col  = Math.max(0, Integer.parseInt(m.group(2)) - 1);
+                String msg = stripTailAfterPercentDash(m.group(3));
+                if (msg.isEmpty()) msg = raw;
+                list.add(new ErrRec(errType, filePath, line, col, col + 1, msg));
+                continue;
+            }
+
+            // Fallback: keep as a general note at file start, but sanitize tail
+            list.add(new ErrRec(errType, filePath, 0, 0, 1, stripTailAfterPercentDash(raw)));
         }
+
+        // Stable ordering: by line then column, then message
+        list.sort(java.util.Comparator
+            .comparingInt((ErrRec e) -> e.line)
+            .thenComparingInt(e -> e.start)
+            .thenComparing(e -> e.msg));
+
         return list;
     }
 
