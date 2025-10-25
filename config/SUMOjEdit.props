@@ -63,48 +63,49 @@ plugin.com.articulate.sigma.jedit.SUMOjEditPlugin.menu=\
 sumojedit.show-version.label=About SUMOjEdit
 
 ## ===== SUO-KIF Language Editing Tools ===== ##
-sumojedit.show-stats.label=show statistics for buffer
-sumojedit.check-errors.label=check for SUO-KIF errors
-sumojedit.format-select.label=format SUO-KIF axioms
-sumojedit.goto-defn.label=go to definition
-sumojedit.query-exp.label=query on highlighted expression
-sumojedit.browse-term.label=browse term in Sigma
-
-## ===== Automated Theorem Prover (ATP) Tools ===== ##
-sumojedit.chooseVamp.label=select Vampire
-sumojedit.chooseE.label=select EProver
-sumojedit.atp.configure.label=configure Autom. Theorem Prover (ATP)
-
-## ===== Language Conversion Tools ===== ##
-sumojedit.to-tptp.label=Conversion: SUO-KIF to TPTP
-sumojedit.from-tptp.label=Conversoin: TPTP to SUO-KIF
+sumojedit.show-stats.label=Show Statistics for Buffer
+sumojedit.check-errors.label=Check for SUO-KIF Errors
+sumojedit.format-select.label=Format SUO-KIF Axioms
+sumojedit.goto-defn.label=Go to Definition
+sumojedit.browse-term.label=Browse Terms in Sigma
 
 ## ===== TPTP-Language Editing Tools ===== ##
-sumojedit.setFOF.label=select FOF language
-sumojedit.setTFF.label=select TFF language
-sumojedit.tptp.format-buffer.label=format TPTP axioms
+sumojedit.tptp.format-buffer.label=Format TPTP Axioms and Check Errors
 ### Absolute path to tptp4X (overrideable in jEdit props)
 sumojedit.tptp4x.path=/Users/sdeng/workspace/SUMOjEdit/tptp4X
+
+## ===== Automated Theorem Prover (ATP) Tools ===== ##
+### sumojedit.chooseVamp.label=select Vampire [intergrated into "configure ATP"]
+### sumojedit.chooseE.label=select EProver [intergrated into "configure ATP"]
+### sumojedit.setFOF.label=select FOF language [intergrated into "configure ATP"]
+### sumojedit.setTFF.label=select TFF language [intergrated into "configure ATP"]
+sumojedit.atp.configure.label=Configure Autom. Theorem Prover (ATP)
+sumojedit.query-exp.label=Query on Highlighted Expression
+
+## ===== Language Conversion Tools ===== ##
+sumojedit.to-tptp.label=Language Conversion: SUO-KIF to TPTP
+sumojedit.from-tptp.label=Language Conversion: TPTP to SUO-KIF
 
 ## ===== AutoComplete (AC) ===== ##
 sumojedit.ac.user-guide.label=AutoComplete (AC) User Guide
 sumojedit.ac.mode.ghost.label=AC: Ghost-Text Mode
 sumojedit.ac.mode.dropdown.label=AC: Drop-Down Mode
-### Default AC mode (read at startup and used by the toggles) ###
+### ===== Default AC mode (read at startup and used by the toggles) ===== ###
 sumojedit.ac.mode=BOTH
-### Title for the AC User Guide ###
+### ===== Title for the AC User Guide ===== ###
 sumo.ac.userguide.title=AutoComplete (AC) User Guide
-### Body text for the dialog (\n for line breaks) ###
-sumo.ac.userguide.text=Welcome to the AutoComplete (AC) User Guide.\n\n\
-The AC feature in SUMOjEdit helps make writing and editing ontology terms faster, easier, and less error-prone by predicting what you intend to type. This reduces keystrokes and helps ensure consistent use of terms across your files.\n\n\
-Depending on which suggestion types are enabled, AC completions will appear inline (ghost text), in a drop-down list, or both.\n\n\
-You can independently enable or disable two types of suggestions in AC:\n\n\
-GHOST TEXT suggestions* appear inline as faint gray text directly after the cursor. In this mode, pressing the LEFT CONTROL (CTRL) key accepts the suggestion.\n\n\
-DROP-DOWN suggestions** provide a pop-up list of completion options beneath the cursor. Use the UP and DOWN ARROW keys to navigate the list, and press TAB to insert the highlighted term.\n\n\
-If both Ghost Text and Drop-Down suggestions are enabled, AC offers both inline and pop-up completions at the same time. If only one is enabled, AC provides only that type of completion. If neither is enabled, AC is completely off.\n\n\
-*Ghost Text suggestions include common logical operators and fundamental relations in SUMO (e.g., "exists", "instance", "and", "or", "greaterThan", etc.).\n\n\
-**Drop-Down suggestions include SUMO terms as defined in the ontology (.kif) files.\n\n\
-You can toggle Ghost Text and Drop-Down modes on or off at any time via the Plugins menu > SUMOjEdit. A checkmark next to each indicates it is enabled, and a status message will confirm the change.\n\n\
+### ===== Body text for the dialog (\n for line breaks) ===== ###
+sumo.ac.userguide.text=Thank you for using AutoComplete (AC). We hope you find this user guide helpful.\n\n\
+The AC feature in SUMOjEdit aims to help make writing and editing ontology terms faster, easier, and less error-prone by predicting what you intend to type. This reduces keystrokes and helps ensure consistent use of terms across your files.\n\n\n\
+Depending on which suggestion mode(s) is enabled, AC suggestions may appear <i>inline (ghost text)</i>, in a <i>drop-down list</i>, and/or <i>in both manners</i>.\n\n\
+You can enable or disable each of the two AC modes independently, enable both, or disable AC entirely:\n\n\
+In the <b>GHOST TEXT</b> mode* suggestions appear inline as faint gray text directly after the cursor. In this mode, pressing the <u>LEFT CONTROL (CTRL) key</u> accepts the suggestion.\n\n\
+In the <b>DROP-DOWN</b> mode** a pop-up list of suggested terms appear beneath the cursor. Use the <u>UP and DOWN ARROW keys</u> to navigate the list, and press the <u>TAB Key</u> to insert the highlighted term.\n\n\
+<i>If both Ghost Text and Drop-Down modes are enabled,</i> AC offers inline and pop-up suggestions simultaneously. <i>If only one mode is enabled,</i> AC operates in the respective mode only. <i>If neither mode is enabled,</i> AC will be off.\n\n\
+*<i>Ghost Text Mode's suggestions mostly include common logical operators and fundamental relations in SUMO (e.g., "exists", "instance", "and", "or", "greaterThan", etc.)</i>.\n\n\
+**<i>Drop-Down Mode's suggestions mainly include SUMO terms defined in (constituent) ontology files (.kif) added to config.xml in the sigmakee repository</i>.\n\n\
+You can toggle Ghost Text and Drop-Down modes on or off at any time via the Plugins menu > SUMOjEdit. A checkmark next to each indicates it is enabled, and a status message will confirm the change.\n\n\n\
+###\n\n\n\
 We'd love to hear your feedback! Tell us what you like about AC and how we can make it even better!\n\n\
 Close this dialog by clicking OK.
 
