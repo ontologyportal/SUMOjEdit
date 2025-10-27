@@ -51,6 +51,7 @@ import org.gjt.sp.jedit.*;
 import org.gjt.sp.jedit.io.VFSManager;
 import org.gjt.sp.jedit.menu.EnhancedMenu;
 import org.gjt.sp.jedit.msg.BufferUpdate;
+import org.gjt.sp.jedit.textarea.Selection;
 import org.gjt.sp.jedit.msg.EditPaneUpdate;
 import org.gjt.sp.jedit.msg.ViewUpdate;
 import org.gjt.sp.util.Log;
@@ -2145,8 +2146,10 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         final boolean isTptp = isTptpFile(filePath);
         final String selected = ta.getSelectedText();
         final String text     = (selected != null && !selected.isBlank()) ? selected : ta.getText();
+        final String fullText = ta.getText();
 
         final boolean replaceWhole = (selected == null || selected.isBlank()) && isTptp;
+        final boolean hasSelection = (selected != null && !selected.isBlank());
 
         // Ensure the external tool exists and is executable; surface a clear message if not.
         if (isTptp && !ensureTptp4x(filePath)) {
@@ -2167,6 +2170,12 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 // Write input to a temp file and call tptp4X using our path-aware runner
                 var tmp = writeTemp(text, "." + ext);
                 var po  = runTptp4x(tmp, "-f","tptp", "-u","human"); // pretty, human-indented
+
+                ProcOut poFull = null;
+                if (hasSelection) {
+                    var tmpFull = writeTemp(fullText, "." + ext);
+                    poFull = runTptp4x(tmpFull, "-f","tptp", "-u","human"); // full-buffer for diagnostics
+                }
 
                 final String original = text.replace("\r\n","\n").replace("\r","\n");
                 final boolean hasOut  = (po.out != null && !po.out.isBlank());
@@ -2244,33 +2253,34 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                     else { jEdit.newFile(view); view.getTextArea().setText(finalFormatted); }
                 });
 
-                // 2) Surface diagnostics with correct severity: ERROR on non-zero exit, WARNING otherwise.
-                //    Parse BOTH stderr and stdout because some tptp4X builds emit warnings/notes to stdout.
-                final String stdoutText = (po.out == null ? "" : po.out);
-                final int sev = toolErrored ? ErrorSource.ERROR : ErrorSource.WARNING;
+                // 2) Diagnostics: ALWAYS from FULL buffer so line numbers match the real file.
+                final boolean useFull = (poFull != null);
+                final String stderrTextDiag = useFull ? (poFull.err == null ? "" : poFull.err) : (po.err == null ? "" : po.err);
+                final String stdoutTextDiag = useFull ? (poFull.out == null ? "" : poFull.out) : (po.out == null ? "" : po.out);
+                final boolean toolErroredDiag = useFull ? (poFull.code != 0) : (po.code != 0);
+                final int sev = toolErroredDiag ? ErrorSource.ERROR : ErrorSource.WARNING;
 
                 java.util.List<ErrRec> diags = new java.util.ArrayList<>();
-                diags.addAll(parseTptpOutput(filePath, stderrText, sev));
-                diags.addAll(parseTptpOutput(filePath, stdoutText, ErrorSource.WARNING));
+                diags.addAll(parseTptpOutput(filePath, stderrTextDiag, sev));
+                diags.addAll(parseTptpOutput(filePath, stdoutTextDiag, ErrorSource.WARNING));
 
-                // If the tool clearly failed or truncated output, and we derived an error line, but no diagnostics
-                // were parsed, synthesize a precise message so the user sees *something* at the right spot.
+                // If nothing was parsed, synthesize from the FULL-buffer outputs.
                 if (diags.isEmpty()) {
-                    // Reuse our earlier detection to locate the first bad line.
+                    final String outNormDiag = (stdoutTextDiag == null ? "" : stdoutTextDiag.replace("\r\n","\n").replace("\r","\n"));
+                    final boolean hasOutNormDiag = !outNormDiag.isBlank();
                     int syntheticErrLine = 0;
-                    {
-                        int errLineFromStdErr = parseTptpFirstErrorLine(stderrText); // 1-based; 0 if unknown
-                        if (errLineFromStdErr > 0) {
-                            syntheticErrLine = errLineFromStdErr;
-                        } else if (hasOutNorm) {
-                            // stdout usually contains only the successfully pretty-printed HEAD
-                            syntheticErrLine = deriveErrorLineFromStdout(outNormalized);
-                        }
+
+                    int errLineFromStdErr = parseTptpFirstErrorLine(stderrTextDiag); // 1-based; 0 if unknown
+                    if (errLineFromStdErr > 0) {
+                        syntheticErrLine = errLineFromStdErr;
+                    } else if (hasOutNormDiag) {
+                        syntheticErrLine = deriveErrorLineFromStdout(outNormDiag);
                     }
+
                     if (syntheticErrLine > 0) {
-                        int line0 = Math.max(0, syntheticErrLine - 1);
+                        int line0 = Math.max(0, syntheticErrLine - 1); // FULL-buffer 0-based line
                         diags.add(new ErrRec(
-                            toolErrored ? ErrorSource.ERROR : ErrorSource.WARNING,
+                            toolErroredDiag ? ErrorSource.ERROR : ErrorSource.WARNING,
                             filePath,
                             line0, 0, 1,
                             "tptp4X: clause could not be parsed; formatter skipped this clause"
