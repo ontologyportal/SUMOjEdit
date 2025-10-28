@@ -137,8 +137,34 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         /** Append formatted snippet to a base message. */
         private String appendSnippet(String baseMsg, String filePath, int zeroBasedLine) {
             String snip = snippetFromActiveBufferOrFile(filePath, zeroBasedLine);
-            if (snip.isEmpty()) return baseMsg;
-            return baseMsg + " — " + snip;
+            String normalized = normalizeBaseMessage(baseMsg, snip);
+            if (snip.isEmpty()) return normalized;
+            // Avoid duplicating the full formula if it's already present in the message
+            if (normalized.contains(snip)) return normalized;
+            return normalized + " — " + snip;
+        }
+
+        /** Rewrite verbose KIF diagnostics to show only the offending term (keep formula once). */
+        private String normalizeBaseMessage(String baseMsg, String lineText) {
+            if (baseMsg == null) return "";
+            String msg = baseMsg;
+
+            // Collapse patterns like:
+            // "Term not below Entity: (instance ?X Term)" -> "Term not below Entity: Term"
+            try {
+                if (msg.startsWith("Term not below Entity:")) {
+                    java.util.regex.Matcher m = java.util.regex.Pattern
+                            .compile("\\(instance\\s+[^\\s)]+\\s+([^\\)\\s]+)\\)")
+                            .matcher(msg);
+                    if (m.find()) {
+                        msg = "Term not below Entity: " + m.group(1);
+                    }
+                }
+            } catch (Throwable ignore) {
+                // fall through with original message
+            }
+
+            return msg;
         }
 
         private void addErrorsBatch(java.util.List<ErrRec> batch) {
