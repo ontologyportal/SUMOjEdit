@@ -51,6 +51,7 @@ import org.gjt.sp.jedit.*;
 import org.gjt.sp.jedit.io.VFSManager;
 import org.gjt.sp.jedit.menu.EnhancedMenu;
 import org.gjt.sp.jedit.msg.BufferUpdate;
+import org.gjt.sp.jedit.textarea.Selection;
 import org.gjt.sp.jedit.msg.EditPaneUpdate;
 import org.gjt.sp.jedit.msg.ViewUpdate;
 import org.gjt.sp.util.Log;
@@ -653,7 +654,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
     /** ***************************************************************
      * Configure Automated Theorem Prover (ATP) options via a single dialog.
-     * Mirrors Sigma Ask/Tell controls. Saves selections in jEdit properties.
+     * This is a pure configurator. No Ask/Tell controls. Saves selections in jEdit properties.
      */
     public void configureATP() {
         final org.gjt.sp.jedit.View v = jEdit.getActiveView();
@@ -791,18 +792,16 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         engToggle.actionPerformed(null);
         mpToggle.actionPerformed(null);
 
-        // Custom buttons: Ask / Tell / Cancel
-        Object[] options = { "Ask", "Tell", "Cancel" };
+        // Buttons: Save Preferences / Cancel  (Configurator only; no Ask/Tell)
+        Object[] options = { "Save Preferences", "Cancel" };
         int res = javax.swing.JOptionPane.showOptionDialog(
-                v, p, "Automated Theorem Prover (ATP)",
+                v, p, "Configure Automated Theorem Prover (ATP)",
                 javax.swing.JOptionPane.DEFAULT_OPTION,
                 javax.swing.JOptionPane.PLAIN_MESSAGE,
                 null, options, options[0]);
-        if (res == 2 || res == javax.swing.JOptionPane.CLOSED_OPTION) return;
-        final String intent = (res == 1) ? "tell" : "ask";
+        if (res == 1 || res == javax.swing.JOptionPane.CLOSED_OPTION) return;
 
         // --- Persist selections ---
-        jEdit.setProperty("sumojedit.atp.intent", intent);   // "ask" or "tell"
         jEdit.setProperty("sumojedit.atp.kb",   String.valueOf(kbCombo.getSelectedItem()));
         jEdit.setProperty("sumojedit.atp.formalLanguage", String.valueOf(flangBox.getSelectedItem()));
         jEdit.setProperty("sumojedit.atp.maxAnswers", String.valueOf(((Number)maxAnsSp.getValue()).intValue()));
@@ -1462,6 +1461,12 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
     private void addErrorsDirect(java.util.List<ErrRec> errors) {
         if (errors == null || errors.isEmpty()) return;
+
+        // Normalize order to avoid interleaved or “next-formula” confusion.
+        errors.sort(java.util.Comparator
+            .comparingInt((ErrRec e) -> e.line)
+            .thenComparingInt(e -> e.start));
+
         errorlist.ErrorSource.unregisterErrorSource(errsrc);
         try {
             final org.gjt.sp.jedit.Buffer buf = (view != null ? view.getBuffer() : null);
@@ -1992,11 +1997,23 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         }
     }
 
-        // ===== TPTP integration via external tptp4X =====
+    // ===== TPTP integration via external tptp4X =====
     private static final String PROP_TPTP4X_PATH = "sumojedit.tptp4x.path";
-    // Accept optional filename before line/col, e.g. "file.tff:12:34: msg"
-    private static final java.util.regex.Pattern TPTP_LOC =
+    // Accepts either "file.tff:12:34: msg" or "Line 12 Char 34 ..." or "line 12, column 34: ..."
+    private static final java.util.regex.Pattern TPTP_LOC_COLON =
         java.util.regex.Pattern.compile("(?:[^:]+:)?(\\d+):(\\d+):\\s*(.*)");
+    private static final java.util.regex.Pattern TPTP_LOC_LINECHAR =
+        java.util.regex.Pattern.compile("(?i)\\bLine\\s+(\\d+)\\s+(?:Char|Column|Col)\\s+(\\d+)\\s*[:,-]?\\s*(.*)");
+    private static final java.util.regex.Pattern TPTP_LOC_LINE_COMMA_COL =
+        java.util.regex.Pattern.compile("(?i)\\bline\\s+(\\d+)\\s*,\\s*(?:column|col)\\s*(\\d+)\\s*[:,-]?\\s*(.*)");
+
+    // Strip any tail we should not show inside the message (we append our own snippet)
+    private static String stripTailAfterPercentDash(String s) {
+        if (s == null) return "";
+        // remove " — %something" or " %something" from the end of the message
+        return s.replaceFirst("\\s+—\\s+%.*$", "").replaceFirst("\\s+%.*$", "").trim();
+    }
+
     private static final java.util.Set<String> TPTP_EXTS = java.util.Set.of("tptp","p","fof","cnf","tff","thf");
 
     private String resolveTptp4xPath() {
@@ -2058,23 +2075,57 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     private java.util.List<ErrRec> parseTptpOutput(String filePath, String text, int errType) {
         java.util.List<ErrRec> list = new java.util.ArrayList<>();
         if (text == null || text.isBlank()) return list;
+
         for (String ln : text.split("\\R")) {
-            if (ln.isBlank()) continue;
-            var m = TPTP_LOC.matcher(ln);
+            if (ln == null) continue;
+            final String raw = ln.trim();
+            if (raw.isEmpty() || raw.startsWith("%")) continue;
+
+            java.util.regex.Matcher m;
+
+            // Style 1: "file.tff:12:34: message" or "12:34: message"
+            m = TPTP_LOC_COLON.matcher(raw);
             if (m.find()) {
                 int line = Math.max(0, Integer.parseInt(m.group(1)) - 1);
                 int col  = Math.max(0, Integer.parseInt(m.group(2)) - 1);
-                String msg = m.group(3).isBlank() ? "tptp4X" : m.group(3).trim();
-                list.add(new ErrRec(errType, filePath, line, col, col+1, msg));
-            } else {
-                final String trimmed = ln.trim();
-                // Ignore pure comment lines so they never appear as bogus warnings
-                if (trimmed.startsWith("%")) continue;
-
-                // No line/col available; attach to start of file so user still sees it
-                list.add(new ErrRec(errType, filePath, 0, 0, 1, trimmed));
+                String msg = stripTailAfterPercentDash(m.group(3));
+                if (msg.isEmpty()) msg = "tptp4X";
+                list.add(new ErrRec(errType, filePath, line, col, col + 1, msg));
+                continue;
             }
+
+            // Style 2: "Line 13 Char 4 Token 'tff' ...", "... expected ')'"
+            m = TPTP_LOC_LINECHAR.matcher(raw);
+            if (m.find()) {
+                int line = Math.max(0, Integer.parseInt(m.group(1)) - 1);
+                int col  = Math.max(0, Integer.parseInt(m.group(2)) - 1);
+                String msg = stripTailAfterPercentDash(m.group(3));
+                if (msg.isEmpty()) msg = raw;
+                list.add(new ErrRec(errType, filePath, line, col, col + 1, msg));
+                continue;
+            }
+
+            // Style 3: "line 258, column 17: ..."
+            m = TPTP_LOC_LINE_COMMA_COL.matcher(raw);
+            if (m.find()) {
+                int line = Math.max(0, Integer.parseInt(m.group(1)) - 1);
+                int col  = Math.max(0, Integer.parseInt(m.group(2)) - 1);
+                String msg = stripTailAfterPercentDash(m.group(3));
+                if (msg.isEmpty()) msg = raw;
+                list.add(new ErrRec(errType, filePath, line, col, col + 1, msg));
+                continue;
+            }
+
+            // Fallback: keep as a general note at file start, but sanitize tail
+            list.add(new ErrRec(errType, filePath, 0, 0, 1, stripTailAfterPercentDash(raw)));
         }
+
+        // Stable ordering: by line then column, then message
+        list.sort(java.util.Comparator
+            .comparingInt((ErrRec e) -> e.line)
+            .thenComparingInt(e -> e.start)
+            .thenComparing(e -> e.msg));
+
         return list;
     }
 
@@ -2095,8 +2146,10 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         final boolean isTptp = isTptpFile(filePath);
         final String selected = ta.getSelectedText();
         final String text     = (selected != null && !selected.isBlank()) ? selected : ta.getText();
+        final String fullText = ta.getText();
 
         final boolean replaceWhole = (selected == null || selected.isBlank()) && isTptp;
+        final boolean hasSelection = (selected != null && !selected.isBlank());
 
         // Ensure the external tool exists and is executable; surface a clear message if not.
         if (isTptp && !ensureTptp4x(filePath)) {
@@ -2117,6 +2170,12 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 // Write input to a temp file and call tptp4X using our path-aware runner
                 var tmp = writeTemp(text, "." + ext);
                 var po  = runTptp4x(tmp, "-f","tptp", "-u","human"); // pretty, human-indented
+
+                ProcOut poFull = null;
+                if (hasSelection) {
+                    var tmpFull = writeTemp(fullText, "." + ext);
+                    poFull = runTptp4x(tmpFull, "-f","tptp", "-u","human"); // full-buffer for diagnostics
+                }
 
                 final String original = text.replace("\r\n","\n").replace("\r","\n");
                 final boolean hasOut  = (po.out != null && !po.out.isBlank());
@@ -2194,33 +2253,34 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                     else { jEdit.newFile(view); view.getTextArea().setText(finalFormatted); }
                 });
 
-                // 2) Surface diagnostics with correct severity: ERROR on non-zero exit, WARNING otherwise.
-                //    Parse BOTH stderr and stdout because some tptp4X builds emit warnings/notes to stdout.
-                final String stdoutText = (po.out == null ? "" : po.out);
-                final int sev = toolErrored ? ErrorSource.ERROR : ErrorSource.WARNING;
+                // 2) Diagnostics: ALWAYS from FULL buffer so line numbers match the real file.
+                final boolean useFull = (poFull != null);
+                final String stderrTextDiag = useFull ? (poFull.err == null ? "" : poFull.err) : (po.err == null ? "" : po.err);
+                final String stdoutTextDiag = useFull ? (poFull.out == null ? "" : poFull.out) : (po.out == null ? "" : po.out);
+                final boolean toolErroredDiag = useFull ? (poFull.code != 0) : (po.code != 0);
+                final int sev = toolErroredDiag ? ErrorSource.ERROR : ErrorSource.WARNING;
 
                 java.util.List<ErrRec> diags = new java.util.ArrayList<>();
-                diags.addAll(parseTptpOutput(filePath, stderrText, sev));
-                diags.addAll(parseTptpOutput(filePath, stdoutText, ErrorSource.WARNING));
+                diags.addAll(parseTptpOutput(filePath, stderrTextDiag, sev));
+                diags.addAll(parseTptpOutput(filePath, stdoutTextDiag, ErrorSource.WARNING));
 
-                // If the tool clearly failed or truncated output, and we derived an error line, but no diagnostics
-                // were parsed, synthesize a precise message so the user sees *something* at the right spot.
+                // If nothing was parsed, synthesize from the FULL-buffer outputs.
                 if (diags.isEmpty()) {
-                    // Reuse our earlier detection to locate the first bad line.
+                    final String outNormDiag = (stdoutTextDiag == null ? "" : stdoutTextDiag.replace("\r\n","\n").replace("\r","\n"));
+                    final boolean hasOutNormDiag = !outNormDiag.isBlank();
                     int syntheticErrLine = 0;
-                    {
-                        int errLineFromStdErr = parseTptpFirstErrorLine(stderrText); // 1-based; 0 if unknown
-                        if (errLineFromStdErr > 0) {
-                            syntheticErrLine = errLineFromStdErr;
-                        } else if (hasOutNorm) {
-                            // stdout usually contains only the successfully pretty-printed HEAD
-                            syntheticErrLine = deriveErrorLineFromStdout(outNormalized);
-                        }
+
+                    int errLineFromStdErr = parseTptpFirstErrorLine(stderrTextDiag); // 1-based; 0 if unknown
+                    if (errLineFromStdErr > 0) {
+                        syntheticErrLine = errLineFromStdErr;
+                    } else if (hasOutNormDiag) {
+                        syntheticErrLine = deriveErrorLineFromStdout(outNormDiag);
                     }
+
                     if (syntheticErrLine > 0) {
-                        int line0 = Math.max(0, syntheticErrLine - 1);
+                        int line0 = Math.max(0, syntheticErrLine - 1); // FULL-buffer 0-based line
                         diags.add(new ErrRec(
-                            toolErrored ? ErrorSource.ERROR : ErrorSource.WARNING,
+                            toolErroredDiag ? ErrorSource.ERROR : ErrorSource.WARNING,
                             filePath,
                             line0, 0, 1,
                             "tptp4X: clause could not be parsed; formatter skipped this clause"

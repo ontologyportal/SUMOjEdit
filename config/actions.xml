@@ -79,33 +79,46 @@
         </CODE>
     </ACTION>
 
-    <!-- ===== New: User Guide popup (scrollable + resizable) ===== -->
+    <!-- User Guide popup: HTML rendering + centered ### lines -->
     <ACTION NAME="sumojedit.ac.user-guide">
-      <CODE><![CDATA[
+    <CODE><![CDATA[
         import javax.swing.*;
         import java.awt.*;
 
         String title = jEdit.getProperty("sumo.ac.userguide.title", "AutoComplete (AC) User Guide");
-        String body  = jEdit.getProperty("sumo.ac.userguide.text",
-            "Welcome to the AutoComplete (AC) User Guide.\\n\\n" +
-            "Replace this text via 'sumo.ac.userguide.text' in config/SUMOjEdit.props.\\n\\n" +
-            "Click OK to dismiss.");
+        String body  = jEdit.getProperty("sumo.ac.userguide.text", "");
 
-        JTextArea textArea = new JTextArea(body);
-        textArea.setEditable(false);
-        textArea.setLineWrap(true);
-        textArea.setWrapStyleWord(true);
-        textArea.setCaretPosition(0);
+        // Treat .props text as HTML-friendly:
+        // - Keep your <b>/<i>/<u>/span/... tags as-is
+        // - Convert newlines to <br>
+        // - Center any line that's exactly "###"
+        String norm = body.replace("\r\n","\n").replace("\r","\n");
+        StringBuilder html = new StringBuilder();
+        html.append("<html><body style='font-family:monospace; white-space:pre-wrap; margin:0; padding:8px;'>");
+        for (String line : norm.split("\n", -1)) {
+            if (line.trim().equals("###")) {
+                html.append("<div style='text-align:center;'>###</div>");
+            } else {
+                // DO NOT escape '<' so your inline HTML works
+                // If you need a literal '<', write &lt; in the .props
+                html.append(line).append("<br/>");
+            }
+        }
+        html.append("</body></html>");
 
-        JScrollPane scrollPane = new JScrollPane(textArea);
-        scrollPane.setPreferredSize(new Dimension(700, 480));
+        JEditorPane pane = new JEditorPane("text/html", html.toString());
+        pane.setEditable(false);
+        pane.setCaretPosition(0);
 
-        JOptionPane optionPane = new JOptionPane(scrollPane, JOptionPane.INFORMATION_MESSAGE);
+        JScrollPane scroll = new JScrollPane(pane);
+        scroll.setPreferredSize(new Dimension(700, 480));
+
+        JOptionPane optionPane = new JOptionPane(scroll, JOptionPane.INFORMATION_MESSAGE);
         JDialog dialog = optionPane.createDialog(view, title);
         dialog.setModal(false);
         dialog.setResizable(true);
         dialog.setVisible(true);
-      ]]></CODE>
+    ]]></CODE>
     </ACTION>
 
     <!-- ===== New: Autocomplete mode toggles ===== -->
