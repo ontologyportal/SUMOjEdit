@@ -2115,6 +2115,20 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 int line = Math.max(0, Integer.parseInt(m.group(1)) - 1);
                 int col  = Math.max(0, Integer.parseInt(m.group(2)) - 1);
                 String msg = stripTailAfterPercentDash(m.group(3));
+                
+                // FIX: Extract the correct formula name from "continuing with 'XXX'"
+                String formulaName = extractContinuingWithFormula(msg);
+                if (formulaName != null) {
+                    // Find the actual line where this formula is declared
+                    int correctLine = findFormulaLine(filePath, formulaName);
+                    if (correctLine >= 0) {
+                        line = correctLine; // Use the correct line number
+                    }
+                }
+                
+                // FIX: Clean up the message to remove concatenated formulas
+                msg = cleanErrorMessage(msg);
+                
                 if (msg.isEmpty()) msg = "tptp4X";
                 list.add(new ErrRec(errType, filePath, line, col, col + 1, msg));
                 continue;
@@ -2126,6 +2140,20 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 int line = Math.max(0, Integer.parseInt(m.group(1)) - 1);
                 int col  = Math.max(0, Integer.parseInt(m.group(2)) - 1);
                 String msg = stripTailAfterPercentDash(m.group(3));
+                
+                // FIX: Extract the correct formula name from "continuing with 'XXX'"
+                String formulaName = extractContinuingWithFormula(msg);
+                if (formulaName != null) {
+                    // Find the actual line where this formula is declared
+                    int correctLine = findFormulaLine(filePath, formulaName);
+                    if (correctLine >= 0) {
+                        line = correctLine; // Use the correct line number
+                    }
+                }
+                
+                // FIX: Clean up the message to remove concatenated formulas
+                msg = cleanErrorMessage(msg);
+                
                 if (msg.isEmpty()) msg = raw;
                 list.add(new ErrRec(errType, filePath, line, col, col + 1, msg));
                 continue;
@@ -2137,13 +2165,30 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 int line = Math.max(0, Integer.parseInt(m.group(1)) - 1);
                 int col  = Math.max(0, Integer.parseInt(m.group(2)) - 1);
                 String msg = stripTailAfterPercentDash(m.group(3));
+                
+                // FIX: Extract the correct formula name from "continuing with 'XXX'"
+                String formulaName = extractContinuingWithFormula(msg);
+                if (formulaName != null) {
+                    // Find the actual line where this formula is declared
+                    int correctLine = findFormulaLine(filePath, formulaName);
+                    if (correctLine >= 0) {
+                        line = correctLine; // Use the correct line number
+                    }
+                }
+                
+                // FIX: Clean up the message to remove concatenated formulas
+                msg = cleanErrorMessage(msg);
+                
                 if (msg.isEmpty()) msg = raw;
                 list.add(new ErrRec(errType, filePath, line, col, col + 1, msg));
                 continue;
             }
 
-            // Fallback: keep as a general note at file start, but sanitize tail
-            list.add(new ErrRec(errType, filePath, 0, 0, 1, stripTailAfterPercentDash(raw)));
+            // Fallback: only add if it looks like a real error message
+            // FIX: Filter out nonsense errors like "agent...TQM8.kif"
+            if (looksLikeRealError(raw)) {
+                list.add(new ErrRec(errType, filePath, 0, 0, 1, stripTailAfterPercentDash(raw)));
+            }
         }
 
         // Stable ordering: by line then column, then message
@@ -2153,6 +2198,216 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             .thenComparing(e -> e.msg));
 
         return list;
+    }
+
+    /**
+     * Clean up error messages by removing concatenated formula information
+     */
+    private static String cleanErrorMessage(String msg) {
+        if (msg == null) return "";
+        
+        // Remove everything after " — " (em dash) - this removes the concatenated formula
+        int dashIndex = msg.indexOf(" — ");
+        if (dashIndex > 0) {
+            msg = msg.substring(0, dashIndex).trim();
+        }
+        
+        // Also handle " - " (regular dash) if em dash isn't found
+        if (dashIndex < 0) {
+            int regularDashIndex = msg.indexOf(" - tff(");
+            if (regularDashIndex < 0) regularDashIndex = msg.indexOf(" - thf(");
+            if (regularDashIndex < 0) regularDashIndex = msg.indexOf(" - fof(");
+            if (regularDashIndex < 0) regularDashIndex = msg.indexOf(" - cnf(");
+            if (regularDashIndex > 0) {
+                msg = msg.substring(0, regularDashIndex).trim();
+            }
+        }
+        
+        // Remove trailing formula declarations that might still be there
+        msg = msg.replaceFirst("\\s+tff\\s*\\([^)]*\\)?\\.?\\s*$", "");
+        msg = msg.replaceFirst("\\s+thf\\s*\\([^)]*\\)?\\.?\\s*$", "");
+        msg = msg.replaceFirst("\\s+fof\\s*\\([^)]*\\)?\\.?\\s*$", "");
+        msg = msg.replaceFirst("\\s+cnf\\s*\\([^)]*\\)?\\.?\\s*$", "");
+        
+        return msg.trim();
+    }
+
+    /**
+     * Extract the formula name from "continuing with 'formula_name'" pattern
+     * Returns null if pattern not found
+     */
+    private static String extractContinuingWithFormula(String msg) {
+        if (msg == null) return null;
+        
+        // Pattern: "continuing with 'XXX'" or "continuing with "XXX""
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("continuing\\s+with\\s+['\"]([^'\"]+)['\"]");
+        java.util.regex.Matcher matcher = pattern.matcher(msg);
+        
+        if (matcher.find()) {
+            String formulaName = matcher.group(1);
+            // Extract just the formula identifier (before the first comma)
+            int commaIndex = formulaName.indexOf(',');
+            if (commaIndex > 0) {
+                formulaName = formulaName.substring(0, commaIndex);
+            }
+            return formulaName.trim();
+        }
+        
+        return null;
+    }
+
+    /**
+     * Find the line number where a formula with the given name is declared
+     * Returns -1 if not found
+     */
+    private int findFormulaLine(String filePath, String formulaName) {
+        if (formulaName == null || formulaName.isEmpty()) return -1;
+        
+        try {
+            // Read the file
+            java.nio.file.Path path = java.nio.file.Paths.get(filePath);
+            if (!java.nio.file.Files.exists(path)) return -1;
+            
+            java.util.List<String> lines = java.nio.file.Files.readAllLines(path);
+            
+            // Search for the formula declaration
+            // Pattern: tff(formulaName,type, or tff(formulaName, type,
+            String searchPattern = "\\b(tff|thf|fof|cnf)\\s*\\(\\s*" + java.util.regex.Pattern.quote(formulaName) + "\\s*,";
+            java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(searchPattern);
+            
+            for (int i = 0; i < lines.size(); i++) {
+                if (pattern.matcher(lines.get(i)).find()) {
+                    return i; // Return 0-based line number
+                }
+            }
+        } catch (Exception e) {
+            // Silently fail and return -1
+        }
+        
+        return -1;
+    }
+
+    /**
+     * Check if a string looks like a real error message
+     */
+    private static boolean looksLikeRealError(String raw) {
+        if (raw == null || raw.isBlank()) return false;
+        
+        // Check for common error keywords
+        String lowerRaw = raw.toLowerCase();
+        return lowerRaw.matches(".*\\b(error|warning|failed|expected|unexpected|invalid|illegal|missing|unknown|syntax|parse|token)\\b.*") &&
+            !lowerRaw.matches(".*\\b(agent).*\\.kif$"); // Exclude pattern like "agent...TQM8.kif"
+    }
+    
+    // Helper method to adjust error line based on context
+    private int adjustErrorLine(String filePath, int reportedLine, String msg, String fullError) {
+        try {
+            // First, check if tptp4X might be counting lines differently (skipping comments)
+            int adjustedForComments = adjustForCommentLines(filePath, reportedLine);
+            if (adjustedForComments != reportedLine) {
+                reportedLine = adjustedForComments;
+            }
+            
+            // Try to get the buffer to analyze the actual content
+            org.gjt.sp.jedit.Buffer buf = null;
+            for (org.gjt.sp.jedit.Buffer b : jEdit.getBuffers()) {
+                if (b.getPath() != null && b.getPath().equals(filePath)) {
+                    buf = b;
+                    break;
+                }
+            }
+            
+            if (buf == null) return reportedLine;
+            
+            // Check if error message mentions a token that appears elsewhere
+            // Pattern: "Token 'xxx' continuing with 'yyy'"
+            java.util.regex.Pattern tokenPattern = java.util.regex.Pattern.compile(
+                "Token\\s+'([^']+)'\\s+continuing\\s+with\\s+'([^']+)'");
+            java.util.regex.Matcher tokenMatcher = tokenPattern.matcher(fullError);
+            
+            if (tokenMatcher.find()) {
+                String unexpectedToken = tokenMatcher.group(1);  // e.g., "tff"
+                String continuingWith = tokenMatcher.group(2);   // e.g., "containsInformation"
+                
+                // Search backward from reported line for an unclosed formula
+                for (int i = reportedLine; i >= Math.max(0, reportedLine - 10); i--) {
+                    String lineText = buf.getLineText(i);
+                    if (lineText == null) continue;
+                    
+                    // Skip comment lines
+                    if (lineText.trim().startsWith("%")) continue;
+                    
+                    // Check if this line has an unclosed parenthesis or bracket
+                    int openCount = 0;
+                    int closeCount = 0;
+                    boolean inString = false;
+                    
+                    for (char c : lineText.toCharArray()) {
+                        if (c == '\'' && !inString) {
+                            inString = true;
+                        } else if (c == '\'' && inString) {
+                            // Check for escaped quote
+                            inString = false;
+                        } else if (!inString) {
+                            if (c == '(' || c == '[') openCount++;
+                            if (c == ')' || c == ']') closeCount++;
+                        }
+                    }
+                    
+                    // If we find an unbalanced line, that's likely the error
+                    if (openCount > closeCount) {
+                        return i;  // Return the line with unbalanced parens
+                    }
+                }
+            }
+            
+            // Check for "expected ')'" or "expected ']'" errors
+            if (fullError.contains("expected punctuation with value ')'") || 
+                fullError.contains("expected punctuation with value ']'") ||
+                fullError.contains("expected ')'") || 
+                fullError.contains("expected ']'")) {
+                
+                // Search backward for the last unclosed parenthesis or bracket
+                int searchStart = Math.min(reportedLine, buf.getLineCount() - 1);
+                for (int i = searchStart; i >= Math.max(0, searchStart - 15); i--) {
+                    String lineText = buf.getLineText(i);
+                    if (lineText == null) continue;
+                    
+                    // Skip comment lines
+                    if (lineText.trim().startsWith("%")) continue;
+                    
+                    // Check for unbalanced parens/brackets
+                    int depth = 0;
+                    boolean inString = false;
+                    for (char c : lineText.toCharArray()) {
+                        if (c == '\'' && !inString) {
+                            inString = true;
+                        } else if (c == '\'' && inString) {
+                            inString = false;
+                        } else if (!inString) {
+                            if (c == '(' || c == '[') depth++;
+                            if (c == ')' || c == ']') depth--;
+                        }
+                    }
+                    
+                    // If this line has unclosed parens/brackets
+                    if (depth > 0) {
+                        return i;
+                    }
+                    
+                    // Stop at formula boundaries (lines ending with '.')
+                    if (lineText.trim().endsWith(".") && i < searchStart) {
+                        break;
+                    }
+                }
+            }
+            
+        } catch (Exception e) {
+            // If anything fails, just return the original line
+            Log.log(Log.DEBUG, this.getClass(), "Error adjusting line number: " + e.getMessage());
+        }
+        
+        return reportedLine;
     }
 
     @Override
@@ -2197,11 +2452,10 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 var tmp = writeTemp(text, "." + ext);
                 var po  = runTptp4x(tmp, "-f","tptp", "-u","human"); // pretty, human-indented
 
-                ProcOut poFull = null;
-                if (hasSelection) {
-                    var tmpFull = writeTemp(fullText, "." + ext);
-                    poFull = runTptp4x(tmpFull, "-f","tptp", "-u","human"); // full-buffer for diagnostics
-                }
+                // CRITICAL FIX: Always run on full buffer for correct error diagnostics
+                // We always need to check the full buffer to get correct line numbers
+                var tmpFull = writeTemp(fullText, "." + ext);
+                ProcOut poFull = runTptp4x(tmpFull, "-f","tptp", "-u","human"); // full-buffer for diagnostics
 
                 final String original = text.replace("\r\n","\n").replace("\r","\n");
                 final boolean hasOut  = (po.out != null && !po.out.isBlank());
@@ -2280,10 +2534,10 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 });
 
                 // 2) Diagnostics: ALWAYS from FULL buffer so line numbers match the real file.
-                final boolean useFull = (poFull != null);
-                final String stderrTextDiag = useFull ? (poFull.err == null ? "" : poFull.err) : (po.err == null ? "" : po.err);
-                final String stdoutTextDiag = useFull ? (poFull.out == null ? "" : poFull.out) : (po.out == null ? "" : po.out);
-                final boolean toolErroredDiag = useFull ? (poFull.code != 0) : (po.code != 0);
+                // CRITICAL FIX: Always use poFull for diagnostics to get correct line numbers
+                final String stderrTextDiag = (poFull.err == null ? "" : poFull.err);
+                final String stdoutTextDiag = (poFull.out == null ? "" : poFull.out);
+                final boolean toolErroredDiag = (poFull.code != 0);
                 final int sev = toolErroredDiag ? ErrorSource.ERROR : ErrorSource.WARNING;
 
                 java.util.List<ErrRec> diags = new java.util.ArrayList<>();
@@ -2527,6 +2781,48 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     }
 
     // Parse the first 1-based line number mentioned in tptp4X stderr; return 0 if unknown.
+    // Helper method to adjust for potential comment line counting differences
+    private int adjustForCommentLines(String filePath, int tptpLine) {
+        try {
+            org.gjt.sp.jedit.Buffer buf = null;
+            for (org.gjt.sp.jedit.Buffer b : jEdit.getBuffers()) {
+                if (b.getPath() != null && b.getPath().equals(filePath)) {
+                    buf = b;
+                    break;
+                }
+            }
+            if (buf == null) return tptpLine;
+            
+            // Count non-comment lines up to the reported line
+            int nonCommentCount = 0;
+            int actualLine = 0;
+            
+            for (int i = 0; i <= Math.min(tptpLine + 20, buf.getLineCount() - 1); i++) {
+                String lineText = buf.getLineText(i);
+                if (lineText == null) continue;
+                
+                String trimmed = lineText.trim();
+                // Count non-empty, non-comment lines
+                if (!trimmed.isEmpty() && !trimmed.startsWith("%")) {
+                    nonCommentCount++;
+                    // If we've reached the tptp-reported line in non-comment lines
+                    if (nonCommentCount == tptpLine + 1) {
+                        actualLine = i;
+                        break;
+                    }
+                }
+            }
+            
+            // If we found a match based on non-comment line counting, use it
+            if (actualLine > 0 && actualLine != tptpLine) {
+                return actualLine;
+            }
+        } catch (Exception e) {
+            Log.log(Log.DEBUG, this.getClass(), "Error adjusting for comments: " + e.getMessage());
+        }
+        return tptpLine;
+    }
+    
     private static int parseTptpFirstErrorLine(final String stderr) {
         if (stderr == null || stderr.isBlank()) return 0;
         // Look for “line 123”, “at line 123”, “on line 123”, or “Line 123”
