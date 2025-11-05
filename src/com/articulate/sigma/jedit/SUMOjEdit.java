@@ -2762,7 +2762,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         // Write to temp and ask tptp4X for diagnostics
         startBackgroundThread(create(() -> {
             try {
-                    List<ErrRec> recs = TPTPChecker.check(text, filePath);
+                    List<ErrRec> recs = TPTPFileChecker.check(text, filePath);
                 if (recs.isEmpty()) {
                     recs.add(new ErrRec(ErrorSource.WARNING, filePath, 0, 0, 1, "tptp4X: no issues reported"));
                 }
