@@ -696,7 +696,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         boolean cwa  = Boolean.parseBoolean(jEdit.getProperty("sumojedit.atp.closedWorld","false"));
         String eng    = jEdit.getProperty("sumojedit.atp.engine","vampire");  // leo3|eprover|vampire
         String vampM  = jEdit.getProperty("sumojedit.atp.vampire.mode","casc"); // casc|avatar|custom
-        boolean mp    = Boolean.parseBoolean(jEdit.getProperty("sumojedit.atp.modusPonens","false"));
+        boolean mp    = Boolean.parseBoolean(jEdit.getProperty("sumojedit.atp.ModusPonens","false"));
         boolean drop1 = Boolean.parseBoolean(jEdit.getProperty("sumojedit.atp.dropOnePremise","false"));
         boolean showEn= Boolean.parseBoolean(jEdit.getProperty("sumojedit.atp.showEnglish","true"));
         boolean useLLM= Boolean.parseBoolean(jEdit.getProperty("sumojedit.atp.useLLM","false"));
@@ -773,7 +773,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
         // Strategy tweaks
         c.gridx=1; c.gridy++;
-        final javax.swing.JCheckBox cbMP   = new javax.swing.JCheckBox("Modens Ponens", mp);
+        final javax.swing.JCheckBox cbMP   = new javax.swing.JCheckBox("Modus Ponens", mp);
         final javax.swing.JCheckBox cbDrop = new javax.swing.JCheckBox("Drop One-Premise Formulas", drop1);
         javax.swing.JPanel stratRow = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT,6,0));
         stratRow.add(cbMP); stratRow.add(cbDrop);
@@ -807,7 +807,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         };
         rLEO.addActionListener(engToggle); rE.addActionListener(engToggle); rVam.addActionListener(engToggle);
 
-        // Drop One-Premise depends on Modens Ponens
+        // Drop One-Premise depends on Modus Ponens
         java.awt.event.ActionListener mpToggle = e -> {
             boolean ena = cbMP.isSelected();
             cbDrop.setEnabled(ena);
@@ -836,7 +836,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         jEdit.setProperty("sumojedit.atp.closedWorld", String.valueOf(cbCWA.isSelected()));
         jEdit.setProperty("sumojedit.atp.engine", rLEO.isSelected() ? "leo3" : (rE.isSelected() ? "eprover" : "vampire"));
         jEdit.setProperty("sumojedit.atp.vampire.mode", rAvatar.isSelected() ? "avatar" : (rCustom.isSelected() ? "custom" : "casc"));
-        jEdit.setProperty("sumojedit.atp.modusPonens", String.valueOf(cbMP.isSelected()));
+        jEdit.setProperty("sumojedit.atp.ModusPonens", String.valueOf(cbMP.isSelected()));
         jEdit.setProperty("sumojedit.atp.dropOnePremise", String.valueOf(cbDrop.isSelected()));
         jEdit.setProperty("sumojedit.atp.showEnglish", String.valueOf(cbShowEn.isSelected()));
         jEdit.setProperty("sumojedit.atp.useLLM", String.valueOf(cbUseLLM.isSelected()));
@@ -2762,7 +2762,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         // Write to temp and ask tptp4X for diagnostics
         startBackgroundThread(create(() -> {
             try {
-                    List<ErrRec> recs = TPTPChecker.check(text, filePath);
+                    List<ErrRec> recs = TPTPFileChecker.check(text, filePath);
                 if (recs.isEmpty()) {
                     recs.add(new ErrRec(ErrorSource.WARNING, filePath, 0, 0, 1, "tptp4X: no issues reported"));
                 }
