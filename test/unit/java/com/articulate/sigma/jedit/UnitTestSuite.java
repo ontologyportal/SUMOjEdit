@@ -1,4 +1,4 @@
-package com.articulate.sigma;
+package com.articulate.sigma.jedit;
 
 import com.articulate.sigma.jedit.SUMOjEditTest;
 import org.junit.runner.RunWith;
