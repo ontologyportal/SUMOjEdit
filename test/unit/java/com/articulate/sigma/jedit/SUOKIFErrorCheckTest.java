@@ -17,6 +17,11 @@ import errorlist.DefaultErrorSource.DefaultError;
 import static org.junit.Assert.*;
 
 /**
+ *
+ * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.SUOKIFErrorCheckTest">Simon Deng, NPS ORISE Intern 2025</a>
+ */
+
+/**
  * Unit tests for helper methods on {@link SUMOjEdit} that live in the
  * SUMOjEdit repository.  These tests exercise private utility functions
  * such as line/offset parsing, message normalization and snippet

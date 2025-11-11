@@ -6,7 +6,7 @@ import org.junit.runners.Suite;
 
 /**
  *
- * @author <simon666699@gmail.com> Simon Deng, NPS ORISE Intern, Dr. Adam Pease
+ * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.SUOKIFErrorCheckTest">Simon Deng, NPS ORISE Intern 2025</a>
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
