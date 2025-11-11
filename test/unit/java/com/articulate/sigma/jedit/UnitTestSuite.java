@@ -1,6 +1,5 @@
 package com.articulate.sigma.jedit;
 
-import com.articulate.sigma.jedit.SUMOjEditTest;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
@@ -10,7 +9,7 @@ import org.junit.runners.Suite;
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-    SUMOjEditTest.class
+    UnitjEditTestSuite.class
 })
 public class UnitTestSuite {
 
