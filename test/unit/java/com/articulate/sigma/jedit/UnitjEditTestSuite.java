@@ -10,7 +10,8 @@ import org.junit.runners.Suite;
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-    SUMOjEditTest.class
+    SUMOjEditTest.class,
+    SUOKIFErrorCheckTest.class
 })
 public class UnitjEditTestSuite {
 

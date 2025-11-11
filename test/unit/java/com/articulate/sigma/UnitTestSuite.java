@@ -1,7 +1,8 @@
-package com.articulate.sigma.jedit;
+package com.articulate.sigma;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
+import com.articulate.sigma.jedit.UnitjEditTestSuite;
 
 /**
  *
