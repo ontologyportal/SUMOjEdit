@@ -12,7 +12,8 @@ import org.junit.runners.Suite;
 @Suite.SuiteClasses({
     SUMOjEditTest.class,
     SUOKIFErrorCheckTest.class,
-    TPTPErrorCheckTest.class
+    TPTPErrorCheckTest.class,
+    FormatSuoKifAxiomsTest.class
 })
 public class UnitjEditTestSuite {
 
