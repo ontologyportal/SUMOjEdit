@@ -11,7 +11,8 @@ import org.junit.runners.Suite;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
     SUMOjEditTest.class,
-    SUOKIFErrorCheckTest.class
+    SUOKIFErrorCheckTest.class,
+    TPTPErrorCheckTest.class
 })
 public class UnitjEditTestSuite {
 
