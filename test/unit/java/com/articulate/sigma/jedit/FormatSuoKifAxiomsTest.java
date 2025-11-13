@@ -271,4 +271,4 @@ public class FormatSuoKifAxiomsTest {
             } catch (IOException ignore) {}
         }
     }
-}
+} // end class file FormatSuoKifAxiomsTest.java
