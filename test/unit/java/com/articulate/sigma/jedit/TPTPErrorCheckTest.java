@@ -16,11 +16,6 @@ import java.util.List;
 import static org.junit.Assert.*;
 
 /**
- *
- * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.SUOKIFErrorCheckTest">Simon Deng, NPS ORISE Intern 2025</a>
- */
-
-/**
  * Unit tests for TPTP‑related helper methods on {@link SUMOjEdit} that live
  * in the SUMOjEdit repository.  These tests exercise private utility
  * functions such as file‑type detection, parsing of tptp4X output and
@@ -28,6 +23,11 @@ import static org.junit.Assert.*;
  * binary.  Reflection is used to access private methods in order to
  * verify their behaviour.
  */
+/**
+ *
+ * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.SUOKIFErrorCheckTest">Simon Deng, NPS ORISE Intern 2025</a>
+ */
+
 public class TPTPErrorCheckTest {
 
     private SUMOjEdit sje;
@@ -248,4 +248,4 @@ public class TPTPErrorCheckTest {
         assertEquals(0, ((Integer) m.invoke(sje, "")).intValue());
         assertEquals(0, ((Integer) m.invoke(sje, (String) null)).intValue());
     }
-}
+} // end class file TPTPErrorCheckTest.java

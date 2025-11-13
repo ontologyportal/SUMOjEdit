@@ -17,11 +17,6 @@ import errorlist.DefaultErrorSource.DefaultError;
 import static org.junit.Assert.*;
 
 /**
- *
- * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.SUOKIFErrorCheckTest">Simon Deng, NPS ORISE Intern 2025</a>
- */
-
-/**
  * Unit tests for helper methods on {@link SUMOjEdit} that live in the
  * SUMOjEdit repository.  These tests exercise private utility functions
  * such as line/offset parsing, message normalization and snippet
@@ -29,6 +24,11 @@ import static org.junit.Assert.*;
  * performing end‑to‑end error checking.  Reflection is used to
  * access private methods in order to verify their behaviour.
  */
+/**
+ *
+ * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.SUOKIFErrorCheckTest">Simon Deng, NPS ORISE Intern 2025</a>
+ */
+
 public class SUOKIFErrorCheckTest {
 
     private SUMOjEdit sje;
@@ -286,4 +286,4 @@ public class SUOKIFErrorCheckTest {
         assertFalse("First diagnostic should not include the second line snippet", msg0.contains("second line"));
         assertFalse("Second diagnostic should not include the first line snippet", msg1.contains("alpha beta gamma"));
     }
-}
+} // end class file SUOKIFErrorCheckTest.java
