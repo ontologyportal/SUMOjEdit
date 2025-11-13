@@ -70,7 +70,7 @@ sumojedit.goto-defn.label=Go to Definition
 sumojedit.browse-term.label=Browse Terms in Sigma
 
 ## ===== TPTP-Language Editing Tools ===== ##
-sumojedit.tptp.format-buffer.label=Format Axioms and Check for TPTP Errors
+sumojedit.tptp.format-buffer.label=Check for TPTP Errors AND Format Axioms
 ### Absolute path to tptp4X (overrideable in jEdit props)
 sumojedit.tptp4x.path=/Users/sdeng/workspace/SUMOjEdit/tptp4X
 
