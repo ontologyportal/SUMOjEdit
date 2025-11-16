@@ -59,6 +59,11 @@ public class AutoCompleteManager {
             if (e.getID() != KeyEvent.KEY_PRESSED) return false;
             switch (e.getKeyCode()) {
                 case KeyEvent.VK_TAB:
+                    // Do not hijack Ctrl+Tab – reserved for Ghost Text accept
+                    if (e.isControlDown()) {
+                        // Let this event pass through so Ghost Text can handle it
+                        return false;
+                    }
                     // Only consume Tab if popup is showing suggestions
                     if (popup.isVisible() && listModel.size() > 0) {
                         e.consume();
@@ -77,18 +82,10 @@ public class AutoCompleteManager {
                     return true;
                 case KeyEvent.VK_DOWN:
                     e.consume();
-                    moveSelection(1);
+                    moveSelection(+1);
                     return true;
-                case KeyEvent.VK_ENTER:
-                    if (acceptOnEnter && popup.isVisible() && listModel.size() > 0) {
-                        e.consume();
-                        acceptSelection();
-                        return true;
-                    }
-                    return false;
-                default:
-                    return false;
             }
+            return false;
         }
     };
 
