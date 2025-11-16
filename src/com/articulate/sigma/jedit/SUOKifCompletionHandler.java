@@ -6,16 +6,21 @@ import com.articulate.sigma.Formula;
 import org.gjt.sp.jedit.*;
 import org.gjt.sp.jedit.msg.BufferUpdate;
 import org.gjt.sp.jedit.msg.EditorStarted;
-import org.gjt.sp.jedit.jEdit;
-
 import org.gjt.sp.jedit.textarea.JEditTextArea;
 import org.gjt.sp.jedit.textarea.TextAreaExtension;
 import org.gjt.sp.jedit.textarea.TextAreaPainter;
 import org.gjt.sp.jedit.buffer.JEditBuffer;
 
 import javax.swing.*;
+import javax.swing.text.View;
+
 import java.awt.*;
 import java.awt.event.*;
+import java.nio.Buffer;
+import java.nio.Buffer;
+import java.nio.Buffer;
+import java.nio.Buffer;
+import java.nio.Buffer;
 import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -67,18 +72,18 @@ public final class SUOKifCompletionHandler implements EBComponent {
     @Override
     public void handleMessage(EBMessage msg) {
         if (msg instanceof EditorStarted) {
-            for (View v : jEdit.getViews()) attach(v);
+            for (org.gjt.sp.jedit.View v : jEdit.getViews()) attach(v);
         } else if (msg instanceof BufferUpdate) {
             BufferUpdate bu = (BufferUpdate) msg;
             if (bu.getWhat() == BufferUpdate.LOADED || bu.getWhat() == BufferUpdate.CREATED) {
-                View v = jEdit.getActiveView();
+                org.gjt.sp.jedit.View v = jEdit.getActiveView();
                 if (v != null) attach(v);
             }
         }
     }
 
     // ===== attach and wire a view's text area =====
-    private void attach(View view) {
+    private void attach(org.gjt.sp.jedit.View view) {
         if (view == null) return;
         final JEditTextArea ta = view.getTextArea();
         if (ta == null) return;
@@ -113,10 +118,10 @@ public final class SUOKifCompletionHandler implements EBComponent {
         // clear stale first (defensive)
         unregisterGhostKeys(ta);
 
-        // UPDATED: CONTROL is now the ONLY accept key for ghost text
+        // Bind CTRL+TAB to accept ghost text (no binding for Control alone)
         // Note: CONTROL key is a modifier, so we detect it on key press/release
         registerAction(ta, "smartcompose-accept-control",
-            KeyStroke.getKeyStroke(KeyEvent.VK_CONTROL, InputEvent.CTRL_DOWN_MASK, false),
+            KeyStroke.getKeyStroke(KeyEvent.VK_TAB, InputEvent.CTRL_DOWN_MASK, false),
             () -> { 
                 if (overlay.hasGhost()) {
                     overlay.acceptIfAvailable();
@@ -137,7 +142,7 @@ public final class SUOKifCompletionHandler implements EBComponent {
                 return false;
             });
 
-        // Keep focus traversal enabled since we're not using Tab anymore
+        // Keep focus traversal enabled; Ctrl+Tab is not a standard focus key
         ta.setFocusTraversalKeysEnabled(true);
     }
 
@@ -151,9 +156,10 @@ public final class SUOKifCompletionHandler implements EBComponent {
     }
 
     private static void unregisterGhostKeys(JEditTextArea ta) {
-        ta.unregisterKeyboardAction(KeyStroke.getKeyStroke(KeyEvent.VK_CONTROL, InputEvent.CTRL_DOWN_MASK, false));
+        // Unregister any previous Control-only or Tab-only bindings
+        ta.unregisterKeyboardAction(KeyStroke.getKeyStroke(KeyEvent.VK_TAB, InputEvent.CTRL_DOWN_MASK, false));
         ta.unregisterKeyboardAction(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0));
-        // Remove old bindings that are no longer used
+        ta.unregisterKeyboardAction(KeyStroke.getKeyStroke(KeyEvent.VK_CONTROL, InputEvent.CTRL_DOWN_MASK, false));
         ta.unregisterKeyboardAction(KeyStroke.getKeyStroke(KeyEvent.VK_TAB, 0));
         ta.unregisterKeyboardAction(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, 0));
     }
@@ -179,32 +185,39 @@ public final class SUOKifCompletionHandler implements EBComponent {
         dispatcherInstalled = true;
     }
 
-    private static boolean isKif(View view) {
+    private static boolean isKif(org.gjt.sp.jedit.View view) {
         if (view == null) return false;
-        Buffer buf = view.getBuffer();
+        org.gjt.sp.jedit.Buffer buf = view.getBuffer();
         String path = (buf != null ? buf.getPath() : null);
         return (path != null && path.toLowerCase().endsWith(".kif"));
     }
 
     /** Recompute after typing; accept/cancel handled by bindings/dispatcher */
     private static final class InlineRecomputeListener extends KeyAdapter {
-        private final View view;
+        private final org.gjt.sp.jedit.View view;
         private final GhostOverlay overlay;
         
         // Track control key state
         private boolean controlPressed = false;
         
-        InlineRecomputeListener(View view, GhostOverlay overlay) { 
+        InlineRecomputeListener(org.gjt.sp.jedit.View view, GhostOverlay overlay) { 
             this.view = view; 
             this.overlay = overlay; 
         }
 
         @Override
         public void keyPressed(KeyEvent e) {
-            // UPDATED: Track CONTROL press for accepting ghost text
-            if (e.getKeyCode() == KeyEvent.VK_CONTROL && e.getKeyLocation() == KeyEvent.KEY_LOCATION_LEFT) {
-                if (!controlPressed && overlay.hasGhost() && ghostACEnabled() && isKif(view)) {
-                    controlPressed = true;
+            int code = e.getKeyCode();
+
+            // Track left CONTROL state
+            if (code == KeyEvent.VK_CONTROL && e.getKeyLocation() == KeyEvent.KEY_LOCATION_LEFT) {
+                controlPressed = true;
+                return;
+            }
+
+            // Accept only on CTRL+TAB
+            if (code == KeyEvent.VK_TAB && controlPressed) {
+                if (overlay.hasGhost() && ghostACEnabled() && isKif(view)) {
                     overlay.acceptIfAvailable();
                     e.consume();
                 }
@@ -243,13 +256,13 @@ public final class SUOKifCompletionHandler implements EBComponent {
 
     /** Fallback: pre-empt keys before jEdit if needed (does nothing when ghost disabled). */
     private final class GhostKeyDispatcher implements KeyEventDispatcher {
+        private boolean controlLeftDown = false;
         private boolean controlHandled = false;
-        
+
         @Override
         public boolean dispatchKeyEvent(KeyEvent e) {
-            // ghost mode disabled? then ignore
             if (!ghostACEnabled()) return false;
-            
+
             // Focused component -> nearest JEditTextArea ancestor
             Component fo = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
             if (fo == null) return false;
@@ -260,21 +273,30 @@ public final class SUOKifCompletionHandler implements EBComponent {
             if (overlay == null || !overlay.hasGhost()) return false;
 
             // Only in .kif buffers
-            View view = jEdit.getActiveView();
+            org.gjt.sp.jedit.View view = jEdit.getActiveView();
             if (view == null || !isKif(view)) return false;
 
             int code = e.getKeyCode();
             
-            // UPDATED: Handle CONTROL for accepting ghost text
+            // Track left CONTROL state
             if (code == KeyEvent.VK_CONTROL && e.getKeyLocation() == KeyEvent.KEY_LOCATION_LEFT) {
-                if (e.getID() == KeyEvent.KEY_PRESSED && !controlHandled) {
-                    if (overlay.acceptIfAvailable()) {
-                        controlHandled = true;
-                        e.consume();
-                        return true;
-                    }
-                } else if (e.getID() == KeyEvent.KEY_RELEASED) {
+                if (e.getID() == KeyEvent.KEY_PRESSED) {
+                    controlLeftDown = true;
                     controlHandled = false;
+                }
+                else if (e.getID() == KeyEvent.KEY_RELEASED) {
+                    controlLeftDown = false;
+                    controlHandled = false;
+                }
+                return false;
+            }
+
+            // Accept on CTRL+TAB, not on Control alone
+            if (code == KeyEvent.VK_TAB && e.getID() == KeyEvent.KEY_PRESSED && controlLeftDown && !controlHandled) {
+                if (overlay.acceptIfAvailable()) {
+                    controlHandled = true;
+                    e.consume();
+                    return true;
                 }
             }
 
