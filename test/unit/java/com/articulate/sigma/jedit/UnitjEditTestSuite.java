@@ -17,7 +17,9 @@ import org.junit.runners.Suite;
     FormatSuoKifAxiomsTest.class,
     SUMOjEditHelperAdditionalNLanguageConversionTest.class,
     AutoCompleteIndexTest.class,
-    KifTermIndexTest.class
+    KifTermIndexTest.class,
+    ACModeAndSignalsTest.class,
+    TopCompletionAdapterTest.class
 })
 public class UnitjEditTestSuite {
 
