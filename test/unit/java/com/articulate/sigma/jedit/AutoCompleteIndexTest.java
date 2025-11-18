@@ -19,6 +19,11 @@ import static org.junit.Assert.*;
  * These tests deliberately avoid touching jEdit classes, KBmanager, or
  * any external repositories so they can run as pure unit tests.
  */
+/**
+ *
+ * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.SUOKIFErrorCheckTest">Simon Deng, NPS ORISE Intern 2025</a>
+ */
+
 public class AutoCompleteIndexTest {
 
     // ---------------------------------------------------------------------

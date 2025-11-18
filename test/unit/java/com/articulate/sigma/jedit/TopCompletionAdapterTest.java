@@ -14,6 +14,11 @@ import static org.junit.Assert.*;
  * We use reflection because the methods under test are private/package-private
  * and we want to avoid touching GUI code directly.
  */
+/**
+ *
+ * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.SUOKIFErrorCheckTest">Simon Deng, NPS ORISE Intern 2025</a>
+ */
+
 public class TopCompletionAdapterTest {
 
     private static Object invokePrivateStatic(String methodName,
