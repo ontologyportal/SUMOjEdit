@@ -225,8 +225,8 @@ public class SUOKIFErrorCheckTest {
         // We expect exactly two diagnostics to be recorded
         assertEquals("Expected two diagnostics", 2, sje.errsrc.getErrorCount());
 
-        errorlist.ErrorSource.Error[] errs = sje.errsrc.getFileErrors(tmp.getAbsolutePath());
-        assertEquals("File should have two diagnostics", 2, errs.length);
+        errorlist.ErrorSource.Error[] errs = sje.errsrc.getAllErrors();
+        assertEquals("There should be exactly two diagnostics", 2, errs.length);
         boolean foundWarn = false;
         boolean foundErr = false;
         for (errorlist.ErrorSource.Error er : errs) {
@@ -274,7 +274,7 @@ public class SUOKIFErrorCheckTest {
         assertEquals(2, sje.errsrc.getErrorCount());
 
         // Check that diagnostics are sorted by line number by inspecting the order of snippets.
-        errorlist.ErrorSource.Error[] errs = sje.errsrc.getFileErrors(tmp.getAbsolutePath());
+        errorlist.ErrorSource.Error[] errs = sje.errsrc.getAllErrors();
         assertEquals("There should be two diagnostics for the file", 2, errs.length);
 
         // The first diagnostic should correspond to line 0 (alpha beta gamma) and the second to line 1 (second line).

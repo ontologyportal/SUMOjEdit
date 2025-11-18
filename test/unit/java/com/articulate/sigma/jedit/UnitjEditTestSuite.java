@@ -15,7 +15,9 @@ import org.junit.runners.Suite;
     SUOKIFErrorCheckTest.class,
     TPTPErrorCheckTest.class,
     FormatSuoKifAxiomsTest.class,
-    SUMOjEditHelperAdditionalNLanguageConversionTest.class
+    SUMOjEditHelperAdditionalNLanguageConversionTest.class,
+    AutoCompleteIndexTest.class,
+    KifTermIndexTest.class
 })
 public class UnitjEditTestSuite {
 
