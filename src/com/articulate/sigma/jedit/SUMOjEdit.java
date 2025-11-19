@@ -109,7 +109,16 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 java.util.List<String> lines = java.nio.file.Files.readAllLines(
                         java.nio.file.Paths.get(filePath));
                 if (zeroBasedLine >= 0 && zeroBasedLine < lines.size()) {
-                    return truncateWithEllipsis(lines.get(zeroBasedLine), SNIPPET_MAX);
+                    String line = lines.get(zeroBasedLine);
+                    if (line == null) {
+                        return "";
+                    }
+                    line = line.strip();
+                    if (line.length() <= SNIPPET_MAX) {
+                        return line;
+                    }
+                    // For file snippets we enforce a hard 100-char cap with no ellipsis.
+                    return line.substring(0, SNIPPET_MAX);
                 }
             } catch (Throwable ignore) {}
             return "";
