@@ -46,15 +46,61 @@ public final class KifTermIndex {
 
     /** Suggest up to 'limit' terms that start with prefix (case-insensitive). */
     public List<String> suggest(String prefix, int limit) {
-        if (prefix == null || prefix.isEmpty()) return Collections.emptyList();
-        String lower = prefix.toLowerCase(Locale.ROOT);
-        ArrayList<String> out = new ArrayList<>(Math.min(limit, 64));
+        if (prefix == null || prefix.isEmpty() || limit <= 0) {
+            return Collections.emptyList();
+        }
+
+        String prefLower = prefix.toLowerCase(Locale.ROOT);
+
+        // Partition matches into three groups:
+        //  1) exact (case-insensitive) matches
+        //  2) longer matches that continue with an alphanumeric character
+        //  3) longer matches that continue with a non-alphanumeric character
+        List<String> exact = new ArrayList<>();
+        List<String> alnum = new ArrayList<>();
+        List<String> other = new ArrayList<>();
+
+        int prefLen = prefix.length();
+
         for (String t : terms) {
-            if (t.regionMatches(true, 0, lower, 0, lower.length())) {
-                out.add(t);
-                if (out.size() >= limit) break;
+            if (!t.regionMatches(true, 0, prefLower, 0, prefLen)) {
+                continue;
+            }
+
+            String tLower = t.toLowerCase(Locale.ROOT);
+
+            if (tLower.length() == prefLen) {
+                exact.add(t);
+            } else if (tLower.length() > prefLen) {
+                char next = tLower.charAt(prefLen);
+                if (Character.isLetterOrDigit(next)) {
+                    alnum.add(t);
+                } else {
+                    other.add(t);
+                }
+            } else {
+                // Should not happen if regionMatches above is true, but ignore defensively.
             }
         }
+
+        exact.sort(String.CASE_INSENSITIVE_ORDER);
+        alnum.sort(String.CASE_INSENSITIVE_ORDER);
+        other.sort(String.CASE_INSENSITIVE_ORDER);
+
+        List<String> out = new ArrayList<>(Math.min(limit, exact.size() + alnum.size() + other.size()));
+        for (String t : exact) {
+            out.add(t);
+            if (out.size() >= limit) return out;
+        }
+        for (String t : alnum) {
+            out.add(t);
+            if (out.size() >= limit) return out;
+        }
+        for (String t : other) {
+            out.add(t);
+            if (out.size() >= limit) return out;
+        }
+
         return out;
     }
 
