@@ -1088,9 +1088,12 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
         boolean retVal = true;
         if (contents == null || contents.isBlank() || contents.length() < 2) {
-            java.util.List<ErrRec> _chk = new java.util.ArrayList<>();
-            _chk.add(new ErrRec(ErrorSource.WARNING, kif.filename, 1, 0, 0, msg));
-            addErrorsBatch(_chk);
+            // Queue a single warning into the pending diagnostics list
+            // without flushing it immediately. The unit tests inspect
+            // _pendingErrs directly.
+            synchronized (_pendingErrs) {
+                _pendingErrs.add(new ErrRec(ErrorSource.WARNING, kif.filename, 1, 0, 0, msg));
+            }
             if (log) Log.log(Log.WARNING, this, "checkEditorContents(): " + msg);
             retVal = false;
         }
