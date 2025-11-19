@@ -61,10 +61,37 @@ final class TopCompletionAdapter {
         return Character.isLetterOrDigit(c) || c == '_' || c == '-';
     }
 
-    /** Prefer shorter completion, then lexicographically smaller. */
+    /** Prefer candidates that match the prefix; for two matches prefer shorter, otherwise lexicographically smaller. */
     private static boolean better(String prefix, String a, String b) {
-        int la = a.length(), lb = b.length();
-        if (la != lb) return la < lb;
+        // Defensive null handling: any non-null candidate beats null.
+        if (a == null) return b != null;
+        if (b == null) return false;
+
+        // Determine whether each candidate starts with the prefix (if any).
+        boolean hasPrefix = prefix != null && !prefix.isEmpty();
+        boolean aMatches = hasPrefix && a.startsWith(prefix);
+        boolean bMatches = hasPrefix && b.startsWith(prefix);
+
+        // If only one candidate matches the prefix, that one is better.
+        if (aMatches && !bMatches) return true;
+        if (!aMatches && bMatches) return false;
+
+        int la = a.length();
+        int lb = b.length();
+
+        // If both candidates match the prefix, prefer the shorter completion first.
+        if (aMatches && bMatches && la != lb) {
+            return la < lb;
+        }
+
+        // Otherwise (neither matches the prefix, or same length), fall back to
+        // lexicographical comparison, case-insensitive first.
+        int cmpIgnoreCase = a.compareToIgnoreCase(b);
+        if (cmpIgnoreCase != 0) {
+            return cmpIgnoreCase < 0;
+        }
+
+        // Tie-breaker: case-sensitive comparison.
         return a.compareTo(b) < 0;
     }
 }

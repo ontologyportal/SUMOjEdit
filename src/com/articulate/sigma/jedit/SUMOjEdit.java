@@ -109,7 +109,16 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 java.util.List<String> lines = java.nio.file.Files.readAllLines(
                         java.nio.file.Paths.get(filePath));
                 if (zeroBasedLine >= 0 && zeroBasedLine < lines.size()) {
-                    return truncateWithEllipsis(lines.get(zeroBasedLine), SNIPPET_MAX);
+                    String line = lines.get(zeroBasedLine);
+                    if (line == null) {
+                        return "";
+                    }
+                    line = line.strip();
+                    if (line.length() <= SNIPPET_MAX) {
+                        return line;
+                    }
+                    // For file snippets we enforce a hard 100-char cap with no ellipsis.
+                    return line.substring(0, SNIPPET_MAX);
                 }
             } catch (Throwable ignore) {}
             return "";
@@ -1088,9 +1097,12 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
         boolean retVal = true;
         if (contents == null || contents.isBlank() || contents.length() < 2) {
-            java.util.List<ErrRec> _chk = new java.util.ArrayList<>();
-            _chk.add(new ErrRec(ErrorSource.WARNING, kif.filename, 1, 0, 0, msg));
-            addErrorsBatch(_chk);
+            // Queue a single warning into the pending diagnostics list
+            // without flushing it immediately. The unit tests inspect
+            // _pendingErrs directly.
+            synchronized (_pendingErrs) {
+                _pendingErrs.add(new ErrRec(ErrorSource.WARNING, kif.filename, 1, 0, 0, msg));
+            }
             if (log) Log.log(Log.WARNING, this, "checkEditorContents(): " + msg);
             retVal = false;
         }
@@ -1451,22 +1463,25 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 //    }
 
     /** Utility method to parse KIF
-     *
-     * @param contents the contents of a KIF file to parse
-     * @return true if successful parse, no error or warnings
-     */
-    private boolean parseKif(String contents) {
+         *
+         * @param contents the contents of a KIF file to parse
+         * @return true if successful parse, no error or warnings
+         */
+        private boolean parseKif(String contents) {
 
         boolean retVal = false;
         try (Reader r = new StringReader(contents)) {
             kif.parse(r);
             Log.log(Log.MESSAGE, this, ":parseKif(): done reading kif file");
-            retVal = true;
+
+            // Treat any recorded warnings or errors as a failed parse.
+            retVal = kif.warningSet.isEmpty() && kif.errorSet.isEmpty();
         } catch (Exception e) {
             if (log)
                 Log.log(Log.ERROR, this, ":checkErrorsBody()", e);
             String msg = "Error in SUMOjEdit.parseKif() with: " + kif.filename + ": " + e;
             System.err.print(msg);
+            retVal = false;
         } finally {
             logKifWarnAndErr();
         }
@@ -2840,8 +2855,22 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     // Assumption: tptp4X pretty-printer writes only the HEAD (fully parsed prefix) before failing.
     private static int deriveErrorLineFromStdout(final String stdoutNormalized) {
         if (stdoutNormalized == null || stdoutNormalized.isBlank()) return 0;
-        // Count physical lines, keeping trailing empty lines consistent with our splits
+
+        // Split into physical lines, but ignore a trailing empty line that comes
+        // from a final newline character in the pretty-printer output.
         final String[] lines = stdoutNormalized.split("\\R", -1);
-        return lines.length + 1; // next line is where the first failure began
+        int count = lines.length;
+
+        // If the last element is empty, it corresponds to a trailing newline → not a real line.
+        if (count > 0 && lines[count - 1].isEmpty()) {
+            count--;
+        }
+
+        if (count <= 0) {
+            return 0;
+        }
+
+        // The error is assumed to start on the first line *after* the last non-empty line.
+        return count + 1;
     }
 }

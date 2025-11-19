@@ -33,24 +33,88 @@ class SuggestionIndex {
     /** Clear only buffer-derived tokens. */
     void clearBufferLayer() { bufLayer.clear(); }
 
-    /** Retrieve suggestions that start with the given prefix. */
+     /** Retrieve suggestions that start with the given prefix. */
     List<String> startsWith(String prefix, int limit, boolean caseSensitive) {
-        if (prefix == null) return Collections.emptyList();
-        String lower = prefix.toLowerCase(Locale.ROOT);
-        String key = lower.length() >= 2 ? lower.substring(0, 2) : lower;
-
-        LinkedHashSet<String> results = new LinkedHashSet<>();
-        Set<String> b1 = kbLayer.getOrDefault(key, Collections.emptySet());
-        Set<String> b2 = bufLayer.getOrDefault(key, Collections.emptySet());
-
-        // Prefer exact case match first if requested
-        if (caseSensitive) {
-            for (String s : b1) if (s.startsWith(prefix)) { results.add(s); if (results.size() >= limit) return new ArrayList<>(results); }
-            for (String s : b2) if (s.startsWith(prefix)) { results.add(s); if (results.size() >= limit) return new ArrayList<>(results); }
-        } else {
-            for (String s : b1) if (s.toLowerCase(Locale.ROOT).startsWith(lower)) { results.add(s); if (results.size() >= limit) return new ArrayList<>(results); }
-            for (String s : b2) if (s.toLowerCase(Locale.ROOT).startsWith(lower)) { results.add(s); if (results.size() >= limit) return new ArrayList<>(results); }
+        if (prefix == null || limit <= 0) {
+            return Collections.emptyList();
         }
+
+        String lower = prefix.toLowerCase(Locale.ROOT);
+        LinkedHashSet<String> results = new LinkedHashSet<>();
+
+        // For prefixes of length >= 2 we can use the bucket key.
+        if (lower.length() >= 2) {
+            String key = lower.substring(0, 2);
+            Set<String> b1 = kbLayer.getOrDefault(key, Collections.emptySet());
+            Set<String> b2 = bufLayer.getOrDefault(key, Collections.emptySet());
+
+            if (caseSensitive) {
+                for (String s : b1) {
+                    if (s.startsWith(prefix)) {
+                        results.add(s);
+                        if (results.size() >= limit) return new ArrayList<>(results);
+                    }
+                }
+                for (String s : b2) {
+                    if (s.startsWith(prefix)) {
+                        results.add(s);
+                        if (results.size() >= limit) return new ArrayList<>(results);
+                    }
+                }
+            } else {
+                for (String s : b1) {
+                    if (s.toLowerCase(Locale.ROOT).startsWith(lower)) {
+                        results.add(s);
+                        if (results.size() >= limit) return new ArrayList<>(results);
+                    }
+                }
+                for (String s : b2) {
+                    if (s.toLowerCase(Locale.ROOT).startsWith(lower)) {
+                        results.add(s);
+                        if (results.size() >= limit) return new ArrayList<>(results);
+                    }
+                }
+            }
+            return new ArrayList<>(results);
+        }
+
+        // Prefix shorter than 2 chars: scan all buckets.
+        if (caseSensitive) {
+            for (Set<String> bucket : kbLayer.values()) {
+                for (String s : bucket) {
+                    if (s.startsWith(prefix)) {
+                        results.add(s);
+                        if (results.size() >= limit) return new ArrayList<>(results);
+                    }
+                }
+            }
+            for (Set<String> bucket : bufLayer.values()) {
+                for (String s : bucket) {
+                    if (s.startsWith(prefix)) {
+                        results.add(s);
+                        if (results.size() >= limit) return new ArrayList<>(results);
+                    }
+                }
+            }
+        } else {
+            for (Set<String> bucket : kbLayer.values()) {
+                for (String s : bucket) {
+                    if (s.toLowerCase(Locale.ROOT).startsWith(lower)) {
+                        results.add(s);
+                        if (results.size() >= limit) return new ArrayList<>(results);
+                    }
+                }
+            }
+            for (Set<String> bucket : bufLayer.values()) {
+                for (String s : bucket) {
+                    if (s.toLowerCase(Locale.ROOT).startsWith(lower)) {
+                        results.add(s);
+                        if (results.size() >= limit) return new ArrayList<>(results);
+                    }
+                }
+            }
+        }
+
         return new ArrayList<>(results);
     }
 
