@@ -2843,8 +2843,22 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     // Assumption: tptp4X pretty-printer writes only the HEAD (fully parsed prefix) before failing.
     private static int deriveErrorLineFromStdout(final String stdoutNormalized) {
         if (stdoutNormalized == null || stdoutNormalized.isBlank()) return 0;
-        // Count physical lines, keeping trailing empty lines consistent with our splits
+
+        // Split into physical lines, but ignore a trailing empty line that comes
+        // from a final newline character in the pretty-printer output.
         final String[] lines = stdoutNormalized.split("\\R", -1);
-        return lines.length + 1; // next line is where the first failure began
+        int count = lines.length;
+
+        // If the last element is empty, it corresponds to a trailing newline → not a real line.
+        if (count > 0 && lines[count - 1].isEmpty()) {
+            count--;
+        }
+
+        if (count <= 0) {
+            return 0;
+        }
+
+        // The error is assumed to start on the first line *after* the last non-empty line.
+        return count + 1;
     }
 }
