@@ -1451,22 +1451,25 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 //    }
 
     /** Utility method to parse KIF
-     *
-     * @param contents the contents of a KIF file to parse
-     * @return true if successful parse, no error or warnings
-     */
-    private boolean parseKif(String contents) {
+         *
+         * @param contents the contents of a KIF file to parse
+         * @return true if successful parse, no error or warnings
+         */
+        private boolean parseKif(String contents) {
 
         boolean retVal = false;
         try (Reader r = new StringReader(contents)) {
             kif.parse(r);
             Log.log(Log.MESSAGE, this, ":parseKif(): done reading kif file");
-            retVal = true;
+
+            // Treat any recorded warnings or errors as a failed parse.
+            retVal = kif.warningSet.isEmpty() && kif.errorSet.isEmpty();
         } catch (Exception e) {
             if (log)
                 Log.log(Log.ERROR, this, ":checkErrorsBody()", e);
             String msg = "Error in SUMOjEdit.parseKif() with: " + kif.filename + ": " + e;
             System.err.print(msg);
+            retVal = false;
         } finally {
             logKifWarnAndErr();
         }
