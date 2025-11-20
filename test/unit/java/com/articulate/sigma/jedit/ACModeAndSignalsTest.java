@@ -21,6 +21,7 @@ import static org.junit.Assert.*;
  * {@link ACMode#save(ACMode)}, since those hit jEdit's property store and
  * settings persistence. We only exercise pure logic and the listener wiring.
  *
+ * 
  * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.ac.ACModeAndSignalsTest">Simon Deng, NPS ORISE Intern 2025</a>
  */
 

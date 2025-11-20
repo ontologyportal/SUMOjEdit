@@ -18,6 +18,7 @@ import static org.junit.Assert.*;
  * synthetic terms directly into the private {@code terms} index via reflection.
  * Only the in-memory suggestion behaviour is exercised.
  *
+ * 
  * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.fastac.KifTermIndexTest">Simon Deng, NPS ORISE Intern 2025</a>
  */
 public class KifTermIndexTest {

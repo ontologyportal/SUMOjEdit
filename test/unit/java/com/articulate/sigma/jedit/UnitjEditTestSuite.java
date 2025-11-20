@@ -19,7 +19,8 @@ import org.junit.runners.Suite;
     AutoCompleteIndexTest.class,
     KifTermIndexTest.class,
     ACModeAndSignalsTest.class,
-    TopCompletionAdapterTest.class
+    TopCompletionAdapterTest.class,
+    SUMOjEditResidualHelpersTest.class
 })
 public class UnitjEditTestSuite {
 
