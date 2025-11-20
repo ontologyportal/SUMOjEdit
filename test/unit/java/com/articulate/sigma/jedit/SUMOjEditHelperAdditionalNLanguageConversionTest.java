@@ -38,8 +38,7 @@ import static org.junit.Assert.*;
  * for display (`safeSnippetFromFile`), how temporary files are 
  * created for TPTP tools (`writeTemp`), and how the TPTP fragment 
  * used by the SUO-KIF→TPTP translator is configured (`setFOF`, `setTFF`).
- */
-/**
+ *
  *
  * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.SUOKIFErrorCheckTest">Simon Deng, NPS ORISE Intern 2025</a>
  */

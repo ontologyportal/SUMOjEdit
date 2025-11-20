@@ -22,8 +22,7 @@ import static org.junit.Assert.*;
  * locating formula declarations without invoking the external tptp4X
  * binary.  Reflection is used to access private methods in order to
  * verify their behaviour.
- */
-/**
+ *
  *
  * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.SUOKIFErrorCheckTest">Simon Deng, NPS ORISE Intern 2025</a>
  */
