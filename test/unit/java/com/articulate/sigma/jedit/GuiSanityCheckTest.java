@@ -18,7 +18,11 @@ import java.awt.BorderLayout;
  * This does NOT touch SUMOjEdit yet – it just proves we can launch
  * a Swing window, interact with it via AssertJ Swing, and assert
  * on the result.
+ * 
+ * 
+ * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.SUOKIFErrorCheckTest">Simon Deng, NPS ORISE Intern 2025</a>
  */
+
 public class GuiSanityCheckTest extends AssertJSwingJUnitTestCase {
 
     private FrameFixture window;

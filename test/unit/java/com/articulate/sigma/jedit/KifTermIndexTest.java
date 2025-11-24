@@ -21,6 +21,7 @@ import static org.junit.Assert.*;
  * 
  * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.fastac.KifTermIndexTest">Simon Deng, NPS ORISE Intern 2025</a>
  */
+
 public class KifTermIndexTest {
 
     private KifTermIndex index;
