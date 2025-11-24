@@ -40,7 +40,11 @@ import static org.junit.Assert.*;
  *  - GHOST_ONLY     -> OFF
  *  - OFF            -> DROPDOWN_ONLY
  *  - DROPDOWN_ONLY  -> BOTH
+ * 
+ * 
+ * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.SUOKIFErrorCheckTest">Simon Deng, NPS ORISE Intern 2025</a>
  */
+
 public class ACModeToggleGUITest extends AssertJSwingJUnitTestCase {
 
     /**
