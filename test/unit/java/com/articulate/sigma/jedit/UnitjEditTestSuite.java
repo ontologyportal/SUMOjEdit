@@ -57,7 +57,8 @@ import org.junit.runners.Suite;
     SUMOjEditResidualHelpersTest.class,
     ACModeToggleGUITest.class,
     ErrorListDisplayGUITest.class,
-    ErrorListUpdateGUITest.class
+    ErrorListUpdateGUITest.class,
+    ErrorListNavigationGUITest.class
 })
 public class UnitjEditTestSuite {
 
