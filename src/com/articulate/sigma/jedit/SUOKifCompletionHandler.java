@@ -189,7 +189,18 @@ public final class SUOKifCompletionHandler implements EBComponent {
         if (view == null) return false;
         org.gjt.sp.jedit.Buffer buf = view.getBuffer();
         String path = (buf != null ? buf.getPath() : null);
-        return (path != null && path.toLowerCase().endsWith(".kif"));
+        if (path == null) return false;
+
+        String lower = path.toLowerCase();
+
+        // Treat KIF and common TPTP-style files as ghost-eligible
+        return lower.endsWith(".kif")
+                || lower.endsWith(".tff")
+                || lower.endsWith(".thf")
+                || lower.endsWith(".fof")
+                || lower.endsWith(".cnf")
+                || lower.endsWith(".p")
+                || lower.endsWith(".tptp");
     }
 
     /** Recompute after typing; accept/cancel handled by bindings/dispatcher */
