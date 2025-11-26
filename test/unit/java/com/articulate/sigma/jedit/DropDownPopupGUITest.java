@@ -33,7 +33,11 @@ import static org.junit.Assert.*;
  *
  * NOTE: This class does NOT depend on jEdit runtime and uses a small
  * harness frame instead.
+ * 
+ * 
+ * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.SUOKIFErrorCheckTest">Simon Deng, NPS ORISE Intern 2025</a>
  */
+
 public class DropDownPopupGUITest extends AssertJSwingJUnitTestCase {
 
     private FrameFixture window;
