@@ -9,26 +9,30 @@ import org.junit.Test;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import java.awt.*;
-import java.awt.event.ActionEvent;
+import java.awt.BorderLayout;
+import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.Assert.*;
 
 /**
- * GUI-level tests for a minimal AutoComplete drop-down popup harness.
+ * GUI tests for a harness that approximates SUMOjEdit's drop-down
+ * completion popup (SimpleCompletionPopup-style behavior).
  *
- * This does NOT depend on the real jEdit TextArea or AutoCompleteManager.
- * It wires a small panel that:
+ * Covered behaviors:
+ *  - Prefix-based token collection from a "buffer"
+ *  - Case-insensitive prefix filtering & sorting
+ *  - Popup visibility rules (no popup for empty prefix / no matches)
+ *  - Keyboard navigation with UP/DOWN
+ *  - ENTER / TAB accept the current selection and hide the popup
+ *  - ESC hides the popup without changing the editor text
  *
- *  - filters a static vocabulary as the user types
- *  - shows a JPopupMenu with a JList of suggestions
- *  - binds Up/Down to move selection and Enter to accept
- *
- * The goal is to lock in the expected drop-down interaction pattern in
- * a deterministic, self-contained way.
+ * NOTE: This class does NOT depend on jEdit runtime and uses a small
+ * harness frame instead.
  * 
  * 
  * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.SUOKIFErrorCheckTest">Simon Deng, NPS ORISE Intern 2025</a>
@@ -36,279 +40,401 @@ import static org.junit.Assert.*;
 
 public class DropDownPopupGUITest extends AssertJSwingJUnitTestCase {
 
+    private FrameFixture window;
+    private CompletionHarnessFrame frame;
+
+    @Override
+    protected void onSetUp() {
+        frame = GuiActionRunner.execute(new GuiQuery<CompletionHarnessFrame>() {
+            @Override
+            protected CompletionHarnessFrame executeInEDT() {
+                return new CompletionHarnessFrame();
+            }
+        });
+        window = new FrameFixture(robot(), frame);
+        window.show();
+    }
+
+    // -------------------------------------------------------------------------
+    // Basic popup behavior
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void testPopupAppearsWithExpectedSuggestions() {
+        GuiActionRunner.execute(() -> {
+            frame.setBufferText("Animal Animate agent Zebra");
+            frame.getEditor().setText("an");
+            frame.getEditor().setCaretPosition(2); // after "an"
+            frame.showPopupForCurrentPrefix();
+        });
+
+        // Popup must be visible.
+        GuiActionRunner.execute(() -> assertTrue(frame.isPopupVisible()));
+
+        // Suggestions filtered and sorted: "Animal", "Animate" (case-insensitive).
+        window.list("completionList").requireItemCount(2);
+        String[] contents = window.list("completionList").contents();
+        assertEquals("Animal", contents[0]);
+        assertEquals("Animate", contents[1]);
+
+        // First item is selected by default.
+        window.list("completionList").requireSelection(0);
+    }
+
+    @Test
+    public void testArrowKeysNavigateSelection() {
+        GuiActionRunner.execute(() -> {
+            frame.setBufferText("Animal Animate agent");
+            frame.getEditor().setText("an");
+            frame.getEditor().setCaretPosition(2);
+            frame.showPopupForCurrentPrefix();
+        });
+
+        window.list("completionList").requireItemCount(2);
+        window.list("completionList").requireSelection(0);
+
+        // Press DOWN: should move to index 1.
+        window.list("completionList").pressAndReleaseKeys(KeyEvent.VK_DOWN);
+        window.list("completionList").requireSelection(1);
+
+        // Press UP: should move back to index 0.
+        window.list("completionList").pressAndReleaseKeys(KeyEvent.VK_UP);
+        window.list("completionList").requireSelection(0);
+    }
+
+    @Test
+    public void testEnterAcceptsSelectionAndHidesPopup() {
+        GuiActionRunner.execute(() -> {
+            frame.setBufferText("Animal Animate agent");
+            frame.getEditor().setText("an");
+            frame.getEditor().setCaretPosition(2);
+            frame.showPopupForCurrentPrefix();
+        });
+
+        window.list("completionList").requireItemCount(2);
+        window.list("completionList").requireSelection(0);
+
+        // Press ENTER on the list: accept current selection.
+        window.list("completionList").pressAndReleaseKeys(KeyEvent.VK_ENTER);
+
+        window.textBox("completionEditor").requireText("Animal");
+        GuiActionRunner.execute(() -> assertFalse(frame.isPopupVisible()));
+    }
+
+    @Test
+    public void testTabAcceptsSelectionAndHidesPopup() {
+        GuiActionRunner.execute(() -> {
+            frame.setBufferText("Animal Animate agent");
+            frame.getEditor().setText("an");
+            frame.getEditor().setCaretPosition(2);
+            frame.showPopupForCurrentPrefix();
+        });
+
+        window.list("completionList").requireItemCount(2);
+        window.list("completionList").requireSelection(0);
+
+        // Press TAB on the list: accept current selection.
+        window.list("completionList").pressAndReleaseKeys(KeyEvent.VK_TAB);
+
+        window.textBox("completionEditor").requireText("Animal");
+        GuiActionRunner.execute(() -> assertFalse(frame.isPopupVisible()));
+    }
+
+    @Test
+    public void testEscapeClosesPopupWithoutChangingText() {
+        GuiActionRunner.execute(() -> {
+            frame.setBufferText("Animal Animate agent");
+            frame.getEditor().setText("an");
+            frame.getEditor().setCaretPosition(2);
+            frame.showPopupForCurrentPrefix();
+        });
+
+        window.list("completionList").requireItemCount(2);
+        window.list("completionList").requireSelection(0);
+
+        // Press ESC: close popup without touching editor text.
+        window.list("completionList").pressAndReleaseKeys(KeyEvent.VK_ESCAPE);
+
+        window.textBox("completionEditor").requireText("an");
+        GuiActionRunner.execute(() -> assertFalse(frame.isPopupVisible()));
+    }
+
+    // -------------------------------------------------------------------------
+    // Prefix filtering & sorting
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void testSuggestionsArePrefixFilteredAndSorted() {
+        GuiActionRunner.execute(() -> {
+            frame.setBufferText("zebra Zeta agent Animate animal");
+            frame.getEditor().setText("a");
+            frame.getEditor().setCaretPosition(1);
+            frame.showPopupForCurrentPrefix();
+        });
+
+        List<String> items = GuiActionRunner.execute(new GuiQuery<List<String>>() {
+            @Override
+            protected List<String> executeInEDT() {
+                DefaultListModel<String> model = frame.getListModel();
+                List<String> result = new ArrayList<>();
+                for (int i = 0; i < model.size(); i++) {
+                    result.add(model.get(i));
+                }
+                return result;
+            }
+        });
+
+        assertTrue("Should have at least three 'a*' tokens", items.size() >= 3);
+        for (String s : items) {
+            assertTrue("Every suggestion must start with 'a' (case-insensitive)",
+                    s.toLowerCase().startsWith("a"));
+        }
+
+        List<String> sorted = new ArrayList<>(items);
+        sorted.sort(String.CASE_INSENSITIVE_ORDER);
+        assertEquals("Suggestions should be sorted case-insensitively", sorted, items);
+
+        window.list("completionList").requireSelection(0);
+    }
+
+    @Test
+    public void testNoPopupForEmptyPrefix() {
+        GuiActionRunner.execute(() -> {
+            frame.setBufferText("Animal Animate agent");
+            frame.getEditor().setText(" ");
+            frame.getEditor().setCaretPosition(1); // caret after a space -> empty prefix.
+            frame.showPopupForCurrentPrefix();
+        });
+
+        GuiActionRunner.execute(() -> assertFalse(frame.isPopupVisible()));
+    }
+
+    // -------------------------------------------------------------------------
+    // Harness
+    // -------------------------------------------------------------------------
+
     /**
-     * Minimal panel that simulates drop-down AC behaviour.
+     * Minimal frame that mirrors the behavior of a SimpleCompletionPopup
+     * backed by:
+     *  - a single-line editor (JTextField)
+     *  - a JList inside a JPopupMenu
+     *  - a synthetic "buffer" string for token collection.
      */
-    private static final class DropdownPanel extends JPanel {
+    private static class CompletionHarnessFrame extends JFrame {
 
-        private final JTextField editor = new JTextField(20);
-        private final JPopupMenu popup = new JPopupMenu();
-        private final JList<String> list = new JList<>();
+        private final JTextField editor = new JTextField(30);
         private final DefaultListModel<String> model = new DefaultListModel<>();
-        private final List<String> vocab;
+        private final JList<String> list = new JList<>(model);
+        private final JPopupMenu popup = new JPopupMenu();
 
-        DropdownPanel(List<String> vocab) {
-            super(new BorderLayout());
-            this.vocab = vocab;
+        // Simulated buffer analogous to a jEdit buffer's full text.
+        private String bufferText = "";
 
-            editor.setName("dropdownEditor");
+        CompletionHarnessFrame() {
+            super("DropDownPopup Harness");
+            setName("dropDownPopupFrame");
+            setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+            setLayout(new BorderLayout());
 
-            list.setModel(model);
-            list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-            list.setVisibleRowCount(5);
-
-            popup.add(new JScrollPane(list));
-
+            editor.setName("completionEditor");
             add(editor, BorderLayout.NORTH);
 
-            installDocumentListener();
-            installKeyBindings();
-        }
+            list.setName("completionList");
+            list.setVisibleRowCount(8);
+            list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
-        private void installDocumentListener() {
-            editor.getDocument().addDocumentListener(new DocumentListener() {
-                @Override
-                public void insertUpdate(DocumentEvent e) {
-                    updateSuggestions();
-                }
+            JScrollPane scroller = new JScrollPane(list);
+            scroller.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
+            popup.add(scroller);
 
-                @Override
-                public void removeUpdate(DocumentEvent e) {
-                    updateSuggestions();
-                }
-
-                @Override
-                public void changedUpdate(DocumentEvent e) {
-                    updateSuggestions();
-                }
-            });
-        }
-
-        private void installKeyBindings() {
-            // Down arrow: move selection to next item
-            editor.getInputMap(JComponent.WHEN_FOCUSED).put(
-                    KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, 0), "selectNext");
-            editor.getActionMap().put("selectNext", new AbstractAction() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    moveSelection(1);
-                }
-            });
-
-            // Up arrow: move selection to previous item
-            editor.getInputMap(JComponent.WHEN_FOCUSED).put(
-                    KeyStroke.getKeyStroke(KeyEvent.VK_UP, 0), "selectPrev");
-            editor.getActionMap().put("selectPrev", new AbstractAction() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    moveSelection(-1);
-                }
-            });
-
-            // Enter: accept the currently selected suggestion
-            editor.getInputMap(JComponent.WHEN_FOCUSED).put(
-                    KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "acceptSelection");
-            editor.getActionMap().put("acceptSelection", new AbstractAction() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    acceptSelection();
-                }
-            });
-        }
-
-        private void updateSuggestions() {
-            String prefix = editor.getText();
-            if (prefix == null) {
-                prefix = "";
-            }
-            prefix = prefix.trim().toLowerCase();
-
-            model.clear();
-            if (prefix.isEmpty()) {
-                popup.setVisible(false);
-                return;
-            }
-
-            for (String v : vocab) {
-                if (v.toLowerCase().startsWith(prefix)) {
-                    model.addElement(v);
-                }
-            }
-
-            if (model.isEmpty()) {
-                popup.setVisible(false);
-            } else {
-                if (list.getSelectedIndex() < 0 && model.getSize() > 0) {
-                    list.setSelectedIndex(0);
-                }
-                if (!popup.isVisible()) {
-                    popup.show(editor, 0, editor.getHeight());
-                }
-            }
-        }
-
-        private void moveSelection(int delta) {
-            if (!popup.isVisible() || model.isEmpty()) {
-                return;
-            }
-            int idx = list.getSelectedIndex();
-            if (idx < 0) {
-                idx = 0;
-            } else {
-                idx += delta;
-            }
-            if (idx < 0) {
-                idx = 0;
-            }
-            if (idx >= model.getSize()) {
-                idx = model.getSize() - 1;
-            }
-            list.setSelectedIndex(idx);
-            list.ensureIndexIsVisible(idx);
-        }
-
-        private void acceptSelection() {
-            if (!popup.isVisible()) {
-                return;
-            }
-            int idx = list.getSelectedIndex();
-            if (idx < 0 || idx >= model.getSize()) {
-                return;
-            }
-            String value = model.getElementAt(idx);
-            editor.setText(value);
-            popup.setVisible(false);
+            installEditorDocumentListener();
+            installListKeyHandlers();
+            pack();
+            setLocationRelativeTo(null);
         }
 
         JTextField getEditor() {
             return editor;
         }
 
-        JList<String> getList() {
-            return list;
+        DefaultListModel<String> getListModel() {
+            return model;
         }
 
-        JPopupMenu getPopup() {
-            return popup;
+        boolean isPopupVisible() {
+            return popup.isVisible();
         }
-    }
 
-    private FrameFixture window;
-    private DropdownPanel panel;
+        void setBufferText(String text) {
+            this.bufferText = (text == null) ? "" : text;
+        }
 
-    @Override
-    protected void onSetUp() {
-        JFrame frame = GuiActionRunner.execute(new GuiQuery<JFrame>() {
-            @Override
-            protected JFrame executeInEDT() {
-                panel = new DropdownPanel(
-                        Arrays.asList("Animal", "Animate", "agent", "Zebra"));
-                JFrame f = new JFrame("Dropdown AC Harness");
-                f.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-                f.getContentPane().add(panel);
-                f.pack();
-                f.setLocationRelativeTo(null);
-                return f;
+        /**
+         * Public entry point used by tests: compute prefix from the current
+         * caret position, collect tokens from the buffer, filter & sort, then
+         * show or hide the popup accordingly.
+         */
+        void showPopupForCurrentPrefix() {
+            String prefix = currentPrefix();
+            if (prefix.isEmpty()) {
+                hidePopup();
+                return;
             }
-        });
 
-        window = new FrameFixture(robot(), frame);
-        window.show();
-    }
+            Set<String> tokens = new LinkedHashSet<>();
+            collectTokens(bufferText, tokens);
 
-    @Override
-    protected void onTearDown() {
-        if (window != null) {
-            window.cleanUp();
-            window = null;
-        }
-    }
+            List<String> candidates = new ArrayList<>();
+            String lower = prefix.toLowerCase();
+            for (String t : tokens) {
+                if (t.toLowerCase().startsWith(lower)) {
+                    candidates.add(t);
+                }
+            }
 
-    // ---------------------------------------------------------------------
-    // Tests
-    // ---------------------------------------------------------------------
+            if (candidates.isEmpty()) {
+                hidePopup();
+                return;
+            }
 
-    @Test
-    public void testPopupShowsFilteredSuggestions() {
-        window.textBox("dropdownEditor").setText("an");
+            candidates.sort(String.CASE_INSENSITIVE_ORDER);
+            model.clear();
+            for (String c : candidates) {
+                model.addElement(c);
+            }
 
-        JPopupMenu popup = panel.getPopup();
-        JList<String> list = panel.getList();
-
-        assertTrue("Popup should be visible when there are matches", popup.isVisible());
-        // With prefix "an", only "Animal" and "Animate" match.
-        assertEquals(2, list.getModel().getSize());
-        assertEquals("Animal", list.getModel().getElementAt(0));
-        assertEquals("Animate", list.getModel().getElementAt(1));
-    }
-
-    @Test
-    public void testArrowKeyBindingsAndSelectionMovement() {
-        JTextField editor = panel.getEditor();
-
-        // Trigger suggestions.
-        window.textBox("dropdownEditor").setText("a");
-        assertTrue(panel.getPopup().isVisible());
-        assertTrue(panel.getList().getModel().getSize() > 0);
-
-        // Verify key bindings are wired.
-        Object nextKey = editor.getInputMap(JComponent.WHEN_FOCUSED).get(
-                KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, 0));
-        Object prevKey = editor.getInputMap(JComponent.WHEN_FOCUSED).get(
-                KeyStroke.getKeyStroke(KeyEvent.VK_UP, 0));
-        assertEquals("selectNext", nextKey);
-        assertEquals("selectPrev", prevKey);
-
-        Action nextAction = editor.getActionMap().get(nextKey);
-        Action prevAction = editor.getActionMap().get(prevKey);
-        assertNotNull(nextAction);
-        assertNotNull(prevAction);
-
-        // Start at whatever initial selection is, then move down and up.
-        JList<String> list = panel.getList();
-        int initial = list.getSelectedIndex();
-        assertTrue("Initial selection index should be valid", initial >= 0);
-
-        GuiActionRunner.execute(() -> nextAction.actionPerformed(
-                new ActionEvent(editor, ActionEvent.ACTION_PERFORMED, "selectNext")));
-        int afterNext = list.getSelectedIndex();
-        assertTrue("Selection index should move forward or clamp", afterNext >= initial);
-
-        GuiActionRunner.execute(() -> prevAction.actionPerformed(
-                new ActionEvent(editor, ActionEvent.ACTION_PERFORMED, "selectPrev")));
-        int afterPrev = list.getSelectedIndex();
-        // Should remain within bounds
-        assertTrue(afterPrev >= 0);
-        assertTrue(afterPrev < list.getModel().getSize());
-    }
-
-    @Test
-    public void testEnterAcceptsSelectedSuggestion() {
-        JTextField editor = panel.getEditor();
-
-        // Make sure we have suggestions.
-        window.textBox("dropdownEditor").setText("ani");
-        assertTrue(panel.getPopup().isVisible());
-        JList<String> list = panel.getList();
-        assertTrue(list.getModel().getSize() > 0);
-
-        // Select the second suggestion if available (must run on the EDT).
-        if (list.getModel().getSize() > 1) {
-            GuiActionRunner.execute(() -> list.setSelectedIndex(1));
+            list.setSelectedIndex(0);
+            popup.show(editor, 0, editor.getHeight());
+            popup.setVisible(true);
+            list.requestFocusInWindow();
         }
 
-        Object acceptKey = editor.getInputMap(JComponent.WHEN_FOCUSED).get(
-                KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0));
-        assertEquals("acceptSelection", acceptKey);
+        // -----------------------------------------------------------------
+        // Helpers mirroring SimpleCompletionPopup logic
+        // -----------------------------------------------------------------
 
-        Action acceptAction = editor.getActionMap().get(acceptKey);
-        assertNotNull(acceptAction);
+        private String currentPrefix() {
+            String text = editor.getText();
+            if (text == null) return "";
+            int caret = editor.getCaretPosition();
+            if (caret < 0 || caret > text.length()) return "";
 
-        GuiActionRunner.execute(() -> acceptAction.actionPerformed(
-                new ActionEvent(editor, ActionEvent.ACTION_PERFORMED, "acceptSelection")));
+            int start = caret;
+            while (start > 0) {
+                char c = text.charAt(start - 1);
+                if (!(Character.isLetterOrDigit(c) || c == '_' || c == '-')) {
+                    break;
+                }
+                start--;
+            }
 
-        String text = editor.getText();
-        assertEquals(list.getSelectedValue(), text);
-        assertFalse("Popup should hide after accepting a suggestion", panel.getPopup().isVisible());
+            int len = caret - start;
+            if (len <= 0) {
+                return "";
+            }
+            return text.substring(start, caret);
+        }
+
+        private void collectTokens(String text, Set<String> out) {
+            if (text == null || text.isEmpty()) return;
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < text.length(); i++) {
+                char c = text.charAt(i);
+                if (Character.isLetterOrDigit(c) || c == '_' || c == '-') {
+                    sb.append(c);
+                } else {
+                    if (sb.length() > 0) {
+                        out.add(sb.toString());
+                        sb.setLength(0);
+                    }
+                }
+            }
+            if (sb.length() > 0) {
+                out.add(sb.toString());
+            }
+        }
+
+        private void acceptSelection() {
+            String selection = list.getSelectedValue();
+            if (selection == null) {
+                hidePopup();
+                return;
+            }
+
+            String text = editor.getText();
+            if (text == null) {
+                text = "";
+            }
+
+            int caret = editor.getCaretPosition();
+            String prefix = currentPrefix();
+            if (prefix.isEmpty()) {
+                hidePopup();
+                return;
+            }
+
+            int start = caret - prefix.length();
+            if (start < 0) {
+                start = 0;
+            }
+
+            StringBuilder sb = new StringBuilder();
+            sb.append(text, 0, start);
+            sb.append(selection);
+            if (caret < text.length()) {
+                sb.append(text.substring(caret));
+            }
+
+            String newText = sb.toString();
+            editor.setText(newText);
+            editor.setCaretPosition(start + selection.length());
+
+            hidePopup();
+        }
+
+        private void hidePopup() {
+            popup.setVisible(false);
+        }
+
+        private void installEditorDocumentListener() {
+            editor.getDocument().addDocumentListener(new DocumentListener() {
+                @Override
+                public void insertUpdate(DocumentEvent e) {
+                    // In real SUMOjEdit we would trigger popup automatically.
+                    // For safety we don't auto-open here; the tests call
+                    // showPopupForCurrentPrefix() explicitly to avoid timing issues.
+                }
+
+                @Override
+                public void removeUpdate(DocumentEvent e) {
+                }
+
+                @Override
+                public void changedUpdate(DocumentEvent e) {
+                }
+            });
+        }
+
+        private void installListKeyHandlers() {
+            // Disable focus traversal so TAB is delivered as a normal key event.
+            list.setFocusTraversalKeysEnabled(false);
+
+            list.addKeyListener(new KeyAdapter() {
+                @Override
+                public void keyPressed(KeyEvent e) {
+                    int code = e.getKeyCode();
+                    if (code == KeyEvent.VK_ENTER || code == KeyEvent.VK_TAB) {
+                        acceptSelection();
+                        e.consume();
+                    } else if (code == KeyEvent.VK_ESCAPE) {
+                        hidePopup();
+                        e.consume();
+                    }
+                }
+            });
+
+            // We still want UP / DOWN default behavior for changing selection,
+            // so no extra wiring is necessary beyond focus on the list.
+        }
     }
 }
