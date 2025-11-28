@@ -31,6 +31,7 @@ import static org.junit.Assert.*;
  *  - re-populating with a different set of diagnostics
  * 
  * 
+ * Author: Simon Deng, NPS ORISE Intern 2025, adam.pease@nps.edu
  * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.SUOKIFErrorCheckTest">Simon Deng, NPS ORISE Intern 2025</a>
  */
 

@@ -32,6 +32,7 @@ import static org.junit.Assert.*;
  * binding semantics without depending on the full plugin runtime.
  * 
  * 
+ * Author: Simon Deng, NPS ORISE Intern 2025, adam.pease@nps.edu
  * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.SUOKIFErrorCheckTest">Simon Deng, NPS ORISE Intern 2025</a>
  */
 

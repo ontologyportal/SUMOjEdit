@@ -1,5 +1,6 @@
 package com.articulate.sigma.jedit;
 
+import com.articulate.sigma.jedit.AutoCompleteManager;
 import com.articulate.sigma.jedit.fastac.PrefixIndex;
 import org.junit.Test;
 
@@ -20,6 +21,7 @@ import static org.junit.Assert.*;
  * any external repositories so they can run as pure unit tests.
  *
  * 
+ * Author: Simon Deng, NPS ORISE Intern 2025, adam.pease@nps.edu
  * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.SUOKIFErrorCheckTest">Simon Deng, NPS ORISE Intern 2025</a>
  */
 
