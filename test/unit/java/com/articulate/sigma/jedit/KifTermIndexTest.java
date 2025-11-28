@@ -19,6 +19,7 @@ import static org.junit.Assert.*;
  * Only the in-memory suggestion behaviour is exercised.
  *
  * 
+ * Author: Simon Deng, NPS ORISE Intern 2025, adam.pease@nps.edu
  * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.fastac.KifTermIndexTest">Simon Deng, NPS ORISE Intern 2025</a>
  */
 

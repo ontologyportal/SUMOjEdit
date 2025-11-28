@@ -22,6 +22,7 @@ import static org.junit.Assert.*;
  * settings persistence. We only exercise pure logic and the listener wiring.
  *
  * 
+ * Author: Simon Deng, NPS ORISE Intern 2025, adam.pease@nps.edu
  * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.ac.ACModeAndSignalsTest">Simon Deng, NPS ORISE Intern 2025</a>
  */
 

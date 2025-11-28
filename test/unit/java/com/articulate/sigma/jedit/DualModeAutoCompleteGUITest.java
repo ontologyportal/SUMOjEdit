@@ -48,6 +48,7 @@ import static org.junit.Assert.*;
  * user-visible semantics of AC mode switching and keybindings.
  *
  *
+ * Author: Simon Deng, NPS ORISE Intern 2025, adam.pease@nps.edu
  * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.SUOKIFErrorCheckTest">Simon Deng, NPS ORISE Intern 2025</a>
  */
 
