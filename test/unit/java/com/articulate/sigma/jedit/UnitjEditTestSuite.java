@@ -15,12 +15,13 @@ import org.junit.runners.Suite;
  * snippet builder, KIF/TPTP message normalizer, line/offset extractor, 
  * formula locator, file-spec composer, temporary file logic, error aggregator, etc.
  * 
- * Standalone Unit Test Suites (10 in total):
+ * Standalone Unit Test Suites (11 in total):
  *  SUMOjEditTest.java
  *  SUOKIFErrorCheckTest.java
  *  TPTPErrorCheckTest.java
  *  FormatSuoKifAxiomsTest.java
  *  SUMOjEditHelperAdditionalNLanguageConversionTest.java
+ *  SuoKifToTPTPConversionTest.java
  *  AutoCompleteIndexTest.java
  *  KifTermIndexTest.java
  *  ACModeAndSignalsTest.java
@@ -59,6 +60,7 @@ import org.junit.runners.Suite;
     TPTPErrorCheckTest.class,
     FormatSuoKifAxiomsTest.class,
     SUMOjEditHelperAdditionalNLanguageConversionTest.class,
+    SuoKifToTPTPConversionTest.class,
     AutoCompleteIndexTest.class,
     KifTermIndexTest.class,
     ACModeAndSignalsTest.class,
