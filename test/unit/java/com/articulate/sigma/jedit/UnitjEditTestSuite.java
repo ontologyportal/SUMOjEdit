@@ -15,19 +15,20 @@ import org.junit.runners.Suite;
  * snippet builder, KIF/TPTP message normalizer, line/offset extractor, 
  * formula locator, file-spec composer, temporary file logic, error aggregator, etc.
  * 
- * Standalone Unit Test Suites (12 in total):
+ * Standalone Unit Test Suites (13 in total):
  *  SUMOjEditTest.java
- *  SUOKIFErrorCheckTest.java
+ *  SUOKIFErrorCheckHelpersTest.java
  *  TPTPErrorCheckTest.java
  *  FormatSuoKifAxiomsTest.java
- *  SUMOjEditHelperAdditionalNLanguageConversionTest.java
- *  SuoKifToTPTPConversionTest.java
  *  FormatSuoKifAxiomsEndToEndTest.java
+ *  SUMOjEditHelperAdditionalANDLanguageConversionTest.java
+ *  SuoKifToTPTPConversionTest.java
  *  AutoCompleteIndexTest.java
  *  KifTermIndexTest.java
  *  ACModeAndSignalsTest.java
  *  TopCompletionAdapterTest.java
  *  SUMOjEditResidualHelpersTest.java
+ *  TermOccurrenceHighlightingTest.java
  * 
  * 
  * GUI-dependent unit tests lock in every testable visual or event-driven piece:
@@ -36,7 +37,7 @@ import org.junit.runners.Suite;
  * flows, async UI update logic, cross-thread event bridges, platform quirks,
  * and anything else the frontend can throw at us. Trust but verify.
  * 
- * GUI-Dependent Unit Test Suites (11 in total):
+ * GUI-Dependent Unit Test Suites (12 in total):
  *  ACModeToggleGUITest.java
  *  ErrorListDisplayGUITest.java
  *  ErrorListUpdateGUITest.java
@@ -48,6 +49,7 @@ import org.junit.runners.Suite;
  *  DropDownKeyboardNavigationGUITest.java
  *  DualModeAutoCompleteGUITest.java
  *  MultiViewErrorSourceGUITest.java
+ *  SUOKIFErrorCheckGUITest.java
  * 
  * 
  * Author: Simon Deng, NPS ORISE Intern 2025, adam.pease@nps.edu
@@ -57,17 +59,18 @@ import org.junit.runners.Suite;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
     SUMOjEditTest.class,
-    SUOKIFErrorCheckTest.class,
+    SUOKIFErrorCheckHelpersTest.class,
     TPTPErrorCheckTest.class,
     FormatSuoKifAxiomsTest.class,
-    SUMOjEditHelperAdditionalNLanguageConversionTest.class,
-    SuoKifToTPTPConversionTest.class,
     FormatSuoKifAxiomsEndToEndTest.class,
+    SUMOjEditHelperAdditionalANDLanguageConversionTest.class,
+    SuoKifToTPTPConversionTest.class,
     AutoCompleteIndexTest.class,
     KifTermIndexTest.class,
     ACModeAndSignalsTest.class,
     TopCompletionAdapterTest.class,
     SUMOjEditResidualHelpersTest.class,
+    TermOccurrenceHighlightingTest.class,
     ACModeToggleGUITest.class,
     ErrorListDisplayGUITest.class,
     ErrorListUpdateGUITest.class,
@@ -78,7 +81,8 @@ import org.junit.runners.Suite;
     GhostTextKeyboardNavigationGUITest.class,
     DropDownKeyboardNavigationGUITest.class,
     DualModeAutoCompleteGUITest.class,
-    MultiViewErrorSourceGUITest.class
+    MultiViewErrorSourceGUITest.class,
+    SUOKIFErrorCheckGUITest.class
 })
 public class UnitjEditTestSuite {
 
