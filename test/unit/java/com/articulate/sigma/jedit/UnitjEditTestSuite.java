@@ -15,7 +15,7 @@ import org.junit.runners.Suite;
  * snippet builder, KIF/TPTP message normalizer, line/offset extractor, 
  * formula locator, file-spec composer, temporary file logic, error aggregator, etc.
  * 
- * Standalone Unit Test Suites (12 in total):
+ * Standalone Unit Test Suites (13 in total):
  *  SUMOjEditTest.java
  *  SUOKIFErrorCheckTest.java
  *  TPTPErrorCheckTest.java
@@ -28,6 +28,7 @@ import org.junit.runners.Suite;
  *  ACModeAndSignalsTest.java
  *  TopCompletionAdapterTest.java
  *  SUMOjEditResidualHelpersTest.java
+ *  TermOccurrenceHighlightingTest.java
  * 
  * 
  * GUI-dependent unit tests lock in every testable visual or event-driven piece:
@@ -68,6 +69,7 @@ import org.junit.runners.Suite;
     ACModeAndSignalsTest.class,
     TopCompletionAdapterTest.class,
     SUMOjEditResidualHelpersTest.class,
+    TermOccurrenceHighlightingTest.class,
     ACModeToggleGUITest.class,
     ErrorListDisplayGUITest.class,
     ErrorListUpdateGUITest.class,
