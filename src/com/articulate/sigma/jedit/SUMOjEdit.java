@@ -1514,6 +1514,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
             for (ErrRec e : errors) {
                 int line = Math.max(0, e.line);
+                line -= 1;
                 int startCol = Math.max(0, e.start);
                 int endCol = Math.max(startCol + 1, e.end);
 
