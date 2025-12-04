@@ -3,6 +3,8 @@ package com.articulate.sigma.jedit;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
+import com.articulate.sigma.SuggestionComponentsIntegrationTest;
+
 
 /**
  * NOTE: The unit tests in the following unit test suites are
