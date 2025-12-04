@@ -39,7 +39,7 @@ import org.junit.runners.Suite;
  * flows, async UI update logic, cross-thread event bridges, platform quirks,
  * and anything else the frontend can throw at us. Trust but verify.
  * 
- * GUI-Dependent Unit Test Suites (14 in total):
+ * GUI-Dependent Unit Test Suites (15 in total):
  *  ACModeToggleGUITest.java
  *  ErrorListDisplayGUITest.java
  *  ErrorListUpdateGUITest.java
@@ -47,6 +47,7 @@ import org.junit.runners.Suite;
  *  GhostTextRenderingGUITest.java
  *  DropDownPopupGUITest.java
  *  StatusBarMessagesGUITest.java
+ *  MenuToggleDuringProcessingGUITest.java
  *  GhostTextKeyboardNavigationGUITest.java
  *  DropDownKeyboardNavigationGUITest.java
  *  DualModeAutoCompleteGUITest.java
@@ -84,6 +85,7 @@ import org.junit.runners.Suite;
     GhostTextRenderingGUITest.class,
     DropDownPopupGUITest.class,
     StatusBarMessagesGUITest.class,
+    MenuToggleDuringProcessingGUITest.class,
     GhostTextKeyboardNavigationGUITest.class,
     DropDownKeyboardNavigationGUITest.class,
     DualModeAutoCompleteGUITest.class,
