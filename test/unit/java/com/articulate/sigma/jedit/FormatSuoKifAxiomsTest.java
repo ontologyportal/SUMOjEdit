@@ -47,7 +47,7 @@ import static org.junit.Assert.*;
  * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.SUOKIFErrorCheckTest">Simon Deng, NPS ORISE Intern 2025</a>
  */
 
-public class FormatSuoKifAxiomsTest {
+public class FormatSUOKIFAxiomsTest {
 
     private SUMOjEdit sje;
 

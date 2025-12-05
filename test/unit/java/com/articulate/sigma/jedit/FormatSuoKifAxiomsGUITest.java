@@ -30,8 +30,8 @@ import static org.junit.Assert.*;
  *
  * The low-level logic of {@code checkEditorContents} and the pure
  * formatting helpers are already covered by the standalone
- * {@link FormatSuoKifAxiomsTest} and
- * {@link FormatSuoKifAxiomsEndToEndTest}; here we only assert
+ * {@link FormatSUOKIFAxiomsTest} and
+ * {@link FormatSUOKIFAxiomsEndToEndTest}; here we only assert
  * the GUI integration layer.
  *
  * 
@@ -39,7 +39,7 @@ import static org.junit.Assert.*;
  * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.FormatSuoKifAxiomsGUITest">Simon Deng, NPS ORISE Intern 2025</a>
  */
 
-public class FormatSuoKifAxiomsGUITest extends AssertJSwingJUnitTestCase {
+public class FormatSUOKIFAxiomsGUITest extends AssertJSwingJUnitTestCase {
 
     private FrameFixture window;
     private SUMOjEdit sje;
