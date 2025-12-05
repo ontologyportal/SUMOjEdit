@@ -93,6 +93,10 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         private final java.util.List<ErrRec> _pendingErrs = new java.util.ArrayList<>();
         private volatile boolean _flushScheduled = false;
 
+        // Test hook: when true, unit tests can inspect _pendingErrs directly
+        // without the EDT flush draining it into ErrorList.
+        boolean testKeepPendingErrs = false;
+
         // === Error message snippet helpers (limit 100 chars) ===
         private static final int SNIPPET_MAX = 100;
 
@@ -181,6 +185,13 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
             synchronized (_pendingErrs) {
                 _pendingErrs.addAll(batch);
+
+                // In unit tests we sometimes want to keep the raw ErrRec list in
+                // _pendingErrs and skip the EDT flush entirely.
+                if (testKeepPendingErrs) {
+                    return;
+                }
+
                 if (_flushScheduled) return;
                 _flushScheduled = true;
             }
