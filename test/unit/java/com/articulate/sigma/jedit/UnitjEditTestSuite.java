@@ -11,6 +11,7 @@ import com.articulate.sigma.SuggestionComponentsIntegrationTest;
  * either standalone or GUI-dependent, depending on the specific 
  * methods/functionalities tested by each test.
  * 
+ * ======================================================================================
  * 
  * Standalone unit tests target every testable internal helper, utility,
  * parser-adjacent, method, AC-related structure, index, mode/flag system, 
@@ -40,6 +41,7 @@ import com.articulate.sigma.SuggestionComponentsIntegrationTest;
  *  SafeSnippetFromFileTest.java
  *  SUMOjEditThreadConfigTest.java
  * 
+ * ======================================================================================
  * 
  * GUI-dependent unit tests lock in every testable visual or event-driven piece:
  * view-layer helpers, UI-state managers, widget renderers, layout calculators,
@@ -68,6 +70,7 @@ import com.articulate.sigma.SuggestionComponentsIntegrationTest;
  *  StatusBarMessagesGUITest.java
  *  MenuToggleDuringProcessingGUITest.java
  * 
+ * ======================================================================================
  * 
  * Author: Simon Deng, NPS ORISE Intern 2025, adam.pease@nps.edu
  * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.SUOKIFErrorCheckTest">Simon Deng, NPS ORISE Intern 2025</a>
@@ -93,7 +96,7 @@ import com.articulate.sigma.SuggestionComponentsIntegrationTest;
     FormatSUOKIFAxiomsTest.class,
     FormatSUOKIFAxiomsEndToEndTest.class,
 
-    /** ==== SUMOjEdit Helpers + Language Conversion (SUO-KIF ↔ TPTP) (Standalone) ======= */
+    /** === SUMOjEdit Helpers + Language Conversion (SUO-KIF ↔ TPTP) (Standalone) ==== */
 
     SUMOjEditHelperAdditionalANDLanguageConversionTest.class,
     SUOKIFToTPTPConversionTest.class,
