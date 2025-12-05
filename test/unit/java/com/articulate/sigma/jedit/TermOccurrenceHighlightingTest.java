@@ -44,6 +44,11 @@ public class TermOccurrenceHighlightingTest {
     @Before
     public void setUp() {
         sje = new SUMOjEdit();
+
+        // Keep batched ErrRec entries in _pendingErrs for this test instead
+        // of flushing them immediately onto the EDT / ErrorList.
+        sje.testKeepPendingErrs = true;
+
         sje.errsrc = new DefaultErrorSource(sje.getClass().getName(), null);
         ErrorSource.registerErrorSource(sje.errsrc);
     }
