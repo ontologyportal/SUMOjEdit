@@ -11,6 +11,7 @@ import com.articulate.sigma.SuggestionComponentsIntegrationTest;
  * either standalone or GUI-dependent, depending on the specific 
  * methods/functionalities tested by each test.
  * 
+ * ======================================================================================
  * 
  * Standalone unit tests target every testable internal helper, utility,
  * parser-adjacent, method, AC-related structure, index, mode/flag system, 
@@ -19,21 +20,28 @@ import com.articulate.sigma.SuggestionComponentsIntegrationTest;
  * 
  * Standalone Unit Test Suites (15 in total):
  *  SUMOjEditTest.java
+ * 
  *  SUOKIFErrorCheckHelpersTest.java
+ * 
  *  TPTPErrorCheckTest.java
- *  FormatSuoKifAxiomsTest.java
- *  FormatSuoKifAxiomsEndToEndTest.java
+ * 
+ *  FormatSUOKIFAxiomsTest.java
+ *  FormatSUOKIFAxiomsEndToEndTest.java
+ * 
  *  SUMOjEditHelperAdditionalANDLanguageConversionTest.java
- *  SuoKifToTPTPConversionTest.java
+ *  SUOKIFToTPTPConversionTest.java
+ * 
  *  AutoCompleteIndexTest.java
  *  KifTermIndexTest.java
  *  ACModeAndSignalsTest.java
  *  TopCompletionAdapterTest.java
+ * 
  *  SUMOjEditResidualHelpersTest.java
  *  TermOccurrenceHighlightingTest.java
  *  SafeSnippetFromFileTest.java
  *  SUMOjEditThreadConfigTest.java
  * 
+ * ======================================================================================
  * 
  * GUI-dependent unit tests lock in every testable visual or event-driven piece:
  * view-layer helpers, UI-state managers, widget renderers, layout calculators,
@@ -43,22 +51,26 @@ import com.articulate.sigma.SuggestionComponentsIntegrationTest;
  * 
  * GUI-Dependent Unit Test Suites (16 in total):
  *  ACModeToggleGUITest.java
+ *  GhostTextRenderingGUITest.java
+ *  GhostTextKeyboardNavigationGUITest.java
+ *  DropDownPopupGUITest.java
+ *  DropDownKeyboardNavigationGUITest.java
+ *  DualModeAutoCompleteGUITest.java
+ * 
  *  ErrorListDisplayGUITest.java
  *  ErrorListUpdateGUITest.java
  *  ErrorListNavigationGUITest.java
- *  GhostTextRenderingGUITest.java
- *  DropDownPopupGUITest.java
- *  StatusBarMessagesGUITest.java
- *  MenuToggleDuringProcessingGUITest.java
- *  GhostTextKeyboardNavigationGUITest.java
- *  DropDownKeyboardNavigationGUITest.java
- *  DualModeAutoCompleteGUITest.java
  *  MultiViewErrorSourceGUITest.java
  *  MultiViewErrorSourceSwitchingGUITest.java
- *  SUOKIFErrorCheckGUITest.java
- *  TPTPFormatBufferGUITest.java
- *  FormatSuoKifAxiomsGUITest.java
  * 
+ *  SUOKIFErrorCheckGUITest.java
+ *  FormatSUOKIFAxiomsGUITest.java
+ *  TPTPFormatBufferGUITest.java
+ * 
+ *  StatusBarMessagesGUITest.java
+ *  MenuToggleDuringProcessingGUITest.java
+ * 
+ * ======================================================================================
  * 
  * Author: Simon Deng, NPS ORISE Intern 2025, adam.pease@nps.edu
  * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.SUOKIFErrorCheckTest">Simon Deng, NPS ORISE Intern 2025</a>
@@ -66,37 +78,78 @@ import com.articulate.sigma.SuggestionComponentsIntegrationTest;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+
+    /** ======================= SUMOjEdit Core (Standalone) ========================== */
+
     SUMOjEditTest.class,
+
+    /** ================= SUO-KIF Error Checking Helpers (Standalone) ================ */
+
     SUOKIFErrorCheckHelpersTest.class,
+
+    /** ================== TPTP Error Checking (Standalone) ========================== */
+
     TPTPErrorCheckTest.class,
-    FormatSuoKifAxiomsTest.class,
-    FormatSuoKifAxiomsEndToEndTest.class,
+
+    /** ==================== SUO-KIF Formatting (Standalone) ========================= */
+
+    FormatSUOKIFAxiomsTest.class,
+    FormatSUOKIFAxiomsEndToEndTest.class,
+
+    /** === SUMOjEdit Helpers + Language Conversion (SUO-KIF ↔ TPTP) (Standalone) ==== */
+
     SUMOjEditHelperAdditionalANDLanguageConversionTest.class,
-    SuoKifToTPTPConversionTest.class,
+    SUOKIFToTPTPConversionTest.class,
+
+    /** ======================= AutoComplete Core (Standalone) ======================= */
+
     AutoCompleteIndexTest.class,
     KifTermIndexTest.class,
     ACModeAndSignalsTest.class,
     TopCompletionAdapterTest.class,
+
+    /** =============== Miscellaneous SUMOjEdit Helpers (Standalone) ================= */
+
     SUMOjEditResidualHelpersTest.class,
     TermOccurrenceHighlightingTest.class,
     SafeSnippetFromFileTest.class,
     SUMOjEditThreadConfigTest.class,
+
+    /** ============================================================================== */
+    /** ========================== GUI TESTS: AUTOCOMPLETE =========================== */
+    /** ============================================================================== */
+
     ACModeToggleGUITest.class,
+    GhostTextRenderingGUITest.class,
+    GhostTextKeyboardNavigationGUITest.class,
+    DropDownPopupGUITest.class,
+    DropDownKeyboardNavigationGUITest.class,
+    DualModeAutoCompleteGUITest.class,
+
+    /** ============================================================================== */
+    /** ========================== GUI TESTS: ERROR LIST ============================= */
+    /** ============================================================================== */
+
     ErrorListDisplayGUITest.class,
     ErrorListUpdateGUITest.class,
     ErrorListNavigationGUITest.class,
-    GhostTextRenderingGUITest.class,
-    DropDownPopupGUITest.class,
-    StatusBarMessagesGUITest.class,
-    MenuToggleDuringProcessingGUITest.class,
-    GhostTextKeyboardNavigationGUITest.class,
-    DropDownKeyboardNavigationGUITest.class,
-    DualModeAutoCompleteGUITest.class,
     MultiViewErrorSourceGUITest.class,
     MultiViewErrorSourceSwitchingGUITest.class,
+
+    /** ============================================================================== */
+    /** ========== GUI TESTS: SUO-KIF & TPTP Error/Formatting Pipelines ============== */
+    /** ============================================================================== */
+
     SUOKIFErrorCheckGUITest.class,
+    FormatSUOKIFAxiomsGUITest.class,
     TPTPFormatBufferGUITest.class,
-    FormatSuoKifAxiomsGUITest.class
+
+    /** ============================================================================== */
+    /** ======================= GUI TESTS: STATUS BAR & MENU ========================= */
+    /** ============================================================================== */
+
+    StatusBarMessagesGUITest.class,
+    MenuToggleDuringProcessingGUITest.class
 })
 public class UnitjEditTestSuite {
 

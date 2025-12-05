@@ -21,7 +21,7 @@ import static org.junit.Assert.*;
  * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.SUOKIFErrorCheckTest">Simon Deng, NPS ORISE Intern 2025</a>
  */
 
-public class SuoKifToTPTPConversionTest {
+public class SUOKIFToTPTPConversionTest {
 
     /**
      * Verify that a simple implication in SUO-KIF form produces a
