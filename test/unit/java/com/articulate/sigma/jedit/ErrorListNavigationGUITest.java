@@ -202,6 +202,7 @@ public class ErrorListNavigationGUITest extends AssertJSwingJUnitTestCase {
     public void testSelectingSingleErrorMovesEditorToExpectedLineAndColumn() {
         // Select the first error (line 5, column 10)
         window.table("errorTable").selectRows(0);
+        robot().waitForIdle();
 
         FakeEditor editor = panel.editor;
         org.junit.Assert.assertEquals(5, editor.lastLine);
@@ -214,16 +215,19 @@ public class ErrorListNavigationGUITest extends AssertJSwingJUnitTestCase {
 
         // First row: line 5
         window.table("errorTable").selectRows(0);
+        robot().waitForIdle();
         org.junit.Assert.assertEquals(5, editor.lastLine);
         org.junit.Assert.assertEquals(10, editor.lastColumn);
 
         // Second row: line 2
         window.table("errorTable").selectRows(1);
+        robot().waitForIdle();
         org.junit.Assert.assertEquals(2, editor.lastLine);
         org.junit.Assert.assertEquals(3, editor.lastColumn);
 
         // Third row: line 7
         window.table("errorTable").selectRows(2);
+        robot().waitForIdle();
         org.junit.Assert.assertEquals(7, editor.lastLine);
         org.junit.Assert.assertEquals(1, editor.lastColumn);
     }
