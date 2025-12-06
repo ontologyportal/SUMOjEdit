@@ -106,10 +106,10 @@ jobs:
           <constituent filename="domainEnglishFormat.kif"\/>\n
           <\/kb>' $SIGMA_HOME/KBs/config.xml
 
-      - name: Install Xvfb (virtual display for GUI tests)
+      - name: Install GUI dependencies (Xvfb + libXtst)
         run: |
           apt-get update
-          apt-get install -y xvfb
+          apt-get install -y xvfb libxtst6
 
       - name: Run SUMOjEdit Unit Tests (with virtual display to accommodate for GUI Tests)
         working-directory: ./SUMOjEdit
