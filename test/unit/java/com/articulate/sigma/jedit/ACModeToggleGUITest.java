@@ -233,12 +233,14 @@ public class ACModeToggleGUITest extends AssertJSwingJUnitTestCase {
 
         // From BOTH, ghost toggle -> DROPDOWN_ONLY
         window.checkBox("ghostToggle").click();
+        robot().waitForIdle();
         assertEquals(ACMode.DROPDOWN_ONLY, panel.currentMode());
         assertFalse(panel.ghostSelected());
         assertTrue(panel.dropdownSelected());
 
         // From DROPDOWN_ONLY, ghost toggle -> BOTH
         window.checkBox("ghostToggle").click();
+        robot().waitForIdle();
         assertEquals(ACMode.BOTH, panel.currentMode());
         assertTrue(panel.ghostSelected());
         assertTrue(panel.dropdownSelected());
@@ -260,12 +262,14 @@ public class ACModeToggleGUITest extends AssertJSwingJUnitTestCase {
 
         // From OFF, ghost toggle -> GHOST_ONLY
         window.checkBox("ghostToggle").click();
+        robot().waitForIdle();
         assertEquals(ACMode.GHOST_ONLY, panel.currentMode());
         assertTrue(panel.ghostSelected());
         assertFalse(panel.dropdownSelected());
 
         // From GHOST_ONLY, ghost toggle -> OFF
         window.checkBox("ghostToggle").click();
+        robot().waitForIdle();
         assertEquals(ACMode.OFF, panel.currentMode());
         assertFalse(panel.ghostSelected());
         assertFalse(panel.dropdownSelected());

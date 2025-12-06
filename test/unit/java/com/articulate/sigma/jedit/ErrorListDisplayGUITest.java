@@ -177,6 +177,8 @@ public class ErrorListDisplayGUITest extends AssertJSwingJUnitTestCase {
 
         // Select the only row.
         table.selectRows(0);
+        // Wait for the EDT to process the selection and update detailsLabel.
+        robot().waitForIdle();
 
         String detail = window.label("detailsLabel").text();
         assertTrue(detail.contains("Example.kif:3"));
