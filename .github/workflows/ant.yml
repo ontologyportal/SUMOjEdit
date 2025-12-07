@@ -106,9 +106,14 @@ jobs:
           <constituent filename="domainEnglishFormat.kif"\/>\n
           <\/kb>' $SIGMA_HOME/KBs/config.xml
 
-      - name: Run unit tests
+      - name: Install GUI dependencies (Xvfb + libXtst + libXi)
+        run: |
+          apt-get update
+          apt-get install -y xvfb libxtst6 libxi6
+
+      - name: Run SUMOjEdit Unit Tests (with virtual display to accommodate for GUI Tests)
         working-directory: ./SUMOjEdit
-        run: ant test.unit
+        run: xvfb-run -a ant test.unit
 
 #      - name: Run integration tests
 #        env:
