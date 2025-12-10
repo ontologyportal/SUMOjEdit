@@ -11,7 +11,30 @@ public final class ACSignals {
 
     private static Listener listener;
 
-    public static void register(Listener l) { listener = l; }
+    /**
+     * When testMode == true, tests are allowed to fully control the
+     * registered listener without interference from production code.
+     * This prevents cross-test/global pollution of the singleton.
+     */
+    private static boolean testMode = false;
+
+    /**
+     * Enable or disable test mode. Intended to be called only from
+     * JUnit tests. Production code should never flip this.
+     */
+    public static void enableTestMode(boolean on) {
+        testMode = on;
+    }
+
+    public static void register(Listener l) {
+        if (testMode) {
+            // In test mode we always respect the test's registration
+            // and ignore any other attempts to override it.
+            listener = l;
+            return;
+        }
+        listener = l;
+    }
 
     public static void onModeChanged(ACMode mode) {
         if (listener != null) {

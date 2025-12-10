@@ -312,7 +312,19 @@ alias jedit="java -Xmx10g -Xss1m -jar $JEDIT_JAR"
                haltonfailure="yes"
                showoutput="yes"
                fork="yes">
+
+            <!-- existing JVM args -->
             <jvmarg line="${run.jvmargs}"/>
+
+            <!-- ========================================================= -->
+            <!-- FIX FOR ASSERTJ SWING ON JAVA 21                          -->
+            <!-- Allow AssertJ Swing to reflect into java.util.TimerTask   -->
+            <!-- This prevents: InaccessibleObjectException: TimerTask.state -->
+            <!-- ========================================================= -->
+            <jvmarg value="--add-opens"/>
+            <jvmarg value="java.base/java.util=ALL-UNNAMED"/>
+            <!-- ========================================================= -->
+
             <formatter type="plain" usefile="false"/>
             <classpath>
                 <path refid="run.test.classpath"/>
