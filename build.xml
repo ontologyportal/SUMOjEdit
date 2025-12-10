@@ -24,7 +24,7 @@
     <property name="reports.dir" value="${build.home}/test/results"/>
     <property name="report.html" value="file:${basedir}/${reports.dir}/html/index.html"/>
 
-    <property name="javac.release" value="21"/>
+    <property name="javac.release" value="17"/>
     <property name="run.jvmargs" value="-Xmx10g -Xss1m"/>
 
     <property name="test.path" value="${git.home}/sumo"/>
