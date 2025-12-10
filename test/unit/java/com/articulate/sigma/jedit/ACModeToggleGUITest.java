@@ -179,13 +179,16 @@ public class ACModeToggleGUITest extends AssertJSwingJUnitTestCase {
 
     @Before
     public void registerListener() {
-        // no-op; listener is registered in onSetUp()
+        // Ensure ACSignals is fully under test control for this class.
+        ACSignals.enableTestMode(true);
+        // Listener will be registered in onSetUp().
     }
 
     @After
     public void cleanupListener() {
-        // Ensure we do not leak a listener into other tests.
+        // Clear listener and restore normal behavior for any later tests.
         ACSignals.register(null);
+        ACSignals.enableTestMode(false);
     }
 
     @Override

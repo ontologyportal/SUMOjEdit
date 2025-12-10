@@ -20,6 +20,7 @@ package com.articulate.sigma.jedit;
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 import com.articulate.sigma.*;
+import com.articulate.sigma.nlg.LanguageFormatter;
 import com.articulate.sigma.parsing.SuokifApp;
 import com.articulate.sigma.parsing.SuokifVisitor;
 import com.articulate.sigma.tp.*;
@@ -906,42 +907,108 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         String contents = view.getTextArea().getSelectedText();
         if (!checkEditorContents(contents, "Please fully highlight an atom for query"))
             return;
+
         Runnable r = () -> {
             togglePluginMenus(false);
             Log.log(Log.MESSAGE, this, ":queryExp(): query with: " + contents);
             System.out.println("queryExp(): query with: " + contents);
-            String dir = KBmanager.getMgr().getPref("kbDir") + File.separator;
-            String type = "tptp";
-            String outfile = dir + "temp-comb." + type;
-            System.out.println("queryExp(): query on file: " + outfile);
-            Log.log(Log.MESSAGE, this, ":queryExp(): query on file: " + outfile);
-            Vampire vamp;
-            EProver eprover;
-            StringBuilder qlist = null;
-            TPTP3ProofProcessor tpp = new TPTP3ProofProcessor();
-            if (KBmanager.getMgr().prover == KBmanager.Prover.VAMPIRE) {
-                vamp = kb.askVampire(contents, 30, 1);
-                tpp.parseProofOutput(vamp.output, contents, kb, vamp.qlist);
-                qlist = vamp.qlist;
-                //Log.log(Log.MESSAGE,this,"queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(vamp.output));
-            }
-            if (KBmanager.getMgr().prover == KBmanager.Prover.EPROVER) {
-                eprover = kb.askEProver(contents, 30, 1);
-                try {
-                    //Log.log(Log.MESSAGE,this,"queryExp(): completed query with result: " + StringUtil.arrayListToCRLFString(eprover.output));
-                    tpp.parseProofOutput(eprover.output, contents, kb, eprover.qlist);
-                    qlist = eprover.qlist;
-                } catch (Exception e) {
-                    Log.log(Log.ERROR, this, ":queryExp(): ", e);
-                }
-            }
-            tpp.processAnswersFromProof(qlist, contents);
 
-            ThreadUtilities.runInDispatchThread(() -> {
-                view.getTextArea().setText(queryResultString(tpp));
-            });
-            Log.log(Log.MESSAGE, this, ":queryExp(): complete");
+            // --- Read ATP preferences saved by configureATP() ---
+            String eng     = jEdit.getProperty("sumojedit.atp.engine", "vampire");   // leo3|eprover|vampire
+            int    maxAns  = Math.max(1, parseIntSafe(
+                    jEdit.getProperty("sumojedit.atp.maxAnswers", "1"), 1));
+            int    tlim    = Math.max(1, parseIntSafe(
+                    jEdit.getProperty("sumojedit.atp.timeLimitSec", "30"), 30));
+            String mode    = jEdit.getProperty("sumojedit.atp.mode", "tptp");        // tptp|tff|thf
+            boolean cwa    = Boolean.parseBoolean(
+                    jEdit.getProperty("sumojedit.atp.closedWorld", "false"));
+            String vampM   = jEdit.getProperty("sumojedit.atp.vampire.mode", "casc"); // casc|avatar|custom
+            boolean mp     = Boolean.parseBoolean(
+                    jEdit.getProperty("sumojedit.atp.ModusPonens", "false"));
+            boolean drop1  = Boolean.parseBoolean(
+                    jEdit.getProperty("sumojedit.atp.dropOnePremise", "false"));
+            boolean showEn = Boolean.parseBoolean(
+                    jEdit.getProperty("sumojedit.atp.showEnglish", "true"));
+            boolean useLLM = Boolean.parseBoolean(
+                    jEdit.getProperty("sumojedit.atp.useLLM", "false"));
+
+            // --- Apply global ATP flags (mirror AskTell.jsp behaviour) ---
+
+            // Closed World / Open World for SUMO→TPTP translation
+            SUMOKBtoTPTPKB.CWA = cwa;
+
+            // TPTP language: we support fof (tptp) and tff here, THF will be added later
+            if ("tff".equalsIgnoreCase(mode)) {
+                SUMOformulaToTPTPformula.lang = "tff";
+                SUMOKBtoTPTPKB.lang = "tff";
+            } else {
+                // Treat "tptp" and any unsupported value as FOF
+                SUMOformulaToTPTPformula.lang = "fof";
+                SUMOKBtoTPTPKB.lang = "fof";
+            }
+
+            // Modus Ponens and drop‑one‑premise flags are global on KB
+            KB.modensPonens = mp;
+            KB.dropOnePremiseFormulas = drop1;
+
+            // Proof presentation flags (used by HTMLformatter / LanguageFormatter)
+            HTMLformatter.proofParaphraseInEnglish = showEn;
+            LanguageFormatter.paraphraseLLM = useLLM;
+
+            // Configure Vampire mode from UI: casc | avatar | custom
+            String vm = (vampM == null ? "casc" : vampM.trim().toLowerCase(java.util.Locale.ROOT));
+            if ("avatar".equals(vm))
+                Vampire.mode = Vampire.ModeType.AVATAR;
+            else if ("custom".equals(vm))
+                Vampire.mode = Vampire.ModeType.CUSTOM;
+            else
+                Vampire.mode = Vampire.ModeType.CASC;
+
+            TPTP3ProofProcessor tpp = new TPTP3ProofProcessor();
+            StringBuilder qlist = null;
+
+            try {
+                // --- Primary path: engine selected as Vampire in ATP Config ---
+                if ("vampire".equalsIgnoreCase(eng)) {
+                    Vampire vamp;
+                    if (mp)
+                        vamp = kb.askVampireModensPonens(contents, tlim, maxAns);
+                    else
+                        vamp = kb.askVampire(contents, tlim, maxAns);
+                    tpp.parseProofOutput(vamp.output, contents, kb, vamp.qlist);
+                    qlist = vamp.qlist;
+                }
+
+                // --- Fallback: existing EProver path (not wired to ATP Config yet) ---
+                else if (KBmanager.getMgr().prover == KBmanager.Prover.EPROVER) {
+                    EProver eprover = kb.askEProver(contents, tlim, maxAns);
+                    try {
+                        tpp.parseProofOutput(eprover.output, contents, kb, eprover.qlist);
+                        qlist = eprover.qlist;
+                    } catch (Exception e) {
+                        Log.log(Log.ERROR, this, ":queryExp(): ", e);
+                    }
+                }
+
+                // --- Fallback: unsupported engine setting → still try Vampire with defaults ---
+                else {
+                    Vampire vamp = kb.askVampire(contents, tlim, maxAns);
+                    tpp.parseProofOutput(vamp.output, contents, kb, vamp.qlist);
+                    qlist = vamp.qlist;
+                }
+
+                // Same answer processing as before
+                tpp.processAnswersFromProof(qlist, contents);
+
+                ThreadUtilities.runInDispatchThread(() -> {
+                    view.getTextArea().setText(queryResultString(tpp));
+                });
+                Log.log(Log.MESSAGE, this, ":queryExp(): complete");
+            } finally {
+                // no extra cleanup here; menus are handled elsewhere
+            }
         };
+
         Runnable rs = create(r, () -> "Querying expression");
         startBackgroundThread(rs);
     }
