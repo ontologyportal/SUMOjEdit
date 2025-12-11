@@ -477,8 +477,15 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 }
                 ErrorSource.registerErrorSource(errsrc);
             } else {
-                togglePluginMenus(false);
-                if (errsrc != null) unload();
+                // Keep SUMOjEdit available even in non-KIF buffers.
+                // Only disable the editor right-click popup if you really want.
+                ThreadUtilities.runInDispatchThread(() -> {
+                    view.getEditPane().getTextArea().setRightClickPopupEnabled(false);
+                });
+
+                // Do NOT unload; keep ErrorSource + autocomplete alive.
+                // Optionally clear errors for the previous KIF file:
+                // clearWarnAndErr();
             }
             Log.log(Log.MESSAGE, this, ":processLoadedKifOrTptp(): complete");
             if (pluginStart > 0) {
