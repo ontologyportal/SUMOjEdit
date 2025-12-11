@@ -226,7 +226,7 @@ public class StatusBarMessagesGUITest extends AssertJSwingJUnitTestCase {
         // Simulate SUMOjEdit startup: loading...
         window.button("initStart").click();
         String loadingText = panel.getStatusText();
-        assertNotEquals("Status text should change after initStart", "Idle", loadingText);
+        assertTrue("Expected a loading message", loadingText.contains("loading..."));
 
         // Simulate SUMOjEdit startup: ready
         window.button("initReady").click();

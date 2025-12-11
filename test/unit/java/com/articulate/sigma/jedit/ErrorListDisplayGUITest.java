@@ -181,11 +181,8 @@ public class ErrorListDisplayGUITest extends AssertJSwingJUnitTestCase {
         robot().waitForIdle();
 
         String detail = window.label("detailsLabel").text();
-        // Assert on the semantic pieces rather than exact punctuation/order,
-        // so the test matches both local and CI ErrorList formatting.
-        assertTrue(detail.contains("ERROR"));
-        assertTrue(detail.contains("Example.kif"));
-        assertTrue(detail.contains("3"));
+        assertTrue(detail.contains("Example.kif:3"));
         assertTrue(detail.contains("problem here"));
+        assertTrue(detail.startsWith("ERROR @"));
     }
 }
