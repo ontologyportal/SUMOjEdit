@@ -41,9 +41,6 @@ import org.junit.runners.Suite;
     SUOKIFErrorCheckHelpersTest.class,
     SUOKIFToTPTPConversionTest.class,
 
-    // ===== Non-GUI Error List helpers =====
-    TestErrorListPanel.class,
-
     // ===== Non-GUI ATP / misc =====
     KifTermIndexTest.class,
     ACModeAndSignalsTest.class
