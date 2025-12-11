@@ -17,7 +17,20 @@
     <property name="tptp.home" value="${git.home}/TPTP-ANTLR"/>
     <property name="build.home" value="build"/>
     <property name="build.test.classes" value="${build.home}/test/classes"/>
-    <property name="unit.test.suite" value="com.articulate.sigma.CINonGuiTestSuite"/>
+
+    <!--
+      On GitHub CI (env.CI is set) → run standalone-only suite (no GUI tests):
+          com.articulate.sigma.CINonGuiTestSuite
+
+      Locally (env.CI not set) → run full UnitTestSuite including GUI tests:
+          com.articulate.sigma.UnitTestSuite
+    -->
+    <condition property="unit.test.suite"
+               value="com.articulate.sigma.CINonGuiTestSuite"
+               else="com.articulate.sigma.UnitTestSuite">
+        <isset property="env.CI"/>
+    </condition>
+
     <property name="integration.test.suite" value="com.articulate.sigma.IntegrationTestSuite"/>
     <property name="test.unit.dir" value="test/unit/java"/>
     <property name="test.integration.dir" value="test/integration/java"/>
