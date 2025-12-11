@@ -111,7 +111,7 @@ jobs:
           apt-get update
           apt-get install -y xvfb libxtst6 libxi6
 
-      - name: Run SUMOjEdit Unit Tests (with virtual display to accommodate for GUI Tests)
+      - name: Run SUMOjEdit Unit Tests
         working-directory: ./SUMOjEdit
         run: xvfb-run -a ant test.unit
 

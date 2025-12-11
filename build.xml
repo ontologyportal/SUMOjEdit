@@ -17,14 +17,27 @@
     <property name="tptp.home" value="${git.home}/TPTP-ANTLR"/>
     <property name="build.home" value="build"/>
     <property name="build.test.classes" value="${build.home}/test/classes"/>
-    <property name="unit.test.suite" value="com.articulate.sigma.UnitTestSuite"/>
+
+    <!--
+      On GitHub CI (env.CI is set) → run standalone-only suite (no GUI tests):
+          com.articulate.sigma.CINonGuiTestSuite
+
+      Locally (env.CI not set) → run full UnitTestSuite including GUI tests:
+          com.articulate.sigma.UnitTestSuite
+    -->
+    <condition property="unit.test.suite"
+               value="com.articulate.sigma.CINonGuiTestSuite"
+               else="com.articulate.sigma.UnitTestSuite">
+        <isset property="env.CI"/>
+    </condition>
+
     <property name="integration.test.suite" value="com.articulate.sigma.IntegrationTestSuite"/>
     <property name="test.unit.dir" value="test/unit/java"/>
     <property name="test.integration.dir" value="test/integration/java"/>
     <property name="reports.dir" value="${build.home}/test/results"/>
     <property name="report.html" value="file:${basedir}/${reports.dir}/html/index.html"/>
 
-    <property name="javac.release" value="21"/>
+    <property name="javac.release" value="17"/>
     <property name="run.jvmargs" value="-Xmx10g -Xss1m"/>
 
     <property name="test.path" value="${git.home}/sumo"/>
