@@ -17,7 +17,7 @@
     <property name="tptp.home" value="${git.home}/TPTP-ANTLR"/>
     <property name="build.home" value="build"/>
     <property name="build.test.classes" value="${build.home}/test/classes"/>
-    <property name="unit.test.suite" value="com.articulate.sigma.UnitTestSuite"/>
+    <property name="unit.test.suite" value="com.articulate.sigma.CINonGuiTestSuite"/>
     <property name="integration.test.suite" value="com.articulate.sigma.IntegrationTestSuite"/>
     <property name="test.unit.dir" value="test/unit/java"/>
     <property name="test.integration.dir" value="test/integration/java"/>
