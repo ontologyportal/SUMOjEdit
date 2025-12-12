@@ -155,24 +155,20 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             String snip = snippetFromActiveBufferOrFile(filePath, zeroBasedLine);
             String normalized = normalizeBaseMessage(baseMsg, snip);
 
-            // If normalizeBaseMessage() already attached context using an em-dash,
-            // do NOT append the line snippet again.
-            if (normalized.contains(" — ")) {
-                return normalized.strip();
-            }
-
             if (snip == null || snip.isEmpty()) return normalized;
 
+            // Avoid duplicating the snippet if it's already present.
             if (normalized.contains(snip)) return normalized;
+
             return normalized + " — " + snip;
         }
 
-        /** Rewrite verbose KIF diagnostics to show only the offending term (keep formula once). */
+        /** Rewrite verbose KIF diagnostics to show only the offending term. */
         private String normalizeBaseMessage(String baseMsg, String lineText) {
             if (baseMsg == null) return "";
             String msg = baseMsg.strip();
 
-            // If message already contains contextual formula text, do NOT rewrite it.
+            // If message already contains extra context, don't rewrite it.
             if (msg.contains(" — ")) {
                 return msg;
             }
@@ -180,23 +176,18 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             try {
                 if (msg.startsWith("Term not below Entity:")) {
 
-                    // 1) Existing: instance pattern
+                    // instance pattern: "(instance ?X Term)" -> "Term not below Entity: Term"
                     java.util.regex.Matcher m = java.util.regex.Pattern
                             .compile("\\(instance\\s+[^\\s)]+\\s+([^\\)\\s]+)\\)")
                             .matcher(msg);
                     if (m.find()) {
-                        String term = m.group(1);
-                        int p = msg.indexOf('(');
-                        if (p >= 0) return ("Term not below Entity: " + term + " — " + msg.substring(p).trim());
-                        return ("Term not below Entity: " + term);
+                        return "Term not below Entity: " + m.group(1);
                     }
 
-                    // 2) NEW: generic formula pattern (attribute/subclass/etc.)
+                    // generic formula pattern: "(attribute ?DR PrivateAttribute)" -> "…: PrivateAttribute"
                     String offender = extractNotBelowEntityOffender(msg);
                     if (offender != null && !offender.isEmpty()) {
-                        int p = msg.indexOf('(');
-                        if (p >= 0) return ("Term not below Entity: " + offender + " — " + msg.substring(p).trim());
-                        return ("Term not below Entity: " + offender);
+                        return "Term not below Entity: " + offender;
                     }
                 }
             } catch (Throwable ignore) {}
