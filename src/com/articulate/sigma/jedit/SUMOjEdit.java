@@ -150,10 +150,19 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
         /** Append formatted snippet to a base message. */
         private String appendSnippet(String baseMsg, String filePath, int zeroBasedLine) {
+            if (baseMsg == null) return "";
+
             String snip = snippetFromActiveBufferOrFile(filePath, zeroBasedLine);
             String normalized = normalizeBaseMessage(baseMsg, snip);
-            if (snip.isEmpty()) return normalized;
-            // Avoid duplicating the full formula if it's already present in the message
+
+            // If normalizeBaseMessage() already attached context using an em-dash,
+            // do NOT append the line snippet again.
+            if (normalized.contains(" — ")) {
+                return normalized.strip();
+            }
+
+            if (snip == null || snip.isEmpty()) return normalized;
+
             if (normalized.contains(snip)) return normalized;
             return normalized + " — " + snip;
         }
@@ -161,24 +170,65 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         /** Rewrite verbose KIF diagnostics to show only the offending term (keep formula once). */
         private String normalizeBaseMessage(String baseMsg, String lineText) {
             if (baseMsg == null) return "";
-            String msg = baseMsg;
+            String msg = baseMsg.strip();
 
-            // Collapse patterns like:
-            // "Term not below Entity: (instance ?X Term)" -> "Term not below Entity: Term"
+            // If message already contains contextual formula text, do NOT rewrite it.
+            if (msg.contains(" — ")) {
+                return msg;
+            }
+
             try {
                 if (msg.startsWith("Term not below Entity:")) {
+
+                    // 1) Existing: instance pattern
                     java.util.regex.Matcher m = java.util.regex.Pattern
                             .compile("\\(instance\\s+[^\\s)]+\\s+([^\\)\\s]+)\\)")
                             .matcher(msg);
                     if (m.find()) {
-                        msg = "Term not below Entity: " + m.group(1);
+                        String term = m.group(1);
+                        int p = msg.indexOf('(');
+                        if (p >= 0) return ("Term not below Entity: " + term + " — " + msg.substring(p).trim());
+                        return ("Term not below Entity: " + term);
+                    }
+
+                    // 2) NEW: generic formula pattern (attribute/subclass/etc.)
+                    String offender = extractNotBelowEntityOffender(msg);
+                    if (offender != null && !offender.isEmpty()) {
+                        int p = msg.indexOf('(');
+                        if (p >= 0) return ("Term not below Entity: " + offender + " — " + msg.substring(p).trim());
+                        return ("Term not below Entity: " + offender);
                     }
                 }
-            } catch (Throwable ignore) {
-                // fall through with original message
-            }
+            } catch (Throwable ignore) {}
 
             return msg;
+        }
+
+        /**
+         * Extract the most likely offending constant from "Term not below Entity: ( ... )"
+         * by choosing the last non-variable token in the formula.
+         * Examples:
+         *  (attribute ?DR PrivateAttribute)  -> PrivateAttribute
+         *  (subclass CashPayment Payment)    -> Payment
+         */
+        private static String extractNotBelowEntityOffender(String msg) {
+            if (msg == null) return "";
+            int p = msg.indexOf('(');
+            if (p < 0) return "";
+
+            String formula = msg.substring(p);
+
+            // Tokenize keeping letters/digits/_/-/? and splitting everything else
+            String[] toks = formula.split("[^A-Za-z0-9_\\-\\?]+");
+            for (int i = toks.length - 1; i >= 0; i--) {
+                String t = toks[i];
+                if (t == null || t.isEmpty()) continue;
+                if (t.charAt(0) == '?') continue; // variables
+                // filter out common logical operators just in case
+                if ("and".equals(t) || "or".equals(t) || "not".equals(t)) continue;
+                return t;
+            }
+            return "";
         }
 
         private void addErrorsBatch(java.util.List<ErrRec> batch) {
@@ -1599,20 +1649,84 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
             for (ErrRec e : errors) {
                 int line = Math.max(0, e.line);
+
+                // If message contains a formula, trust the buffer location over the reported line (DO THIS FIRST).
+                if (buf != null) {
+                    int resolved = resolveLineFromMessage(buf, e.msg);
+                    if (resolved >= 0) {
+                        line = resolved;
+                    }
+                    int maxLine = Math.max(0, buf.getLineCount() - 1);
+                    if (line > maxLine) line = maxLine;
+                }
+
                 int startCol = Math.max(0, e.start);
                 int endCol = Math.max(startCol + 1, e.end);
 
-                // Clamp to actual buffer content if available
+                // Clamp + improve highlight using actual line text
                 if (buf != null) {
-                    int maxLine = Math.max(0, buf.getLineCount() - 1);
-                    if (line > maxLine) line = maxLine;
-
                     try {
                         int lineLen = buf.getLineLength(line);
                         int lineStart = buf.getLineStartOffset(line);
                         String lineText = buf.getText(lineStart, lineLen);
 
-                        // If span is 1 char (common from col+1), expand to cover the token
+                        // A) Term-not-below-Entity: highlight the offender token
+                        if (e.msg != null && e.msg.startsWith("Term not below Entity:")) {
+                            String offender = extractNotBelowEntityOffender(e.msg);
+                            if (offender != null && !offender.isEmpty()) {
+                                int pos = findTermInLine(lineText, offender, 0);
+                                if (pos >= 0) {
+                                    startCol = pos;
+                                    endCol = pos + offender.length();
+                                }
+                            }
+                        }
+
+                        // B) FormulaPreprocessor "no type information..." errors:
+                        //    - anchor to the atom after "in formula:"
+                        //    - highlight the relation name (e.g., customer, catalogItem, offers)
+                        if (e.msg != null && e.msg.contains("in formula:")) {
+                            String atom = extractInFormulaAtom(e.msg);          // "(customer ?X ?Y)"
+                            String rel  = extractRelationNameFP(e.msg);         // "customer"
+
+                            // If we got a clean atom, try to jump to its real line (even if original 'line' is wrong)
+                            if (atom != null && !atom.isEmpty()) {
+                                int hit = findFormulaInBuffer(atom, new String[]{lineText});
+                                if (hit < 0) {
+                                    // search a small window around current line first (fast)
+                                    int from = Math.max(0, line - 25);
+                                    int to   = Math.min(buf.getLineCount() - 1, line + 25);
+                                    for (int i = from; i <= to; i++) {
+                                        if (buf.getLineText(i).contains(atom)) {
+                                            line = i;
+                                            lineText = buf.getLineText(i);
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+
+                            // If start/end are useless, highlight the relation token on that line.
+                            // Many of these arrive as (0,0) or (0,1), which otherwise highlights '('.
+                            if (rel != null && !rel.isEmpty() && (endCol <= startCol + 1)) {
+                                int pos = findTermInLine(lineText, rel, 0);
+                                if (pos >= 0) {
+                                    startCol = pos;
+                                    endCol = pos + rel.length();
+                                } else {
+                                    // fallback: highlight the whole "(relation ...)" atom if present
+                                    if (atom != null && !atom.isEmpty()) {
+                                        int aPos = lineText.indexOf(atom);
+                                        if (aPos >= 0) {
+                                            startCol = aPos;
+                                            endCol = aPos + Math.min(atom.length(), Math.max(1, lineText.length() - aPos));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Existing: If span is 1 char, expand to cover a token
                         if (endCol <= startCol + 1) {
                             int s = Math.min(startCol, Math.max(0, lineText.length()));
                             int epos = s;
@@ -1628,7 +1742,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                         if (startCol > lineText.length()) startCol = Math.max(0, lineText.length() - 1);
                         if (endCol > lineText.length())   endCol   = lineText.length();
                     } catch (Throwable ignore) {
-                        // fall back to original indices
+                        // fall back
                     }
                 }
 
@@ -1776,6 +1890,72 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         }
 
         return -1;
+    }
+
+    /**
+     * If an error message contains a formula "(...)", try to locate that formula in the buffer
+     * and return the correct 0-based line number. Returns -1 if not resolvable.
+     */
+    private int resolveLineFromMessage(org.gjt.sp.jedit.Buffer buf, String msg) {
+        if (buf == null || msg == null) return -1;
+
+        int lc = buf.getLineCount();
+        String[] bufferLines = new String[lc];
+        for (int i = 0; i < lc; i++) bufferLines[i] = buf.getLineText(i);
+
+        // 1) Highest priority: FormulaPreprocessor-style "in formula: ( ... )"
+        String candidate = extractInFormulaAtom(msg);
+        if (candidate != null && !candidate.isEmpty()) {
+            int hit = findFormulaInBuffer(candidate, bufferLines);
+            if (hit >= 0) return hit;
+        }
+
+        // 2) Next: our own em-dash context " — ( ... )"
+        int dash = msg.indexOf(" — ");
+        if (dash >= 0 && dash + 3 < msg.length()) {
+            String rhs = msg.substring(dash + 3).trim();
+            if (rhs.startsWith("(")) candidate = rhs;
+        } else {
+            candidate = null;
+        }
+
+        // 3) Fallback: first '(' in the message
+        if (candidate == null) {
+            int paren = msg.indexOf('(');
+            if (paren >= 0) candidate = msg.substring(paren).trim();
+        }
+
+        if (candidate == null || candidate.isEmpty()) return -1;
+        return findFormulaInBuffer(candidate, bufferLines);
+    }
+
+    // Extract "(...)" that appears after "in formula:" (FormulaPreprocessor messages).
+    private static String extractInFormulaAtom(String msg) {
+        if (msg == null) return "";
+        int k = msg.indexOf("in formula:");
+        if (k < 0) return "";
+        String tail = msg.substring(k + "in formula:".length()).trim();
+
+        // tail might be "(customer ?X ?Y) [token: ...]" → keep only the "(...)" prefix
+        int p = tail.indexOf('(');
+        if (p < 0) return "";
+        tail = tail.substring(p).trim();
+
+        // Best-effort: take up to the first ')' after the initial '('
+        int close = tail.indexOf(')');
+        if (close > 0) {
+            return tail.substring(0, close + 1).trim();
+        }
+        return tail; // fallback if truncated
+    }
+
+    // Extract relation name from: "for arg N of relation REL in formula:"
+    private static String extractRelationNameFP(String msg) {
+        if (msg == null) return "";
+        java.util.regex.Matcher m = java.util.regex.Pattern
+            .compile("for\\s+arg\\s+\\d+\\s+of\\s+relation\\s+([^\\s]+)\\s+in\\s+formula\\s*:", java.util.regex.Pattern.CASE_INSENSITIVE)
+            .matcher(msg);
+        return m.find() ? m.group(1).trim() : "";
     }
 
     @Override
