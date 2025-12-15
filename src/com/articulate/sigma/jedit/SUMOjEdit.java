@@ -747,6 +747,13 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         KBmanager.getMgr().prover = KBmanager.Prover.EPROVER;
     }
 
+    @Override
+    public void chooseLeo() {
+        System.out.println("chooseLeo(): prover set to LEO");
+        Log.log(Log.MESSAGE, this, ":chooseLeo(): prover set to LEO");
+        KBmanager.getMgr().prover = KBmanager.Prover.LEO;
+    }
+
     /** ***************************************************************
      * Configure Automated Theorem Prover (ATP) options via a single dialog.
      * This is a pure configurator. No Ask/Tell controls. Saves selections in jEdit properties.
@@ -921,31 +928,28 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
      */
     private String queryResultString(TPTP3ProofProcessor tpp) {
 
-        System.out.println("queryExp(): bindings: " + tpp.bindings);
-        Log.log(Log.MESSAGE, this, ":queryExp(): bindings: " + tpp.bindings);
-        System.out.println("queryExp(): bindingMap: " + tpp.bindingMap);
-        Log.log(Log.MESSAGE, this, ":queryExp(): bindingMap: " + tpp.bindingMap);
-        System.out.println("queryExp(): proof: " + tpp.proof);
-        Log.log(Log.MESSAGE, this, ":queryExp(): proof: " + tpp.proof);
-        java.util.List<String> proofStepsStr = new ArrayList<>();
-        for (TPTPFormula ps : tpp.proof)
-            proofStepsStr.add(ps.toString());
-        ThreadUtilities.runInDispatchThread(() -> {
-            jEdit.newFile(view);
-        });
         StringBuilder result = new StringBuilder();
+
         if (tpp.bindingMap != null && !tpp.bindingMap.isEmpty())
             result.append("Bindings: ").append(tpp.bindingMap);
         else if (tpp.bindings != null && !tpp.bindings.isEmpty())
             result.append("Bindings: ").append(tpp.bindings);
-        if (tpp.proof == null || tpp.proof.isEmpty()) {
+
+        // Always show status
+        if (!StringUtil.emptyString(tpp.status)) {
+            if (result.length() > 0) result.append("\n");
             result.append(tpp.status);
-        } else {
-            if (tpp.containsFalse)
-                result.append("\n\n").append(StringUtil.arrayListToCRLFString(proofStepsStr));
-            else
-                result.append(tpp.status);
         }
+
+        // Always show proof if we have one (LEO ends with $false, may not set containsFalse)
+        if (tpp.proof != null && !tpp.proof.isEmpty()) {
+            java.util.List<String> proofStepsStr = new ArrayList<>();
+            for (TPTPFormula ps : tpp.proof)
+                proofStepsStr.add(ps.toString());
+
+            result.append("\n\n").append(StringUtil.arrayListToCRLFString(proofStepsStr));
+        }
+
         return result.toString();
     }
 
@@ -1027,7 +1031,31 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                     qlist = vamp.qlist;
                 }
 
-                // --- Fallback: existing EProver path (not wired to ATP Config yet) ---
+                // --- Primary path: engine selected as EProver in ATP Config ---
+                else if ("eprover".equalsIgnoreCase(eng)) {
+                    EProver eprover = kb.askEProver(contents, tlim, maxAns);
+                    if (eprover == null) {
+                        Log.log(Log.ERROR, this,
+                                ":queryExp(): EProver failed to load – check the 'eprover' preference for a valid executable path");
+                    } else {
+                        tpp.parseProofOutput(eprover.output, contents, kb, eprover.qlist);
+                        qlist = eprover.qlist;
+                    }
+                }
+
+                // --- Primary path: engine selected as LEO-III in ATP Config ---
+                else if ("leo3".equalsIgnoreCase(eng)) {
+                    LEO leo = kb.askLeo(contents, tlim, maxAns);
+                    if (leo == null) {
+                        Log.log(Log.ERROR, this,
+                                ":queryExp(): LEO failed to load – check the 'leoExecutable' preference for a valid executable path");
+                    } else {
+                        tpp.parseProofOutput(leo.output, contents, kb, leo.qlist);
+                        qlist = leo.qlist;
+                    }
+                }
+
+                // --- Fallback: existing EProver path for legacy chooseE() menu actions ---
                 else if (KBmanager.getMgr().prover == KBmanager.Prover.EPROVER) {
                     EProver eprover = kb.askEProver(contents, tlim, maxAns);
                     try {
@@ -1048,8 +1076,11 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 // Same answer processing as before
                 tpp.processAnswersFromProof(qlist, contents);
 
+                final String output = queryResultString(tpp);
+
                 ThreadUtilities.runInDispatchThread(() -> {
-                    view.getTextArea().setText(queryResultString(tpp));
+                    jEdit.newFile(view);
+                    view.getTextArea().setText(output);
                 });
                 Log.log(Log.MESSAGE, this, ":queryExp(): complete");
             } finally {

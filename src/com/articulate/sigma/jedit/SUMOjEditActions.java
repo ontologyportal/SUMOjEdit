@@ -67,15 +67,21 @@ interface SUMOjEditActions {
 
     /**
      * ***************************************************************
-     * Set theorem proving to use Vampire
+     * Set theorem prover to use Vampire
      */
     void chooseVamp();
 
     /**
      * ***************************************************************
-     * Set theorem proving to use E
+     * Set theorem prover to use E
      */
     void chooseE();
+
+    /**
+     * ***************************************************************
+     * Set theorem prover to use LEO-III
+     */
+    void chooseLeo();
 
     /**
      * ***************************************************************
