@@ -815,7 +815,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
         // Modes: tptp/tff/thf + CWA
         c.gridx=0; c.gridy++; p.add(new javax.swing.JLabel("Mode:"), c);
-        final javax.swing.JRadioButton rTPTP = new javax.swing.JRadioButton("tptp mode", "tptp".equalsIgnoreCase(mode));
+        final javax.swing.JRadioButton rTPTP = new javax.swing.JRadioButton("fof mode", "tptp".equalsIgnoreCase(mode));
         final javax.swing.JRadioButton rTFF  = new javax.swing.JRadioButton("tff mode",  "tff".equalsIgnoreCase(mode));
         final javax.swing.JRadioButton rTHF  = new javax.swing.JRadioButton("thf mode",  "thf".equalsIgnoreCase(mode));
         javax.swing.ButtonGroup gMode = new javax.swing.ButtonGroup();
