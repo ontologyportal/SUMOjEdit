@@ -7,43 +7,53 @@ import org.junit.runners.Suite;
  * Standalone-only unit test suite for CI runs that should skip
  * AssertJ Swing / GUI harnesses.
  *
- * This is basically the "top half" of UnitjEditTestSuite without
- * any *GUITest classes.
+ * This is the "standalone" subset of UnitjEditTestSuite:
+ * - includes ONLY non-GUI tests
+ * - each test class appears exactly once
+ * 
+ * 
+ * Author: Simon Deng, NPS ORISE Intern 2025, adam.pease@nps.edu
+ * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.SUOKIFErrorCheckTest">Simon Deng, NPS ORISE Intern 2025</a>
  */
+
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
 
-    /** ============================= STANDALONE TESTS ============================= */
+    /** ======================= SUMOjEdit Core (Standalone) ========================== */
 
-    // ===== Error-checking / formatting core logic =====
+    SUMOjEditTest.class,
+
+    /** ================= SUO-KIF Error Checking Helpers (Standalone) ================ */
+
     SUOKIFErrorCheckHelpersTest.class,
+
+    /** ================== TPTP Error Checking (Standalone) ========================== */
+
+    TPTPErrorCheckTest.class,
+
+    /** ==================== SUO-KIF Formatting (Standalone) ========================= */
+
     FormatSUOKIFAxiomsTest.class,
     FormatSUOKIFAxiomsEndToEndTest.class,
-    TPTPErrorCheckTest.class,
+
+    /** === SUMOjEdit Helpers + Language Conversion (SUO-KIF ↔ TPTP) (Standalone) ==== */
+
+    SUMOjEditHelperAdditionalANDLanguageConversionTest.class,
     SUOKIFToTPTPConversionTest.class,
 
-    // ===== AutoComplete core (non-GUI) =====
+    /** ======================= AutoComplete Core (Standalone) ======================= */
+
     AutoCompleteIndexTest.class,
     KifTermIndexTest.class,
     ACModeAndSignalsTest.class,
     TopCompletionAdapterTest.class,
 
-    // ===== Misc SUMOjEdit helper logic =====
+    /** =============== Miscellaneous SUMOjEdit Helpers (Standalone) ================= */
+
     SUMOjEditResidualHelpersTest.class,
     TermOccurrenceHighlightingTest.class,
     SafeSnippetFromFileTest.class,
-    SUMOjEditThreadConfigTest.class,
-    SUMOjEditHelperAdditionalANDLanguageConversionTest.class,
-
-    // ===== Non-GUI SUMOjEdit core =====
-    SUMOjEditTest.class,
-    SUMOjEditThreadConfigTest.class,
-    SUOKIFErrorCheckHelpersTest.class,
-    SUOKIFToTPTPConversionTest.class,
-
-    // ===== Non-GUI ATP / misc =====
-    KifTermIndexTest.class,
-    ACModeAndSignalsTest.class
+    SUMOjEditThreadConfigTest.class
 })
 public class StandaloneOnlyTestSuite {
 }
