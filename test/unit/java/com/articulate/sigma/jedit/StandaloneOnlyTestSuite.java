@@ -48,6 +48,10 @@ import org.junit.runners.Suite;
     ACModeAndSignalsTest.class,
     TopCompletionAdapterTest.class,
 
+    /** ================ ask/tell and ATP Configurator (Standalone) ================== */
+
+    ChooseProverTest.class,
+
     /** =============== Miscellaneous SUMOjEdit Helpers (Standalone) ================= */
 
     SUMOjEditResidualHelpersTest.class,
