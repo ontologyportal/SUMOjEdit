@@ -51,6 +51,7 @@ import org.junit.runners.Suite;
     /** ================ ask/tell and ATP Configurator (Standalone) ================== */
 
     ChooseProverTest.class,
+    ConfigureATPPropertyOverrideTest.class,
 
     /** =============== Miscellaneous SUMOjEdit Helpers (Standalone) ================= */
 
