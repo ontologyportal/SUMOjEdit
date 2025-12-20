@@ -11,14 +11,14 @@ import com.articulate.sigma.SuggestionComponentsIntegrationTest;
  * either standalone or GUI-dependent, depending on the specific 
  * methods/functionalities tested by each test.
  * 
- * ======================================================================================
+ * ===================================================================================
  * 
  * Standalone unit tests target every testable internal helper, utility,
  * parser-adjacent, method, AC-related structure, index, mode/flag system, 
  * snippet builder, KIF/TPTP message normalizer, line/offset extractor, 
  * formula locator, file-spec composer, temporary file logic, error aggregator, etc.
  * 
- * Standalone Unit Test Suites (15 in total):
+ * Standalone Unit Test Suites (16 in total):
  *  SUMOjEditTest.java
  * 
  *  SUOKIFErrorCheckHelpersTest.java
@@ -36,12 +36,14 @@ import com.articulate.sigma.SuggestionComponentsIntegrationTest;
  *  ACModeAndSignalsTest.java
  *  TopCompletionAdapterTest.java
  * 
+ *  ChooseProverTest.java
+ * 
  *  SUMOjEditResidualHelpersTest.java
  *  TermOccurrenceHighlightingTest.java
  *  SafeSnippetFromFileTest.java
  *  SUMOjEditThreadConfigTest.java
  * 
- * ======================================================================================
+ * ===================================================================================
  * 
  * GUI-dependent unit tests lock in every testable visual or event-driven piece:
  * view-layer helpers, UI-state managers, widget renderers, layout calculators,
@@ -70,7 +72,7 @@ import com.articulate.sigma.SuggestionComponentsIntegrationTest;
  *  StatusBarMessagesGUITest.java
  *  MenuToggleDuringProcessingGUITest.java
  * 
- * ======================================================================================
+ * ===================================================================================
  * 
  * Author: Simon Deng, NPS ORISE Intern 2025, adam.pease@nps.edu
  * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.SUOKIFErrorCheckTest">Simon Deng, NPS ORISE Intern 2025</a>
@@ -107,6 +109,10 @@ import com.articulate.sigma.SuggestionComponentsIntegrationTest;
     KifTermIndexTest.class,
     ACModeAndSignalsTest.class,
     TopCompletionAdapterTest.class,
+
+    /** =============== ask/tell and ATP Configurator (Standalone) =================== */
+    
+    ChooseProverTest.class,
 
     /** =============== Miscellaneous SUMOjEdit Helpers (Standalone) ================= */
 
