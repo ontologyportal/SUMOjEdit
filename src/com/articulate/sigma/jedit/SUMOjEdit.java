@@ -2739,6 +2739,23 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             return;
         }
 
+        // Refuse to run tptp4X on non-TPTP buffers
+        if (!isTptpFile(filePath)) {
+            addErrorsDirect(java.util.List.of(
+                new ErrRec(
+                    ErrorSource.WARNING,
+                    filePath,
+                    0, 0, 1,
+                    "TPTP formatting/checking is only for .tptp/.p/.fof/.cnf/.tff/.thf files. " +
+                    "Current buffer is not TPTP: " + filePath
+                )
+            ));
+            ThreadUtilities.runInDispatchThread(() ->
+                view.getDockableWindowManager().showDockableWindow("error-list")
+            );
+            return;
+        }
+
         // Preserve original extension for parser selection (tff/thf/fof/cnf/p/tptp)
         final String ext;
         {
@@ -3059,6 +3076,23 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             ext = (dot >= 0 && dot < filePath.length() - 1)
                     ? filePath.substring(dot + 1).toLowerCase(java.util.Locale.ROOT)
                     : "tptp";
+        }
+
+        // Refuse to run tptp4X on non-TPTP buffers
+        if (!isTptpFile(filePath)) {
+            addErrorsDirect(java.util.List.of(
+                new ErrRec(
+                    ErrorSource.WARNING,
+                    filePath,
+                    0, 0, 1,
+                    "TPTP formatting/checking is only for .tptp/.p/.fof/.cnf/.tff/.thf files. " +
+                    "Current buffer is not TPTP: " + filePath
+                )
+            ));
+            ThreadUtilities.runInDispatchThread(() ->
+                view.getDockableWindowManager().showDockableWindow("error-list")
+            );
+            return;
         }
 
         // Write to temp and ask tptp4X for diagnostics
