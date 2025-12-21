@@ -50,6 +50,14 @@
         <CODE>
             jEdit.getPlugin("com.articulate.sigma.jedit.SUMOjEditPlugin").sje.tptpFormatBuffer();
         </CODE>
+
+        <IS_ENABLED><![CDATA[
+            String p = view.getBuffer().getPath();
+            if (p == null) return false;
+            p = p.toLowerCase();
+            return p.endsWith(".tptp") || p.endsWith(".p") || p.endsWith(".fof") ||
+                p.endsWith(".cnf")  || p.endsWith(".tff") || p.endsWith(".thf");
+        ]]></IS_ENABLED>
     </ACTION>
 
     <!-- ===== AutoComplete menu item with AC-mode + robust fallback ===== -->
