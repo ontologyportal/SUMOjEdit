@@ -12,6 +12,9 @@ import org.junit.runners.Suite;
  * - each test class appears exactly once
  * 
  * 
+ * Revision: 12-29-2025
+ * 
+ * 
  * Author: Simon Deng, NPS ORISE Intern 2025, adam.pease@nps.edu
  * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.SUOKIFErrorCheckTest">Simon Deng, NPS ORISE Intern 2025</a>
  */
@@ -52,6 +55,7 @@ import org.junit.runners.Suite;
 
     ChooseProverTest.class,
     ConfigureATPPropertyOverrideTest.class,
+    ConfigureATPCheckboxDependenciesTest.class,
 
     /** =============== Miscellaneous SUMOjEdit Helpers (Standalone) ================= */
 
