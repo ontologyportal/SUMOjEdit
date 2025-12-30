@@ -56,6 +56,7 @@ import org.junit.runners.Suite;
     ChooseProverTest.class,
     ConfigureATPPropertyOverrideTest.class,
     ConfigureATPCheckboxDependenciesTest.class,
+    QueryResultFormattingTest.class,
 
     /** =============== Miscellaneous SUMOjEdit Helpers (Standalone) ================= */
 
