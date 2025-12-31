@@ -953,6 +953,33 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         return result.toString();
     }
 
+    /** Build a user-visible failure message for the result buffer when an ATP can't run. */
+    private static String formatQueryFailure(String engineLabel,
+                                             String prefKey,
+                                             String prefValue,
+                                             Throwable ex) {
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("Query failed.\n");
+        sb.append("Reason: ").append(engineLabel).append(" could not be started.\n");
+        sb.append("Configured ").append(prefKey).append(" = ")
+          .append(prefValue == null ? "<null>" : prefValue).append("\n");
+
+        if (ex != null) {
+            sb.append("Error: ").append(ex.getClass().getName());
+            if (ex.getMessage() != null && !ex.getMessage().isBlank())
+                sb.append(": ").append(ex.getMessage().trim());
+            sb.append("\n");
+        }
+
+        sb.append("\nFix:\n");
+        sb.append("1) Open ~/.sigmakee/KBs/config.xml\n");
+        sb.append("2) Set ").append(prefKey).append(" to a valid executable path\n");
+        sb.append("3) Restart SUMOjEdit (or reload the KB)\n");
+
+        return sb.toString();
+    }
+
     @Override
     public void queryExp() {
 
@@ -1019,6 +1046,20 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             TPTP3ProofProcessor tpp = new TPTP3ProofProcessor();
             StringBuilder qlist = null;
 
+            String outputText = null;     // Always end with non-empty output
+            boolean ranEngine = false;    // True only if we got a non-null output list
+
+            // Identify engine/pref keys for consistent failure messages
+            String engineLabel = "Vampire";
+            String prefKey = "vampire";
+            if ("eprover".equalsIgnoreCase(eng)) {
+                engineLabel = "EProver";
+                prefKey = "eprover";
+            } else if ("leo3".equalsIgnoreCase(eng)) {
+                engineLabel = "LEO-III";
+                prefKey = "leoExecutable";
+            }
+
             try {
                 // --- Primary path: engine selected as Vampire in ATP Config ---
                 if ("vampire".equalsIgnoreCase(eng)) {
@@ -1027,16 +1068,25 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                         vamp = kb.askVampireModensPonens(contents, tlim, maxAns);
                     else
                         vamp = kb.askVampire(contents, tlim, maxAns);
-                    tpp.parseProofOutput(vamp.output, contents, kb, vamp.qlist);
-                    qlist = vamp.qlist;
+
+                    ranEngine = (vamp != null && vamp.output != null);
+                    if (!ranEngine) {
+                        String prefVal = KBmanager.getMgr().getPref("vampire");
+                        outputText = formatQueryFailure("Vampire", "vampire", prefVal, null);
+                    } else {
+                        tpp.parseProofOutput(vamp.output, contents, kb, vamp.qlist);
+                        qlist = vamp.qlist;
+                    }
                 }
 
                 // --- Primary path: engine selected as EProver in ATP Config ---
                 else if ("eprover".equalsIgnoreCase(eng)) {
                     EProver eprover = kb.askEProver(contents, tlim, maxAns);
-                    if (eprover == null) {
-                        Log.log(Log.ERROR, this,
-                                ":queryExp(): EProver failed to load – check the 'eprover' preference for a valid executable path");
+
+                    ranEngine = (eprover != null && eprover.output != null);
+                    if (!ranEngine) {
+                        String prefVal = KBmanager.getMgr().getPref("eprover");
+                        outputText = formatQueryFailure("EProver", "eprover", prefVal, null);
                     } else {
                         tpp.parseProofOutput(eprover.output, contents, kb, eprover.qlist);
                         qlist = eprover.qlist;
@@ -1046,9 +1096,11 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 // --- Primary path: engine selected as LEO-III in ATP Config ---
                 else if ("leo3".equalsIgnoreCase(eng)) {
                     LEO leo = kb.askLeo(contents, tlim, maxAns);
-                    if (leo == null) {
-                        Log.log(Log.ERROR, this,
-                                ":queryExp(): LEO failed to load – check the 'leoExecutable' preference for a valid executable path");
+
+                    ranEngine = (leo != null && leo.output != null);
+                    if (!ranEngine) {
+                        String prefVal = KBmanager.getMgr().getPref("leoExecutable");
+                        outputText = formatQueryFailure("LEO-III", "leoExecutable", prefVal, null);
                     } else {
                         tpp.parseProofOutput(leo.output, contents, kb, leo.qlist);
                         qlist = leo.qlist;
@@ -1058,34 +1110,62 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 // --- Fallback: existing EProver path for legacy chooseE() menu actions ---
                 else if (KBmanager.getMgr().prover == KBmanager.Prover.EPROVER) {
                     EProver eprover = kb.askEProver(contents, tlim, maxAns);
-                    try {
+
+                    ranEngine = (eprover != null && eprover.output != null);
+                    if (!ranEngine) {
+                        String prefVal = KBmanager.getMgr().getPref("eprover");
+                        outputText = formatQueryFailure("EProver", "eprover", prefVal, null);
+                    } else {
                         tpp.parseProofOutput(eprover.output, contents, kb, eprover.qlist);
                         qlist = eprover.qlist;
-                    } catch (Exception e) {
-                        Log.log(Log.ERROR, this, ":queryExp(): ", e);
                     }
                 }
 
                 // --- Fallback: unsupported engine setting → still try Vampire with defaults ---
                 else {
                     Vampire vamp = kb.askVampire(contents, tlim, maxAns);
-                    tpp.parseProofOutput(vamp.output, contents, kb, vamp.qlist);
-                    qlist = vamp.qlist;
+
+                    ranEngine = (vamp != null && vamp.output != null);
+                    if (!ranEngine) {
+                        String prefVal = KBmanager.getMgr().getPref("vampire");
+                        outputText = formatQueryFailure("Vampire", "vampire", prefVal, null);
+                    } else {
+                        tpp.parseProofOutput(vamp.output, contents, kb, vamp.qlist);
+                        qlist = vamp.qlist;
+                    }
                 }
 
-                // Same answer processing as before
-                tpp.processAnswersFromProof(qlist, contents);
+                // Only post-process answers if we actually ran a prover
+                if (ranEngine) {
+                    tpp.processAnswersFromProof(qlist, contents);
+                    outputText = queryResultString(tpp);
 
-                final String output = queryResultString(tpp);
-
-                ThreadUtilities.runInDispatchThread(() -> {
-                    jEdit.newFile(view);
-                    view.getTextArea().setText(output);
-                });
-                Log.log(Log.MESSAGE, this, ":queryExp(): complete");
-            } finally {
-                // no extra cleanup here; menus are handled elsewhere
+                    // Safety net: never allow blank output
+                    if (outputText == null || outputText.isBlank()) {
+                        outputText =
+                                "Query completed but returned no output.\n" +
+                                "Possible causes: prover produced no proof/status, or output parsing failed.\n" +
+                                "Check the terminal log for details.\n";
+                    }
+                }
             }
+            catch (Throwable ex) {
+                // If an exception occurs, still print a useful message in the output tab
+                String prefVal = KBmanager.getMgr().getPref(prefKey);
+                outputText = formatQueryFailure(engineLabel, prefKey, prefVal, ex);
+                Log.log(Log.ERROR, this, ":queryExp(): exception while running ATP", ex);
+            }
+
+            final String finalOut = (outputText == null || outputText.isBlank())
+                    ? "Query failed (unknown error).\n"
+                    : outputText;
+
+            ThreadUtilities.runInDispatchThread(() -> {
+                jEdit.newFile(view);
+                view.getTextArea().setText(finalOut);
+            });
+
+            Log.log(Log.MESSAGE, this, ":queryExp(): complete");
         };
 
         Runnable rs = create(r, () -> "Querying expression");
