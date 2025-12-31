@@ -18,7 +18,7 @@ import com.articulate.sigma.SuggestionComponentsIntegrationTest;
  * snippet builder, KIF/TPTP message normalizer, line/offset extractor, 
  * formula locator, file-spec composer, temporary file logic, error aggregator, etc.
  * 
- * Standalone Unit Test Suites (19 in total):
+ * Standalone Unit Test Suites (20 in total):
  *  SUMOjEditTest.java
  * 
  *  SUOKIFErrorCheckHelpersTest.java
@@ -40,6 +40,7 @@ import com.articulate.sigma.SuggestionComponentsIntegrationTest;
  *  ConfigureATPPropertyOverrideTest.java
  *  ConfigureATPCheckboxDependenciesTest.java
  *  QueryResultFormattingTest.java
+ *  QueryExpLanguageFlagTest.java
  * 
  *  SUMOjEditResidualHelpersTest.java
  *  TermOccurrenceHighlightingTest.java
@@ -77,7 +78,7 @@ import com.articulate.sigma.SuggestionComponentsIntegrationTest;
  * 
  * ===================================================================================
  * 
- * Revision: 12-29-2025
+ * Revision: 12-31-2025
  * ===================================================================================
  * 
  * 
@@ -123,6 +124,7 @@ import com.articulate.sigma.SuggestionComponentsIntegrationTest;
     ConfigureATPPropertyOverrideTest.class,
     ConfigureATPCheckboxDependenciesTest.class,
     QueryResultFormattingTest.class,
+    QueryExpLanguageFlagTest.class,
 
     /** =============== Miscellaneous SUMOjEdit Helpers (Standalone) ================= */
 

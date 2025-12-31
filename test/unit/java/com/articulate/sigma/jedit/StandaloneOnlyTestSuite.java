@@ -8,11 +8,13 @@ import org.junit.runners.Suite;
  * AssertJ Swing / GUI harnesses.
  *
  * This is the "standalone" subset of UnitjEditTestSuite:
- * - includes ONLY non-GUI tests
+ * - includes ONLY non-GUI unit tests
  * - each test class appears exactly once
  * 
+ * ===================================================================================
  * 
- * Revision: 12-29-2025
+ * Revision: 12-31-2025
+ * ===================================================================================
  * 
  * 
  * Author: Simon Deng, NPS ORISE Intern 2025, adam.pease@nps.edu
@@ -57,6 +59,7 @@ import org.junit.runners.Suite;
     ConfigureATPPropertyOverrideTest.class,
     ConfigureATPCheckboxDependenciesTest.class,
     QueryResultFormattingTest.class,
+    QueryExpLanguageFlagTest.class,
 
     /** =============== Miscellaneous SUMOjEdit Helpers (Standalone) ================= */
 
