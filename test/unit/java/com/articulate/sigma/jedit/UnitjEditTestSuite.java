@@ -11,14 +11,14 @@ import com.articulate.sigma.SuggestionComponentsIntegrationTest;
  * either standalone or GUI-dependent, depending on the specific 
  * methods/functionalities tested by each test.
  * 
- * ===================================================================================
+ * ============================== Standalone Unit Tests ==============================
  * 
  * Standalone unit tests target every testable internal helper, utility,
  * parser-adjacent, method, AC-related structure, index, mode/flag system, 
  * snippet builder, KIF/TPTP message normalizer, line/offset extractor, 
  * formula locator, file-spec composer, temporary file logic, error aggregator, etc.
  * 
- * Standalone Unit Test Suites (20 in total):
+ * Standalone Unit Test Suites (21 in total):
  *  SUMOjEditTest.java
  * 
  *  SUOKIFErrorCheckHelpersTest.java
@@ -41,13 +41,14 @@ import com.articulate.sigma.SuggestionComponentsIntegrationTest;
  *  ConfigureATPCheckboxDependenciesTest.java
  *  QueryResultFormattingTest.java
  *  QueryExpLanguageFlagTest.java
+ *  NullEngineHandlingTest.java
  * 
  *  SUMOjEditResidualHelpersTest.java
  *  TermOccurrenceHighlightingTest.java
  *  SafeSnippetFromFileTest.java
  *  SUMOjEditThreadConfigTest.java
  * 
- * ===================================================================================
+ * ====================== Unit Tests with External Dependencies ======================
  * 
  * GUI-dependent unit tests lock in every testable visual or event-driven piece:
  * view-layer helpers, UI-state managers, widget renderers, layout calculators,
@@ -78,7 +79,7 @@ import com.articulate.sigma.SuggestionComponentsIntegrationTest;
  * 
  * ===================================================================================
  * 
- * Revision: 12-31-2025
+ * Revision: 1-4-2026
  * ===================================================================================
  * 
  * 
@@ -125,6 +126,7 @@ import com.articulate.sigma.SuggestionComponentsIntegrationTest;
     ConfigureATPCheckboxDependenciesTest.class,
     QueryResultFormattingTest.class,
     QueryExpLanguageFlagTest.class,
+    NullEngineHandlingTest.class,
 
     /** =============== Miscellaneous SUMOjEdit Helpers (Standalone) ================= */
 
