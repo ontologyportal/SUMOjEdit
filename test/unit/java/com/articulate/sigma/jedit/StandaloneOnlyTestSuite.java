@@ -13,7 +13,7 @@ import org.junit.runners.Suite;
  * 
  * ===================================================================================
  * 
- * Revision: 12-31-2025
+ * Revision: 1-4-2026
  * ===================================================================================
  * 
  * 
@@ -60,6 +60,7 @@ import org.junit.runners.Suite;
     ConfigureATPCheckboxDependenciesTest.class,
     QueryResultFormattingTest.class,
     QueryExpLanguageFlagTest.class,
+    NullEngineHandlingTest.class,
 
     /** =============== Miscellaneous SUMOjEdit Helpers (Standalone) ================= */
 
