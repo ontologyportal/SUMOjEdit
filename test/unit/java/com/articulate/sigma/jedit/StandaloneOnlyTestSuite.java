@@ -4,7 +4,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 /**
- * Standalone-only unit test suite for CI runs that should skip
+ * Standalone-only unit test suite for CI runs that should SKIP
  * AssertJ Swing / GUI harnesses.
  *
  * This is the "standalone" subset of UnitjEditTestSuite:
