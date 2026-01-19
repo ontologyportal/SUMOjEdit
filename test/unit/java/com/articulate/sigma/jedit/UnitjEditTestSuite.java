@@ -48,7 +48,7 @@ import com.articulate.sigma.SuggestionComponentsIntegrationTest;
  *  SafeSnippetFromFileTest.java
  *  SUMOjEditThreadConfigTest.java
  * 
- * ====================== Unit Tests with External Dependencies ======================
+ * =================== Unit Tests with External Dependencies (GUI) ===================
  * 
  * GUI-dependent unit tests lock in every testable visual or event-driven piece:
  * view-layer helpers, UI-state managers, widget renderers, layout calculators,
@@ -56,7 +56,7 @@ import com.articulate.sigma.SuggestionComponentsIntegrationTest;
  * flows, async UI update logic, cross-thread event bridges, platform quirks,
  * and anything else the frontend can throw at us. Trust but verify.
  * 
- * GUI-Dependent Unit Test Suites (16 in total):
+ * GUI-Dependent Unit Test Suites (17 in total):
  *  ACModeToggleGUITest.java
  *  GhostTextRenderingGUITest.java
  *  GhostTextKeyboardNavigationGUITest.java
@@ -77,9 +77,11 @@ import com.articulate.sigma.SuggestionComponentsIntegrationTest;
  *  StatusBarMessagesGUITest.java
  *  MenuToggleDuringProcessingGUITest.java
  * 
+ *  ProofViewSelectionGUITest.java
+ * 
  * ===================================================================================
  * 
- * Revision: 1-4-2026
+ * Revision: 1-19-2026
  * ===================================================================================
  * 
  * 
@@ -147,7 +149,7 @@ import com.articulate.sigma.SuggestionComponentsIntegrationTest;
     DualModeAutoCompleteGUITest.class,
 
     /** ============================================================================== */
-    /** ========================== GUI TESTS: ERROR LIST ============================= */
+    /** =========================== GUI TESTS: ERROR LIST ============================ */
     /** ============================================================================== */
 
     ErrorListDisplayGUITest.class,
@@ -157,7 +159,7 @@ import com.articulate.sigma.SuggestionComponentsIntegrationTest;
     MultiViewErrorSourceSwitchingGUITest.class,
 
     /** ============================================================================== */
-    /** ========== GUI TESTS: SUO-KIF & TPTP Error/Formatting Pipelines ============== */
+    /** ============ GUI TESTS: SUO-KIF & TPTP Error/Formatting Pipelines ============ */
     /** ============================================================================== */
 
     SUOKIFErrorCheckGUITest.class,
@@ -165,11 +167,17 @@ import com.articulate.sigma.SuggestionComponentsIntegrationTest;
     TPTPFormatBufferGUITest.class,
 
     /** ============================================================================== */
-    /** ======================= GUI TESTS: STATUS BAR & MENU ========================= */
+    /** ======================== GUI TESTS: STATUS BAR & MENU ======================== */
     /** ============================================================================== */
 
     StatusBarMessagesGUITest.class,
-    MenuToggleDuringProcessingGUITest.class
+    MenuToggleDuringProcessingGUITest.class,
+
+    /** ============================================================================== */
+    /** ================== GUI TESTS: ask/tell and ATP Configurator ================== */
+    /** ============================================================================== */
+
+    ProofViewSelectionGUITest.class
 })
 public class UnitjEditTestSuite {
 
