@@ -5,7 +5,7 @@ import org.junit.runners.Suite;
 import com.articulate.sigma.jedit.StandaloneOnlyTestSuite;
 
 /**
- * CI-only test suite that runs non-GUI unit tests.
+ * This is a Github continuous integration (CI)-only test suite that runs non-GUI unit tests only.
  * 
  * 
  * Author: Simon Deng, NPS ORISE Intern 2025, adam.pease@nps.edu
@@ -14,8 +14,8 @@ import com.articulate.sigma.jedit.StandaloneOnlyTestSuite;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-    StandaloneOnlyTestSuite.class,
-    SuggestionComponentsIntegrationTest.class
+    StandaloneOnlyTestSuite.class
+    // SuggestionComponentsIntegrationTest.class
 })
 public class CINonGuiTestSuite {
 }

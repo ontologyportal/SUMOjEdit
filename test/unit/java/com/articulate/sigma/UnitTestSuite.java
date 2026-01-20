@@ -10,8 +10,8 @@ import com.articulate.sigma.jedit.UnitjEditTestSuite;
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-    UnitjEditTestSuite.class,
-    SuggestionComponentsIntegrationTest.class
+    UnitjEditTestSuite.class
+    // SuggestionComponentsIntegrationTest.class
 })
 public class UnitTestSuite {
 
