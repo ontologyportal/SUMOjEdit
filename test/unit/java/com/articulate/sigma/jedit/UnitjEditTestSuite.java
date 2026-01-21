@@ -7,86 +7,86 @@ import com.articulate.sigma.SuggestionComponentsIntegrationTest;
 
 
 /**
- * NOTE: The unit tests in the following unit test suites are
+ * NOTE: The below unit test classes in this unit test suite are
  * either standalone or GUI-dependent, depending on the specific 
- * methods/functionalities tested by each test.
+ * methods/functionalities tested by each test class.
  * 
  * ============================== Standalone Unit Tests ==============================
- * 
  * Standalone unit tests target every testable internal helper, utility,
  * parser-adjacent, method, AC-related structure, index, mode/flag system, 
  * snippet builder, KIF/TPTP message normalizer, line/offset extractor, 
  * formula locator, file-spec composer, temporary file logic, error aggregator, etc.
  * 
- * Standalone Unit Test Suites (21 in total):
- *  SUMOjEditTest.java
+ * Standalone Unit Test Classes (21 in total):
+ *  SUMOjEditTest
  * 
- *  SUOKIFErrorCheckHelpersTest.java
+ *  SUOKIFErrorCheckHelpersTest
  * 
- *  TPTPErrorCheckTest.java
+ *  TPTPErrorCheckTest
  * 
- *  FormatSUOKIFAxiomsTest.java
- *  FormatSUOKIFAxiomsEndToEndTest.java
+ *  FormatSUOKIFAxiomsTest
+ *  FormatSUOKIFAxiomsEndToEndTest
  * 
- *  SUMOjEditHelperAdditionalANDLanguageConversionTest.java
- *  SUOKIFToTPTPConversionTest.java
+ *  SUMOjEditHelperAdditionalANDLanguageConversionTest
+ *  SUOKIFToTPTPConversionTest
  * 
- *  AutoCompleteIndexTest.java
- *  KifTermIndexTest.java
- *  ACModeAndSignalsTest.java
- *  TopCompletionAdapterTest.java
+ *  AutoCompleteIndexTest
+ *  KifTermIndexTest
+ *  ACModeAndSignalsTest
+ *  TopCompletionAdapterTest
  * 
- *  ChooseProverTest.java
- *  ConfigureATPPropertyOverrideTest.java
- *  ConfigureATPCheckboxDependenciesTest.java
- *  QueryResultFormattingTest.java
- *  QueryExpLanguageFlagTest.java
- *  NullEngineHandlingTest.java
+ *  ChooseProverTest
+ *  ConfigureATPPropertyOverrideTest
+ *  ConfigureATPCheckboxDependenciesTest
+ *  QueryResultFormattingTest
+ *  QueryExpLanguageFlagTest
+ *  NullEngineHandlingTest
  * 
- *  SUMOjEditResidualHelpersTest.java
- *  TermOccurrenceHighlightingTest.java
- *  SafeSnippetFromFileTest.java
- *  SUMOjEditThreadConfigTest.java
+ *  SUMOjEditResidualHelpersTest
+ *  TermOccurrenceHighlightingTest
+ *  SafeSnippetFromFileTest
+ *  SUMOjEditThreadConfigTest
  * 
+ * ===================================================================================
  * =================== Unit Tests with External Dependencies (GUI) ===================
- * 
+ * ===================================================================================
  * GUI-dependent unit tests lock in every testable visual or event-driven piece:
  * view-layer helpers, UI-state managers, widget renderers, layout calculators,
  * input dispatchers, focus/hover handlers, component lifecycles, dialog/alert
  * flows, async UI update logic, cross-thread event bridges, platform quirks,
  * and anything else the frontend can throw at us. Trust but verify.
  * 
- * GUI-Dependent Unit Test Suites (17 in total):
- *  ACModeToggleGUITest.java
- *  GhostTextRenderingGUITest.java
- *  GhostTextKeyboardNavigationGUITest.java
- *  DropDownPopupGUITest.java
- *  DropDownKeyboardNavigationGUITest.java
- *  DualModeAutoCompleteGUITest.java
+ * GUI-Dependent Unit Test Classes (18 in total):
+ *  ACModeToggleGUITest
+ *  GhostTextRenderingGUITest
+ *  GhostTextKeyboardNavigationGUITest
+ *  DropDownPopupGUITest
+ *  DropDownKeyboardNavigationGUITest
+ *  DualModeAutoCompleteGUITest
  * 
- *  ErrorListDisplayGUITest.java
- *  ErrorListUpdateGUITest.java
- *  ErrorListNavigationGUITest.java
- *  MultiViewErrorSourceGUITest.java
- *  MultiViewErrorSourceSwitchingGUITest.java
+ *  ErrorListDisplayGUITest
+ *  ErrorListUpdateGUITest
+ *  ErrorListNavigationGUITest
+ *  MultiViewErrorSourceGUITest
+ *  MultiViewErrorSourceSwitchingGUITest
  * 
- *  SUOKIFErrorCheckGUITest.java
- *  FormatSUOKIFAxiomsGUITest.java
- *  TPTPFormatBufferGUITest.java
+ *  SUOKIFErrorCheckGUITest
+ *  FormatSUOKIFAxiomsGUITest
+ *  TPTPFormatBufferGUITest
  * 
- *  StatusBarMessagesGUITest.java
- *  MenuToggleDuringProcessingGUITest.java
+ *  StatusBarMessagesGUITest
+ *  MenuToggleDuringProcessingGUITest
  * 
- *  ProofViewSelectionGUITest.java
+ *  ProofViewSelectionGUITest
+ *  EngineRadioButtonsGUITest
  * 
  * ===================================================================================
- * 
- * Revision: 1-19-2026
+ * Revision: 1-20-2026
  * ===================================================================================
  * 
  * 
- * Author: Simon Deng, NPS ORISE Intern 2025, adam.pease@nps.edu
- * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.SUOKIFErrorCheckTest">Simon Deng, NPS ORISE Intern 2025</a>
+ * Author: Simon Deng, NPS ORISE Intern 2025/2026, adam.pease@nps.edu
+ * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.SUOKIFErrorCheckTest">Simon Deng, NPS ORISE Intern 2025/2026</a>
  */
 
 @RunWith(Suite.class)
@@ -177,7 +177,8 @@ import com.articulate.sigma.SuggestionComponentsIntegrationTest;
     /** ================== GUI TESTS: ask/tell and ATP Configurator ================== */
     /** ============================================================================== */
 
-    ProofViewSelectionGUITest.class
+    ProofViewSelectionGUITest.class,
+    EngineRadioButtonsGUITest.class
 })
 public class UnitjEditTestSuite {
 

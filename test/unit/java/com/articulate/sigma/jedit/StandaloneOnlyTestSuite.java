@@ -4,16 +4,15 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 /**
- * Standalone-only unit test suite for CI runs that should SKIP
- * AssertJ Swing / GUI harnesses.
- *
- * This is the "standalone" subset of UnitjEditTestSuite:
+ * This is the "standalone" subset of the UnitjEditTestSuite test suite:
  * - includes ONLY non-GUI unit tests
- * - each test class appears exactly once
+ * - skips AssertJ Swing / GUI harnesses
+ * - each standalone test class appears exactly once
+ * 
+ * This test suite contains 21 standalone unit test classes in total.
  * 
  * ===================================================================================
- * 
- * Revision: 1-4-2026
+ * Revision: 1-20-2026
  * ===================================================================================
  * 
  * 
