@@ -35,8 +35,8 @@ import java.awt.event.ActionListener;
  * verify component state.
  *
  * 
- * Author: Simon Deng, NPS ORISE Intern 2026, adam.pease@nps.edu
- * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.ProofViewSelectionGUITest">Simon Deng, NPS ORISE Intern 2026</a>
+ * Author: Simon Deng, NPS ORISE Intern 2025, adam.pease@nps.edu
+ * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.ProofViewSelectionGUITest">Simon Deng, NPS ORISE Intern 2025</a>
  */
 
 public class EngineRadioButtonsGUITest extends AssertJSwingJUnitTestCase {
