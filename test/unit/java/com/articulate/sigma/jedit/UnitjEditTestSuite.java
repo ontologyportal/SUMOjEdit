@@ -56,7 +56,7 @@ import com.articulate.sigma.SuggestionComponentsIntegrationTest;
  * flows, async UI update logic, cross-thread event bridges, platform quirks,
  * and anything else the frontend can throw at us. Trust but verify.
  * 
- * GUI-Dependent Unit Test Classes (18 in total):
+ * GUI-Dependent Unit Test Classes (19 in total):
  *  ACModeToggleGUITest
  *  GhostTextRenderingGUITest
  *  GhostTextKeyboardNavigationGUITest
@@ -79,14 +79,17 @@ import com.articulate.sigma.SuggestionComponentsIntegrationTest;
  * 
  *  ProofViewSelectionGUITest
  *  EngineRadioButtonsGUITest
+ *  PreferenceSavingAndReloadingGUITest
  * 
  * ===================================================================================
- * Revision: 1-20-2026
+ * Total Unit Test Classes Included: 40
+ * ===================================================================================
+ * Revision: 1-24-2026
  * ===================================================================================
  * 
  * 
- * Author: Simon Deng, NPS ORISE Intern 2025/2026, adam.pease@nps.edu
- * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.SUOKIFErrorCheckTest">Simon Deng, NPS ORISE Intern 2025/2026</a>
+ * Author: Simon Deng, NPS ORISE Intern 2025, adam.pease@nps.edu
+ * @author <a href="mailto:adam.pease@nps.edu?subject=com.articulate.sigma.jedit.SUOKIFErrorCheckTest">Simon Deng, NPS ORISE Intern 2025</a>
  */
 
 @RunWith(Suite.class)
@@ -178,7 +181,8 @@ import com.articulate.sigma.SuggestionComponentsIntegrationTest;
     /** ============================================================================== */
 
     ProofViewSelectionGUITest.class,
-    EngineRadioButtonsGUITest.class
+    EngineRadioButtonsGUITest.class,
+    PreferenceSavingAndReloadingGUITest.class
 })
 public class UnitjEditTestSuite {
 
