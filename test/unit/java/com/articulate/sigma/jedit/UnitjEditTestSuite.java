@@ -56,7 +56,7 @@ import com.articulate.sigma.SuggestionComponentsIntegrationTest;
  * flows, async UI update logic, cross-thread event bridges, platform quirks,
  * and anything else the frontend can throw at us. Trust but verify.
  * 
- * GUI-Dependent Unit Test Classes (20 in total):
+ * GUI-Dependent Unit Test Classes (21 in total):
  *  ACModeToggleGUITest
  *  GhostTextRenderingGUITest
  *  GhostTextKeyboardNavigationGUITest
@@ -81,11 +81,12 @@ import com.articulate.sigma.SuggestionComponentsIntegrationTest;
  *  EngineRadioButtonsGUITest
  *  PreferenceSavingAndReloadingGUITest
  *  DropDownKeyboardTraversalGUITest
+ *  ClosedWorldBehaviourGUITest
  * 
  * ===================================================================================
- * Total Unit Test Classes Included: 41
+ * Total Unit Test Classes Included: 42
  * ===================================================================================
- * Revision: 1-25-2026
+ * Revision: 1-28-2026
  * ===================================================================================
  * 
  * 
@@ -184,7 +185,8 @@ import com.articulate.sigma.SuggestionComponentsIntegrationTest;
     ProofViewSelectionGUITest.class,
     EngineRadioButtonsGUITest.class,
     PreferenceSavingAndReloadingGUITest.class,
-    DropDownKeyboardTraversalGUITest.class
+    DropDownKeyboardTraversalGUITest.class,
+    ClosedWorldBehaviourGUITest.class
 })
 public class UnitjEditTestSuite {
 
