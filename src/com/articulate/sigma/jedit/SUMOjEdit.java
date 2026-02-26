@@ -98,6 +98,10 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         // without the EDT flush draining it into ErrorList.
         boolean testKeepPendingErrs = false;
 
+        // Track buffers that have already shown the "file not in KB" warning
+        // so we don't re-fire it on every error check for the same buffer.
+        private final Set<String> notifiedNotInKB = new HashSet<>();
+
         // === Error message snippet helpers (limit 100 chars) ===
         private static final int SNIPPET_MAX = 100;
 
@@ -577,6 +581,9 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             kb.constituents.add(kif.filename);
             kb.reload();
             kb = KBmanager.getMgr().getKB(KBmanager.getMgr().getPref("sumokbname"));
+            // File is now in the KB — clear the "not in KB" notification
+            // so subsequent error checks won't suppress a stale warning.
+            notifiedNotInKB.remove(kif.filename);
             Log.log(Log.MESSAGE, this, ":tellTheKbAboutLoadedKif() completed in " + (System.currentTimeMillis() - start) / KButilities.ONE_K + " secs");
         }
     }
@@ -1734,6 +1741,25 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     protected void checkErrorsBody(String contents, final String filePath) {
 
         List<ErrRec> msgs = KifFileChecker.check(contents, filePath);
+
+        // Show the "file not in KB" warning only once per buffer path.
+        // If the user has already been notified for this buffer, strip the
+        // warning so ErrorList isn't cluttered on every re-check.
+        if (filePath != null) {
+            boolean hasNotInKBWarning = msgs.stream().anyMatch(
+                e -> e.type == ErrRec.WARNING && e.msg != null
+                    && e.msg.startsWith("This file is not loaded into the KB"));
+            if (hasNotInKBWarning) {
+                if (notifiedNotInKB.contains(filePath)) {
+                    // Already shown once — remove the warning
+                    msgs.removeIf(e -> e.type == ErrRec.WARNING && e.msg != null
+                        && e.msg.startsWith("This file is not loaded into the KB"));
+                } else {
+                    notifiedNotInKB.add(filePath);
+                }
+            }
+        }
+
         addErrorsDirect(msgs);
     }
 
