@@ -278,42 +278,36 @@ public class SUMOjEditHelperAdditionalANDLanguageConversionTest {
         String origFormulaLang = null;
         String origKbLang = null;
         if (formulaClass != null) {
-            var field = formulaClass.getDeclaredField("lang");
-            field.setAccessible(true);
-            origFormulaLang = (String) field.get(null);
+            var method = formulaClass.getMethod("getLang");
+            origFormulaLang = (String) method.invoke(null);
         }
         if (kbClass != null) {
-            var field = kbClass.getDeclaredField("lang");
-            field.setAccessible(true);
-            origKbLang = (String) field.get(null);
+            var method = kbClass.getMethod("getLang");
+            origKbLang = (String) method.invoke(null);
         }
 
         // Invoke setFOF() and setTFF(); they should not throw
         sje.setFOF();
         sje.setTFF();
 
-        // If the classes exist, verify that the static language fields were updated
+        // If the classes exist, verify that the language was updated via getLang()
         if (formulaClass != null) {
-            var field = formulaClass.getDeclaredField("lang");
-            field.setAccessible(true);
-            assertEquals("tff", field.get(null));
+            var method = formulaClass.getMethod("getLang");
+            assertEquals("tff", method.invoke(null));
         }
         if (kbClass != null) {
-            var field = kbClass.getDeclaredField("lang");
-            field.setAccessible(true);
-            assertEquals("tff", field.get(null));
+            var method = kbClass.getMethod("getLang");
+            assertEquals("tff", method.invoke(null));
         }
 
         // Restore original values to avoid side effects on other tests
         if (formulaClass != null && origFormulaLang != null) {
-            var field = formulaClass.getDeclaredField("lang");
-            field.setAccessible(true);
-            field.set(null, origFormulaLang);
+            var method = formulaClass.getMethod("setLang", String.class);
+            method.invoke(null, origFormulaLang);
         }
         if (kbClass != null && origKbLang != null) {
-            var field = kbClass.getDeclaredField("lang");
-            field.setAccessible(true);
-            field.set(null, origKbLang);
+            var method = kbClass.getMethod("setLang", String.class);
+            method.invoke(null, origKbLang);
         }
     }
 } // end class file SUMOjEditHelperAdditionalNLanguageConversionTest.java
