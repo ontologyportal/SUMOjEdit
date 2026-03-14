@@ -725,8 +725,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
         System.out.println("setFOF(): translation set to TPTP");
         Log.log(Log.MESSAGE, this, ": translation set to TPTP");
-        SUMOformulaToTPTPformula.lang = "fof";
-        SUMOKBtoTPTPKB.lang = "fof";
+        SUMOformulaToTPTPformula.setLang("fof");
+        SUMOKBtoTPTPKB.setLang("fof");
     }
 
     @Override
@@ -734,8 +734,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
         System.out.println("setTFF(): translation set to TFF");
         Log.log(Log.MESSAGE, this, ": translation set to TFF");
-        SUMOformulaToTPTPformula.lang = "tff";
-        SUMOKBtoTPTPKB.lang = "tff";
+        SUMOformulaToTPTPformula.setLang("tff");
+        SUMOKBtoTPTPKB.setLang("tff");
     }
 
     @Override
@@ -1025,12 +1025,12 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
             // TPTP language: we support fof (tptp) and tff here, THF will be added later
             if ("tff".equalsIgnoreCase(mode)) {
-                SUMOformulaToTPTPformula.lang = "tff";
-                SUMOKBtoTPTPKB.lang = "tff";
+                SUMOformulaToTPTPformula.setLang("tff");
+                SUMOKBtoTPTPKB.setLang("tff");
             } else {
                 // Treat "tptp" and any unsupported value as FOF
-                SUMOformulaToTPTPformula.lang = "fof";
-                SUMOKBtoTPTPKB.lang = "fof";
+                SUMOformulaToTPTPformula.setLang("fof");
+                SUMOKBtoTPTPKB.setLang("fof");
             }
 
             // Modus Ponens and drop‑one‑premise flags are global on KB

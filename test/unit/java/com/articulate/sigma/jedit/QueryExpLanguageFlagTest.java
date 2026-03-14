@@ -91,12 +91,12 @@ public class QueryExpLanguageFlagTest {
             // Apply global ATP flags exactly as in SUMOjEdit.queryExp().
             SUMOKBtoTPTPKB.CWA = cwa;
             if ("tff".equalsIgnoreCase(mode)) {
-                SUMOformulaToTPTPformula.lang = "tff";
-                SUMOKBtoTPTPKB.lang = "tff";
+                SUMOformulaToTPTPformula.setLang("tff");
+                SUMOKBtoTPTPKB.setLang("tff");
             } else {
                 // Treat "tptp" (FOF) and any unsupported value as FOF.
-                SUMOformulaToTPTPformula.lang = "fof";
-                SUMOKBtoTPTPKB.lang = "fof";
+                SUMOformulaToTPTPformula.setLang("fof");
+                SUMOKBtoTPTPKB.setLang("fof");
             }
             // Modus Ponens and drop one premise flags on the KB.
             KB.modensPonens = mp;
@@ -121,8 +121,8 @@ public class QueryExpLanguageFlagTest {
     @Before
     public void setUp() {
         // Snapshot the original static settings from the various classes.
-        originalFormulaLang = SUMOformulaToTPTPformula.lang;
-        originalKBtoLang = SUMOKBtoTPTPKB.lang;
+        originalFormulaLang = SUMOformulaToTPTPformula.getLang();
+        originalKBtoLang = SUMOKBtoTPTPKB.getLang();
         originalCWA = SUMOKBtoTPTPKB.CWA;
         originalMP = KB.modensPonens;
         originalDropOne = KB.dropOnePremiseFormulas;
@@ -136,8 +136,8 @@ public class QueryExpLanguageFlagTest {
     @After
     public void tearDown() {
         // Restore static fields to their original values after each test.
-        SUMOformulaToTPTPformula.lang = originalFormulaLang;
-        SUMOKBtoTPTPKB.lang = originalKBtoLang;
+        SUMOformulaToTPTPformula.setLang(originalFormulaLang);
+        SUMOKBtoTPTPKB.setLang(originalKBtoLang);
         SUMOKBtoTPTPKB.CWA = originalCWA;
         KB.modensPonens = originalMP;
         KB.dropOnePremiseFormulas = originalDropOne;
@@ -194,9 +194,9 @@ public class QueryExpLanguageFlagTest {
 
         // Translation language flags should both be tff.
         assertEquals("SUMOformulaToTPTPformula.lang should be set to tff",
-                "tff", SUMOformulaToTPTPformula.lang);
+                "tff", SUMOformulaToTPTPformula.getLang());
         assertEquals("SUMOKBtoTPTPKB.lang should be set to tff",
-                "tff", SUMOKBtoTPTPKB.lang);
+                "tff", SUMOKBtoTPTPKB.getLang());
 
         // Closed world assumption should reflect the property.
         assertTrue("SUMOKBtoTPTPKB.CWA should be true for closed world",
@@ -228,9 +228,9 @@ public class QueryExpLanguageFlagTest {
         editor.queryExp();
 
         assertEquals("SUMOformulaToTPTPformula.lang should be fof when mode=fof",
-                "fof", SUMOformulaToTPTPformula.lang);
+                "fof", SUMOformulaToTPTPformula.getLang());
         assertEquals("SUMOKBtoTPTPKB.lang should be fof when mode=fof",
-                "fof", SUMOKBtoTPTPKB.lang);
+                "fof", SUMOKBtoTPTPKB.getLang());
 
         assertFalse("Closed world should be false when disabled",
                 SUMOKBtoTPTPKB.CWA);
@@ -260,9 +260,9 @@ public class QueryExpLanguageFlagTest {
 
         // Both translation flags should fall back to fof when mode=thf.
         assertEquals("SUMOformulaToTPTPformula.lang should fall back to fof for unsupported thf",
-                "fof", SUMOformulaToTPTPformula.lang);
+                "fof", SUMOformulaToTPTPformula.getLang());
         assertEquals("SUMOKBtoTPTPKB.lang should fall back to fof for unsupported thf",
-                "fof", SUMOKBtoTPTPKB.lang);
+                "fof", SUMOKBtoTPTPKB.getLang());
 
         // Other flags should still reflect the preferences provided.
         assertTrue("Closed world should be true when enabled",
