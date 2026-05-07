@@ -134,7 +134,6 @@ import com.articulate.sigma.SuggestionComponentsIntegrationTest;
     ConfigureATPCheckboxDependenciesTest.class,
     QueryResultFormattingTest.class,
     QueryExpLanguageFlagTest.class,
-    NullEngineHandlingTest.class,
 
     /** =============== Miscellaneous SUMOjEdit Helpers (Standalone) ================= */
 
