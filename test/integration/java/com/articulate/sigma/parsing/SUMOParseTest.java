@@ -37,7 +37,7 @@ public class SUMOParseTest {
                     default:
                         System.out.printf("Parsing: %s%n", f.toFile());
                         SuokifVisitor sv = SuokifApp.process(f.toFile());
-                        assertFalse(f + ": " + sv.errors.toString(), SuokifVisitor.result.isEmpty());
+                        assertFalse(f + ": " + sv.errors.toString(), sv.result.isEmpty());
                         break;
                 }
             });

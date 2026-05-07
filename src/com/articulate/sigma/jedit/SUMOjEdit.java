@@ -777,7 +777,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         int    tlim   = Math.max(1, parseIntSafe(jEdit.getProperty("sumojedit.atp.timeLimitSec","30"), 30));
         String mode   = jEdit.getProperty("sumojedit.atp.mode","tptp");       // tptp|tff|thf
         boolean cwa  = Boolean.parseBoolean(jEdit.getProperty("sumojedit.atp.closedWorld","false"));
-        String eng    = jEdit.getProperty("sumojedit.atp.engine","vampire");  // leo3|eprover|vampire
+        String eng    = jEdit.getProperty("sumojedit.atp.engine","vampire");  // LEO|EPROVER|VAMPIRE
         String vampM  = jEdit.getProperty("sumojedit.atp.vampire.mode","casc"); // casc|avatar|custom
         boolean mp    = Boolean.parseBoolean(jEdit.getProperty("sumojedit.atp.ModusPonens","false"));
         boolean drop1 = Boolean.parseBoolean(jEdit.getProperty("sumojedit.atp.dropOnePremise","false"));
@@ -836,9 +836,9 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
         // Engine + Vampire submodes
         c.gridx=0; c.gridy++; p.add(new javax.swing.JLabel("Inference engine:"), c);
-        final javax.swing.JRadioButton rLEO = new javax.swing.JRadioButton("LEO-III", "leo3".equalsIgnoreCase(eng));
-        final javax.swing.JRadioButton rE   = new javax.swing.JRadioButton("EProver", "eprover".equalsIgnoreCase(eng));
-        final javax.swing.JRadioButton rVam = new javax.swing.JRadioButton("Vampire", "vampire".equalsIgnoreCase(eng) || (!"leo3".equalsIgnoreCase(eng) && !"eprover".equalsIgnoreCase(eng)));
+        final javax.swing.JRadioButton rLEO = new javax.swing.JRadioButton("LEO-III", "LEO".equalsIgnoreCase(eng));
+        final javax.swing.JRadioButton rE   = new javax.swing.JRadioButton("EProver", "EPROVER".equalsIgnoreCase(eng));
+        final javax.swing.JRadioButton rVam = new javax.swing.JRadioButton("Vampire", "VAMPIRE".equalsIgnoreCase(eng) || (!"LEO".equalsIgnoreCase(eng) && !"eprover".equalsIgnoreCase(eng)));
         javax.swing.ButtonGroup gEng = new javax.swing.ButtonGroup(); gEng.add(rLEO); gEng.add(rE); gEng.add(rVam);
         javax.swing.JPanel engRow = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT,6,0));
         engRow.add(rLEO); engRow.add(rE); engRow.add(rVam);
@@ -917,7 +917,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         jEdit.setProperty("sumojedit.atp.timeLimitSec", String.valueOf(((Number)tlimSp.getValue()).intValue()));
         jEdit.setProperty("sumojedit.atp.mode", rTHF.isSelected() ? "thf" : (rTFF.isSelected() ? "tff" : "tptp"));
         jEdit.setProperty("sumojedit.atp.closedWorld", String.valueOf(cbCWA.isSelected()));
-        jEdit.setProperty("sumojedit.atp.engine", rLEO.isSelected() ? "leo3" : (rE.isSelected() ? "eprover" : "vampire"));
+        jEdit.setProperty("sumojedit.atp.engine", rLEO.isSelected() ? "LEO" : (rE.isSelected() ? "EPROVER" : "VAMPIRE"));
         jEdit.setProperty("sumojedit.atp.vampire.mode", rAvatar.isSelected() ? "avatar" : (rCustom.isSelected() ? "custom" : "casc"));
         jEdit.setProperty("sumojedit.atp.ModusPonens", String.valueOf(cbMP.isSelected()));
         jEdit.setProperty("sumojedit.atp.dropOnePremise", String.valueOf(cbDrop.isSelected()));
@@ -960,221 +960,60 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         return result.toString();
     }
 
-    /** Build a user-visible failure message for the result buffer when an ATP can't run. */
-    private static String formatQueryFailure(String engineLabel,
-                                             String prefKey,
-                                             String prefValue,
-                                             Throwable ex) {
-
-        StringBuilder sb = new StringBuilder();
-        sb.append("Query failed.\n");
-        sb.append("Reason: ").append(engineLabel).append(" could not be started.\n");
-        sb.append("Configured ").append(prefKey).append(" = ")
-          .append(prefValue == null ? "<null>" : prefValue).append("\n");
-
-        if (ex != null) {
-            sb.append("Error: ").append(ex.getClass().getName());
-            if (ex.getMessage() != null && !ex.getMessage().isBlank())
-                sb.append(": ").append(ex.getMessage().trim());
-            sb.append("\n");
-        }
-
-        sb.append("\nFix:\n");
-        sb.append("1) Open ~/.sigmakee/KBs/config.xml\n");
-        sb.append("2) Set ").append(prefKey).append(" to a valid executable path\n");
-        sb.append("3) Restart SUMOjEdit (or reload the KB)\n");
-
-        return sb.toString();
+    public ATPQuery createATPQueryFromJEdit(String query) {
+        
+        return new ATPQuery(
+            kb,
+            String.valueOf(new java.util.Random().nextInt(10000)),
+            query,
+            null,
+            "CUSTOM",
+            jEdit.getProperty("sumojedit.atp.engine", "vampire"),
+            jEdit.getProperty("sumojedit.atp.mode", "tptp"),
+            jEdit.getProperty("sumojedit.atp.vampire.mode", "casc"),
+            Boolean.parseBoolean(jEdit.getProperty("sumojedit.atp.closedWorld", "false")),
+            Boolean.parseBoolean(jEdit.getProperty("sumojedit.atp.ModusPonens", "false")),
+            Boolean.parseBoolean(jEdit.getProperty("sumojedit.atp.dropOnePremise", "false")),
+            false,
+            Math.max(1, parseIntSafe( jEdit.getProperty("sumojedit.atp.timeLimitSec", "30"), 30)),
+            Math.max(1, parseIntSafe(jEdit.getProperty("sumojedit.atp.maxAnswers", "1"), 1))
+        );
     }
 
     @Override
     public void queryExp() {
 
-        String contents = view.getTextArea().getSelectedText();
-        if (!checkEditorContents(contents, "Please fully highlight an atom for query"))
-            return;
-
+        String query = view.getTextArea().getSelectedText();
+        if (!checkEditorContents(query, "Please fully highlight an atom for query")) return;
         Runnable r = () -> {
             togglePluginMenus(false);
-            Log.log(Log.MESSAGE, this, ":queryExp(): query with: " + contents);
-            System.out.println("queryExp(): query with: " + contents);
-
-            // --- Read ATP preferences saved by configureATP() ---
-            String eng     = jEdit.getProperty("sumojedit.atp.engine", "vampire");   // leo3|eprover|vampire
-            int    maxAns  = Math.max(1, parseIntSafe(
-                    jEdit.getProperty("sumojedit.atp.maxAnswers", "1"), 1));
-            int    tlim    = Math.max(1, parseIntSafe(
-                    jEdit.getProperty("sumojedit.atp.timeLimitSec", "30"), 30));
-            String mode    = jEdit.getProperty("sumojedit.atp.mode", "tptp");        // tptp|tff|thf
-            boolean cwa    = Boolean.parseBoolean(
-                    jEdit.getProperty("sumojedit.atp.closedWorld", "false"));
-            String vampM   = jEdit.getProperty("sumojedit.atp.vampire.mode", "casc"); // casc|avatar|custom
-            boolean mp     = Boolean.parseBoolean(
-                    jEdit.getProperty("sumojedit.atp.ModusPonens", "false"));
-            boolean drop1  = Boolean.parseBoolean(
-                    jEdit.getProperty("sumojedit.atp.dropOnePremise", "false"));
-            boolean showEn = Boolean.parseBoolean(
-                    jEdit.getProperty("sumojedit.atp.showEnglish", "true"));
-            boolean useLLM = Boolean.parseBoolean(
-                    jEdit.getProperty("sumojedit.atp.useLLM", "false"));
-
-            // --- Apply global ATP flags (mirror AskTell.jsp behaviour) ---
-
-            // Closed World / Open World for SUMO→TPTP translation
-            SUMOKBtoTPTPKB.CWA = cwa;
-
-            // TPTP language: we support fof (tptp) and tff here, THF will be added later
-            if ("tff".equalsIgnoreCase(mode)) {
-                SUMOformulaToTPTPformula.setLang("tff");
-                SUMOKBtoTPTPKB.setLang("tff");
-            } else {
-                // Treat "tptp" and any unsupported value as FOF
-                SUMOformulaToTPTPformula.setLang("fof");
-                SUMOKBtoTPTPKB.setLang("fof");
-            }
-
-            // Modus Ponens and drop‑one‑premise flags are global on KB
-            KB.modensPonens = mp;
-            KB.dropOnePremiseFormulas = drop1;
-
-            // Proof presentation flags (used by HTMLformatter / LanguageFormatter)
+            Log.log(Log.MESSAGE, this, ":queryExp(): query with: " + query);
+            boolean showEn = Boolean.parseBoolean(jEdit.getProperty("sumojedit.atp.showEnglish", "true"));
+            boolean useLLM = Boolean.parseBoolean(jEdit.getProperty("sumojedit.atp.useLLM", "false"));
             HTMLformatter.proofParaphraseInEnglish = showEn;
             LanguageFormatter.paraphraseLLM = useLLM;
-
-            // Configure Vampire mode from UI: casc | avatar | custom
-            String vm = (vampM == null ? "casc" : vampM.trim().toLowerCase(java.util.Locale.ROOT));
-            if ("avatar".equals(vm))
-                Vampire.mode = Vampire.ModeType.AVATAR;
-            else if ("custom".equals(vm))
-                Vampire.mode = Vampire.ModeType.CUSTOM;
-            else
-                Vampire.mode = Vampire.ModeType.CASC;
-
             TPTP3ProofProcessor tpp = new TPTP3ProofProcessor();
-            StringBuilder qlist = null;
-
-            String outputText = null;     // Always end with non-empty output
-            boolean ranEngine = false;    // True only if we got a non-null output list
-
-            // Identify engine/pref keys for consistent failure messages
-            String engineLabel = "Vampire";
-            String prefKey = "vampire";
-            if ("eprover".equalsIgnoreCase(eng)) {
-                engineLabel = "EProver";
-                prefKey = "eprover";
-            } else if ("leo3".equalsIgnoreCase(eng)) {
-                engineLabel = "LEO-III";
-                prefKey = "leoExecutable";
-            }
-
+            String outputText = null;
             try {
-                // --- Primary path: engine selected as Vampire in ATP Config ---
-                if ("vampire".equalsIgnoreCase(eng)) {
-                    Vampire vamp;
-                    if (mp)
-                        vamp = kb.askVampireModensPonens(contents, tlim, maxAns);
-                    else
-                        vamp = kb.askVampire(contents, tlim, maxAns);
-
-                    ranEngine = (vamp != null && vamp.output != null);
-                    if (!ranEngine) {
-                        String prefVal = KBmanager.getMgr().getPref("vampire");
-                        outputText = formatQueryFailure("Vampire", "vampire", prefVal, null);
-                    } else {
-                        tpp.parseProofOutput(vamp.output, contents, kb, vamp.qlist);
-                        qlist = vamp.qlist;
-                    }
-                }
-
-                // --- Primary path: engine selected as EProver in ATP Config ---
-                else if ("eprover".equalsIgnoreCase(eng)) {
-                    EProver eprover = kb.askEProver(contents, tlim, maxAns);
-
-                    ranEngine = (eprover != null && eprover.output != null);
-                    if (!ranEngine) {
-                        String prefVal = KBmanager.getMgr().getPref("eprover");
-                        outputText = formatQueryFailure("EProver", "eprover", prefVal, null);
-                    } else {
-                        tpp.parseProofOutput(eprover.output, contents, kb, eprover.qlist);
-                        qlist = eprover.qlist;
-                    }
-                }
-
-                // --- Primary path: engine selected as LEO-III in ATP Config ---
-                else if ("leo3".equalsIgnoreCase(eng)) {
-                    LEO leo = kb.askLeo(contents, tlim, maxAns);
-
-                    ranEngine = (leo != null && leo.output != null);
-                    if (!ranEngine) {
-                        String prefVal = KBmanager.getMgr().getPref("leoExecutable");
-                        outputText = formatQueryFailure("LEO-III", "leoExecutable", prefVal, null);
-                    } else {
-                        tpp.parseProofOutput(leo.output, contents, kb, leo.qlist);
-                        qlist = leo.qlist;
-                    }
-                }
-
-                // --- Fallback: existing EProver path for legacy chooseE() menu actions ---
-                else if (KBmanager.getMgr().prover == KBmanager.Prover.EPROVER) {
-                    EProver eprover = kb.askEProver(contents, tlim, maxAns);
-
-                    ranEngine = (eprover != null && eprover.output != null);
-                    if (!ranEngine) {
-                        String prefVal = KBmanager.getMgr().getPref("eprover");
-                        outputText = formatQueryFailure("EProver", "eprover", prefVal, null);
-                    } else {
-                        tpp.parseProofOutput(eprover.output, contents, kb, eprover.qlist);
-                        qlist = eprover.qlist;
-                    }
-                }
-
-                // --- Fallback: unsupported engine setting → still try Vampire with defaults ---
-                else {
-                    Vampire vamp = kb.askVampire(contents, tlim, maxAns);
-
-                    ranEngine = (vamp != null && vamp.output != null);
-                    if (!ranEngine) {
-                        String prefVal = KBmanager.getMgr().getPref("vampire");
-                        outputText = formatQueryFailure("Vampire", "vampire", prefVal, null);
-                    } else {
-                        tpp.parseProofOutput(vamp.output, contents, kb, vamp.qlist);
-                        qlist = vamp.qlist;
-                    }
-                }
-
-                // Only post-process answers if we actually ran a prover
-                if (ranEngine) {
-                    tpp.processAnswersFromProof(qlist, contents);
+                TheoremProverController theoremProverController = new TheoremProverController();
+                ATPResult atpResult = theoremProverController.ask(createATPQueryFromJEdit(query));
+                if (atpResult != null) {
+                    tpp.processAnswersFromProof(atpResult.getQList(), query);
                     outputText = queryResultString(tpp);
-
-                    // Safety net: never allow blank output
-                    if (outputText == null || outputText.isBlank()) {
-                        outputText =
-                                "Query completed but returned no output.\n" +
-                                "Possible causes: prover produced no proof/status, or output parsing failed.\n" +
-                                "Check the terminal log for details.\n";
-                    }
+                    if (outputText == null || outputText.isBlank()) outputText = "Query completed but returned no output. Check the terminal log.\n";
                 }
             }
             catch (Throwable ex) {
-                // If an exception occurs, still print a useful message in the output tab
-                String prefVal = KBmanager.getMgr().getPref(prefKey);
-                outputText = formatQueryFailure(engineLabel, prefKey, prefVal, ex);
+                outputText = "Query Failure! Check config.xml.";
                 Log.log(Log.ERROR, this, ":queryExp(): exception while running ATP", ex);
             }
-
-            final String finalOut = (outputText == null || outputText.isBlank())
-                    ? "Query failed (unknown error).\n"
-                    : outputText;
-
+            final String finalOutputText = outputText;
             ThreadUtilities.runInDispatchThread(() -> {
                 jEdit.newFile(view);
-                view.getTextArea().setText(finalOut);
+                view.getTextArea().setText(finalOutputText);
             });
-
             Log.log(Log.MESSAGE, this, ":queryExp(): complete");
         };
-
         Runnable rs = create(r, () -> "Querying expression");
         startBackgroundThread(rs);
     }
@@ -1184,13 +1023,9 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
         clearWarnAndErr();
         String contents = view.getTextArea().getSelectedText();
-        if (!checkEditorContents(contents, "Please fully highlight a term to browse"))
-            return;
-
-        if (!StringUtil.emptyString(contents) && Formula.atom(contents)
-                && kb.terms.contains(contents)) {
-            String urlString = "http://sigma.ontologyportal.org:8443/sigma/Browse.jsp?kb=SUMO&lang=EnglishLanguage&flang=SUO-KIF&term="
-                    + contents;
+        if (!checkEditorContents(contents, "Please fully highlight a term to browse")) return;
+        if (!StringUtil.emptyString(contents) && Formula.atom(contents) && kb.terms.contains(contents)) {
+            String urlString = "http://sigma.ontologyportal.org:8443/sigma/Browse.jsp?kb=SUMO&lang=EnglishLanguage&flang=SUO-KIF&term=" + contents;
             if (Desktop.isDesktopSupported()) {
                 try {
                     Desktop.getDesktop().browse(java.net.URI.create(urlString));
@@ -2387,8 +2222,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         System.out.println("INFO: In SUMOjEdit.main()");
         SUMOjEdit sje = null;
         KB kb = null;
-        if (args != null && args.length > 0 && args[0].equals("-h"))
-            showHelp();
+        if (args != null && args.length > 0 && args[0].equals("-h")) showHelp();
         else {
             SUMOtoTFAform.initOnce();
             sje = new SUMOjEdit();
@@ -2397,64 +2231,27 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             sje.errsrc = new DefaultErrorSource(sje.getClass().getName(), null);
             ErrorSource.registerErrorSource(sje.errsrc);
         }
-
         if (args != null && args.length > 1 && args[0].equals("-d")) {
             String contents = String.join("\n", FileUtil.readLines(args[1], false));
             sje.kif.filename = args[1];
             sje.checkErrorsBody(contents, args[1]);
-        } else if (args != null && args.length > 0 && args[0].equals("-q")) {
-            String contents = "(routeBetween ?X MenloParkCA MountainViewCA)";
-            System.out.println("E input: " + contents);
-            EProver eprover = kb.askEProver(contents, 30, 1);
-            TPTP3ProofProcessor tpp = new TPTP3ProofProcessor();
-            tpp.parseProofOutput(eprover.output, contents, kb, eprover.qlist);
-            //tpp.processAnswersFromProof(contents);
-            java.util.List<String> proofStepsStr = new ArrayList<>();
-            for (TPTPFormula ps : tpp.proof) {
-                proofStepsStr.add(ps.toString());
-            }
-            StringBuilder result = new StringBuilder();
-            if (tpp.bindingMap != null && !tpp.bindingMap.isEmpty()) {
-                result.append("Bindings: ").append(tpp.bindingMap);
-            } else if (tpp.bindings != null && !tpp.bindings.isEmpty()) {
-                result.append("Bindings: ").append(tpp.bindings);
-            }
-            if (tpp.proof == null || tpp.proof.isEmpty()) {
-                result.append(tpp.status);
-            } else {
-                result.append("\n\n").append(StringUtil.arrayListToCRLFString(proofStepsStr));
-            }
-            System.out.println("\nE result: " + result.toString());
-            System.out.println();
-        } else {
-            showHelp();
-        }
+        } else showHelp();
     }
 
     // ===== TPTP integration via external tptp4X =====
     private static final String PROP_TPTP4X_PATH = "sumojedit.tptp4x.path";
-    // Accepts either "file.tff:12:34: msg" or "Line 12 Char 34 ..." or "line 12, column 34: ..."
-    private static final java.util.regex.Pattern TPTP_LOC_COLON =
-        java.util.regex.Pattern.compile("(?:[^:]+:)?(\\d+):(\\d+):\\s*(.*)");
-    private static final java.util.regex.Pattern TPTP_LOC_LINECHAR =
-        java.util.regex.Pattern.compile("(?i)\\bLine\\s+(\\d+)\\s+(?:Char|Column|Col)\\s+(\\d+)\\s*[:,-]?\\s*(.*)");
-    private static final java.util.regex.Pattern TPTP_LOC_LINE_COMMA_COL =
-        java.util.regex.Pattern.compile("(?i)\\bline\\s+(\\d+)\\s*,\\s*(?:column|col)\\s*(\\d+)\\s*[:,-]?\\s*(.*)");
-
-    // Strip any tail we should not show inside the message (we append our own snippet)
+    private static final java.util.regex.Pattern TPTP_LOC_COLON = java.util.regex.Pattern.compile("(?:[^:]+:)?(\\d+):(\\d+):\\s*(.*)");
+    private static final java.util.regex.Pattern TPTP_LOC_LINECHAR = java.util.regex.Pattern.compile("(?i)\\bLine\\s+(\\d+)\\s+(?:Char|Column|Col)\\s+(\\d+)\\s*[:,-]?\\s*(.*)");
+    private static final java.util.regex.Pattern TPTP_LOC_LINE_COMMA_COL = java.util.regex.Pattern.compile("(?i)\\bline\\s+(\\d+)\\s*,\\s*(?:column|col)\\s*(\\d+)\\s*[:,-]?\\s*(.*)");
     private static String stripTailAfterPercentDash(String s) {
         if (s == null) return "";
-        // remove " — %something" or " %something" from the end of the message
         return s.replaceFirst("\\s+—\\s+%.*$", "").replaceFirst("\\s+%.*$", "").trim();
     }
-
     private static final java.util.Set<String> TPTP_EXTS = java.util.Set.of("tptp","p","fof","cnf","tff","thf");
-
     private String resolveTptp4xPath() {
         String p = jEdit.getProperty(PROP_TPTP4X_PATH);
         return (p != null && !p.isBlank()) ? p : System.getProperty("user.home") + "/bin/tptp4X";
     }
-
     // NEW: ensure tptp4X exists and is executable; surface a clear ErrorList message if not
     private boolean ensureTptp4x(String filePath) {
         String p = resolveTptp4xPath();
@@ -3168,14 +2965,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         final var view = jEdit.getActiveView();
         final var ta   = view.getTextArea();
         final var buf  = view.getBuffer();
-        final String filePath = (buf.getPath() != null && !buf.getPath().isBlank())
-            ? buf.getPath()
-            : buf.getName();  // unsaved buffers: fall back to buffer name (not a directory)
-
-        // ALWAYS check the entire buffer so tptp4X line numbers match jEdit’s
+        final String filePath = (buf.getPath() != null && !buf.getPath().isBlank()) ? buf.getPath() : buf.getName();
         final String text = ta.getText();
-
-        // NEW: preserve original extension for parser selection (tff/thf/fof/cnf/p/tptp)
         final String ext;
         {
             int dot = filePath.lastIndexOf('.');
@@ -3183,8 +2974,6 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                     ? filePath.substring(dot + 1).toLowerCase(java.util.Locale.ROOT)
                     : "tptp";
         }
-
-        // Refuse to run tptp4X on non-TPTP buffers
         if (!isTptpFile(filePath)) {
             addErrorsDirect(java.util.List.of(
                 new ErrRec(
@@ -3195,29 +2984,21 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                     "Current buffer is not TPTP: " + filePath
                 )
             ));
-            ThreadUtilities.runInDispatchThread(() ->
-                view.getDockableWindowManager().showDockableWindow("error-list")
-            );
+            ThreadUtilities.runInDispatchThread(() -> view.getDockableWindowManager().showDockableWindow("error-list"));
             return;
         }
-
-        // Write to temp and ask tptp4X for diagnostics
         startBackgroundThread(create(() -> {
             try {
-                    List<ErrRec> recs = TPTPFileChecker.check(text, filePath);
+                List<ErrRec> recs = TPTPFileChecker.check(text, filePath);
                 if (recs.isEmpty()) {
                     recs.add(new ErrRec(ErrorSource.WARNING, filePath, 0, 0, 1, "tptp4X: no issues reported"));
                 }
                 addErrorsDirect(recs);
-
-                ThreadUtilities.runInDispatchThread(() ->
-                    view.getDockableWindowManager().showDockableWindow("error-list"));
-            } catch (Throwable t) {
-                addErrorsDirect(java.util.List.of(
-                    new ErrRec(ErrorSource.ERROR, filePath, 0, 0, 1, "Check failed: " + t.getMessage())
-                ));
-                ThreadUtilities.runInDispatchThread(() ->
-                    view.getDockableWindowManager().showDockableWindow("error-list"));
+                ThreadUtilities.runInDispatchThread(() -> view.getDockableWindowManager().showDockableWindow("error-list"));
+            } 
+            catch (Throwable t) {
+                addErrorsDirect(java.util.List.of(new ErrRec(ErrorSource.ERROR, filePath, 0, 0, 1, "Check failed: " + t.getMessage())));
+                ThreadUtilities.runInDispatchThread(() -> view.getDockableWindowManager().showDockableWindow("error-list"));
             }
         }, () -> "Check TPTP"));
     }
@@ -3234,47 +3015,38 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 }
             }
             if (buf == null) return tptpLine;
-            
-            // Count non-comment lines up to the reported line
             int nonCommentCount = 0;
             int actualLine = 0;
-            
             for (int i = 0; i <= Math.min(tptpLine + 20, buf.getLineCount() - 1); i++) {
                 String lineText = buf.getLineText(i);
                 if (lineText == null) continue;
-                
                 String trimmed = lineText.trim();
-                // Count non-empty, non-comment lines
                 if (!trimmed.isEmpty() && !trimmed.startsWith("%")) {
                     nonCommentCount++;
-                    // If we've reached the tptp-reported line in non-comment lines
                     if (nonCommentCount == tptpLine + 1) {
                         actualLine = i;
                         break;
                     }
                 }
             }
-            
-            // If we found a match based on non-comment line counting, use it
             if (actualLine > 0 && actualLine != tptpLine) {
                 return actualLine;
             }
-        } catch (Exception e) {
+        } 
+        catch (Exception e) {
             Log.log(Log.DEBUG, this.getClass(), "Error adjusting for comments: " + e.getMessage());
         }
         return tptpLine;
     }
     
     private static int parseTptpFirstErrorLine(final String stderr) {
+
         if (stderr == null || stderr.isBlank()) return 0;
-        // Look for “line 123”, “at line 123”, “on line 123”, or “Line 123”
         final java.util.regex.Pattern p = java.util.regex.Pattern.compile(
                 "(?:^|\\b)(?:at\\s+line|on\\s+line|line|Line)\\s+(\\d+)(?:\\b|\\D)",
                 java.util.regex.Pattern.MULTILINE);
         final java.util.regex.Matcher m = p.matcher(stderr);
-        if (m.find()) {
-            try { return Integer.parseInt(m.group(1)); } catch (NumberFormatException ignore) {}
-        }
+        if (m.find()) try { return Integer.parseInt(m.group(1)); } catch (NumberFormatException ignore) {}
         return 0;
     }
 
@@ -3282,22 +3054,10 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     // Assumption: tptp4X pretty-printer writes only the HEAD (fully parsed prefix) before failing.
     private static int deriveErrorLineFromStdout(final String stdoutNormalized) {
         if (stdoutNormalized == null || stdoutNormalized.isBlank()) return 0;
-
-        // Split into physical lines, but ignore a trailing empty line that comes
-        // from a final newline character in the pretty-printer output.
         final String[] lines = stdoutNormalized.split("\\R", -1);
         int count = lines.length;
-
-        // If the last element is empty, it corresponds to a trailing newline → not a real line.
-        if (count > 0 && lines[count - 1].isEmpty()) {
-            count--;
-        }
-
-        if (count <= 0) {
-            return 0;
-        }
-
-        // The error is assumed to start on the first line *after* the last non-empty line.
+        if (count > 0 && lines[count - 1].isEmpty()) count--;
+        if (count <= 0) return 0;
         return count + 1;
     }
 }

@@ -59,7 +59,6 @@ import org.junit.runners.Suite;
     ConfigureATPCheckboxDependenciesTest.class,
     QueryResultFormattingTest.class,
     QueryExpLanguageFlagTest.class,
-    NullEngineHandlingTest.class,
 
     /** =============== Miscellaneous SUMOjEdit Helpers (Standalone) ================= */
 
