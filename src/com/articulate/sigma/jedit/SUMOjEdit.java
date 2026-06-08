@@ -1236,7 +1236,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             kif.filename = view.getBuffer().getPath();
 
         StringBuilder result = new StringBuilder();
-        for (Formula f : kif.formulasOrdered.values())
+        for (Formula f : kif.formulaMap.values())
             result.append(f);
         return result.toString();
     }
@@ -1350,7 +1350,6 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         kif.filename = "";
         kif.formulaMap.clear();
         kif.formulas.clear();
-        kif.formulasOrdered.clear();
         kif.termFrequency.clear();
         kif.terms.clear();
     }

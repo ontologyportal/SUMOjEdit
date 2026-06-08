@@ -20,7 +20,7 @@ import static org.junit.Assert.*;
  *
  *   - validates the editor contents via {@code checkEditorContents(...)}
  *   - runs the real {@code parseKif(...)} pipeline
- *   - pretty-prints the parsed formulas via {@code kif.formulasOrdered}
+ *   - pretty-prints the parsed formulas via {@code kif.formulaMap}
  *
  * We deliberately set {@code kif.filename} before invoking the method
  * so that the logic:
@@ -67,7 +67,7 @@ public class FormatSUOKIFAxiomsEndToEndTest {
         sje.kif.warningSet.clear();
         sje.kif.errorSet.clear();
         sje.kif.formulas.clear();
-        sje.kif.formulasOrdered.clear();
+        sje.kif.formulaMap.clear();
     }
 
     /**
@@ -76,7 +76,7 @@ public class FormatSUOKIFAxiomsEndToEndTest {
      *
      *   - return non-null, non-empty output
      *   - leave kif.warningSet and kif.errorSet empty
-     *   - populate kif.formulasOrdered with the expected formula count
+     *   - populate kif.formulaMap with the expected formula count
      */
     @Test
     public void testFormatValidUnformattedKifHasNoDiagnostics() throws Exception {
@@ -109,7 +109,7 @@ public class FormatSUOKIFAxiomsEndToEndTest {
 
         // We fed two axioms; we expect two formulas to be present.
         assertEquals("Expected two formulas after parsing formatted KIF",
-                2, sje.kif.formulasOrdered.size());
+                2, sje.kif.formulaMap.size());
     }
 
     /**
@@ -152,7 +152,7 @@ public class FormatSUOKIFAxiomsEndToEndTest {
             second.kif.warningSet.clear();
             second.kif.errorSet.clear();
             second.kif.formulas.clear();
-            second.kif.formulasOrdered.clear();
+            second.kif.formulaMap.clear();
 
             String twice = (String) m2.invoke(second, once);
 
