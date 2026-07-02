@@ -580,7 +580,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             long start = System.currentTimeMillis();
             kb.constituents.add(kif.filename);
             kb.reload();
-            kb = KBmanager.getMgr().getKB(KBmanager.getMgr().getPref("sumokbname"));
+            kb = KBmanager.getMgr().getKB(KBmanager.getMgr().getDefaultKbName());
             // File is now in the KB — clear the "not in KB" notification
             // so subsequent error checks won't suppress a stale warning.
             notifiedNotInKB.remove(kif.filename);
@@ -770,7 +770,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         if (v == null) return;
 
         // --- Load persisted defaults ---
-        String kbNameGuess = KBmanager.getMgr().getPref("sumokbname");
+        String kbNameGuess = KBmanager.getMgr().getDefaultKbName();
         String kbName = jEdit.getProperty("sumojedit.atp.kb", (kbNameGuess != null && !kbNameGuess.isBlank()) ? kbNameGuess : "SUMO");
         String flang  = jEdit.getProperty("sumojedit.atp.formalLanguage", "SUO-KIF");
         int    maxAns = Math.max(1, parseIntSafe(jEdit.getProperty("sumojedit.atp.maxAnswers","1"), 1));
