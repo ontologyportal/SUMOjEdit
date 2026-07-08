@@ -776,7 +776,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         String flang  = jEdit.getProperty("sumojedit.atp.formalLanguage", "SUO-KIF");
         int    maxAns = Math.max(1, parseIntSafe(jEdit.getProperty("sumojedit.atp.maxAnswers","1"), 1));
         int    tlim   = Math.max(1, parseIntSafe(jEdit.getProperty("sumojedit.atp.timeLimitSec","30"), 30));
-        String mode   = jEdit.getProperty("sumojedit.atp.mode","tptp");       // tptp|tff|thf
+        String mode   = jEdit.getProperty("sumojedit.atp.mode","fof");       // fof|tff|thf
         boolean cwa  = Boolean.parseBoolean(jEdit.getProperty("sumojedit.atp.closedWorld","false"));
         String eng    = jEdit.getProperty("sumojedit.atp.engine","vampire");  // LEO|EPROVER|VAMPIRE
         String vampM  = jEdit.getProperty("sumojedit.atp.vampire.mode","casc"); // casc|avatar|custom
@@ -823,7 +823,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
         // Modes: tptp/tff/thf + CWA
         c.gridx=0; c.gridy++; p.add(new javax.swing.JLabel("Mode:"), c);
-        final javax.swing.JRadioButton rTPTP = new javax.swing.JRadioButton("fof mode", "tptp".equalsIgnoreCase(mode));
+        final javax.swing.JRadioButton rTPTP = new javax.swing.JRadioButton("fof mode", "fof".equalsIgnoreCase(mode));
         final javax.swing.JRadioButton rTFF  = new javax.swing.JRadioButton("tff mode",  "tff".equalsIgnoreCase(mode));
         final javax.swing.JRadioButton rTHF  = new javax.swing.JRadioButton("thf mode",  "thf".equalsIgnoreCase(mode));
         javax.swing.ButtonGroup gMode = new javax.swing.ButtonGroup();
@@ -916,7 +916,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         jEdit.setProperty("sumojedit.atp.formalLanguage", String.valueOf(flangBox.getSelectedItem()));
         jEdit.setProperty("sumojedit.atp.maxAnswers", String.valueOf(((Number)maxAnsSp.getValue()).intValue()));
         jEdit.setProperty("sumojedit.atp.timeLimitSec", String.valueOf(((Number)tlimSp.getValue()).intValue()));
-        jEdit.setProperty("sumojedit.atp.mode", rTHF.isSelected() ? "thf" : (rTFF.isSelected() ? "tff" : "tptp"));
+        jEdit.setProperty("sumojedit.atp.mode", rTHF.isSelected() ? "thf" : (rTFF.isSelected() ? "tff" : "fof"));
         jEdit.setProperty("sumojedit.atp.closedWorld", String.valueOf(cbCWA.isSelected()));
         jEdit.setProperty("sumojedit.atp.engine", rLEO.isSelected() ? "LEO" : (rE.isSelected() ? "EPROVER" : "VAMPIRE"));
         jEdit.setProperty("sumojedit.atp.vampire.mode", rAvatar.isSelected() ? "avatar" : (rCustom.isSelected() ? "custom" : "casc"));
@@ -963,6 +963,11 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
     public ATPQuery createATPQueryFromJEdit(String query) {
         
+        String language = jEdit.getProperty("sumojedit.atp.mode", "fof");
+
+        if ("tptp".equalsIgnoreCase(language))
+            language = "fof";
+
         return new ATPQuery(
             kb,
             String.valueOf(new java.util.Random().nextInt(10000)),
@@ -970,7 +975,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             null,
             "CUSTOM",
             jEdit.getProperty("sumojedit.atp.engine", "vampire"),
-            jEdit.getProperty("sumojedit.atp.mode", "tptp"),
+            jEdit.getProperty("sumojedit.atp.mode", "fof"),
             jEdit.getProperty("sumojedit.atp.vampire.mode", "casc"),
             Boolean.parseBoolean(jEdit.getProperty("sumojedit.atp.closedWorld", "false")),
             Boolean.parseBoolean(jEdit.getProperty("sumojedit.atp.ModusPonens", "false")),
