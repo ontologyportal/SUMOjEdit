@@ -1,5 +1,6 @@
 package com.articulate.sigma.jedit;
 
+import com.articulate.sigma.editor.*;
 import errorlist.DefaultErrorSource;
 import errorlist.ErrorSource;
 import org.junit.After;
@@ -11,7 +12,6 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
 
-import com.articulate.sigma.ErrRec;
 import errorlist.DefaultErrorSource.DefaultError;
 
 import static org.junit.Assert.*;

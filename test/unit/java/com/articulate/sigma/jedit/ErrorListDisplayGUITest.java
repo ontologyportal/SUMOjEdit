@@ -1,6 +1,6 @@
 package com.articulate.sigma.jedit;
 
-import com.articulate.sigma.ErrRec;
+import com.articulate.sigma.editor.*;
 import com.articulate.sigma.jedit.SUMOjEdit;
 
 import errorlist.DefaultErrorSource;

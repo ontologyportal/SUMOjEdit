@@ -20,6 +20,7 @@ package com.articulate.sigma.jedit;
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 import com.articulate.sigma.*;
+import com.articulate.sigma.editor.*;
 import com.articulate.sigma.nlg.LanguageFormatter;
 import com.articulate.sigma.parsing.SuokifApp;
 import com.articulate.sigma.parsing.SuokifVisitor;

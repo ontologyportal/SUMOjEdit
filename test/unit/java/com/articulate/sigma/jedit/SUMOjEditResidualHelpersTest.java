@@ -1,5 +1,6 @@
 package com.articulate.sigma.jedit;
 
+import com.articulate.sigma.editor.*;
 import errorlist.DefaultErrorSource;
 import errorlist.ErrorSource;
 import org.junit.After;
