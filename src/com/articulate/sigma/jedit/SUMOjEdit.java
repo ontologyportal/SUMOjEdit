@@ -46,7 +46,6 @@ import java.util.regex.Pattern;
 
 //import javax.swing.Action;
 import javax.swing.MenuElement;
-import javax.swing.text.View;
 
 import org.gjt.sp.jedit.*;
 //import org.gjt.sp.jedit.gui.RolloverButton;
@@ -91,6 +90,13 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     private org.gjt.sp.jedit.View view;
     private long pluginStart;
     private boolean isInitialized;
+    
+    // ===== TPTP integration via external tptp4X =====
+    private static final String PROP_TPTP4X_PATH = "sumojedit.tptp4x.path";
+    private static final java.util.regex.Pattern TPTP_LOC_COLON = java.util.regex.Pattern.compile("(?:[^:]+:)?(\\d+):(\\d+):\\s*(.*)");
+    private static final java.util.regex.Pattern TPTP_LOC_LINECHAR = java.util.regex.Pattern.compile("(?i)\\bLine\\s+(\\d+)\\s+(?:Char|Column|Col)\\s+(\\d+)\\s*[:,-]?\\s*(.*)");
+    private static final java.util.regex.Pattern TPTP_LOC_LINE_COMMA_COL = java.util.regex.Pattern.compile("(?i)\\bline\\s+(\\d+)\\s*,\\s*(?:column|col)\\s*(\\d+)\\s*[:,-]?\\s*(.*)");
+    private static final java.util.Set<String> TPTP_EXTS = java.util.Set.of("tptp","p","fof","cnf","tff","thf");
 
     private static volatile java.util.concurrent.ThreadPoolExecutor CHECKER_POOL = new java.util.concurrent.ThreadPoolExecutor(
         getCheckerThreads(),
@@ -103,6 +109,19 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             return t;
         }
     );
+
+    /******************************************************************
+     * Default constructor
+     */
+    public SUMOjEdit() {
+
+        Log.init(false, 1);
+        Log.log(Log.MESSAGE, SUMOjEdit.this, ": SUMOKBtoTPTPKB.rapidParsing==" + SUMOKBtoTPTPKB.rapidParsing);
+        Log.log(Log.MESSAGE, SUMOjEdit.this, ": initializing");
+        kif = new KIF();
+        kif.filename = "";
+        isInitialized = false;
+    }
 
     private static String truncateWithEllipsis(String s, int max) {
         if (s == null) return "";
@@ -285,19 +304,6 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 return toStringSupplier.get();
             }
         };
-    }
-
-    /******************************************************************
-     * Default constructor
-     */
-    public SUMOjEdit() {
-
-        Log.init(false, 1);
-        Log.log(Log.MESSAGE, SUMOjEdit.this, ": SUMOKBtoTPTPKB.rapidParsing==" + SUMOKBtoTPTPKB.rapidParsing);
-        Log.log(Log.MESSAGE, SUMOjEdit.this, ": initializing");
-        kif = new KIF();
-        kif.filename = "";
-        isInitialized = false;
     }
 
     /******************************************************************
@@ -498,7 +504,9 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         }
     }
 
-    /* Props at: https://www.jedit.org/api/org/gjt/sp/jedit/msg/package-summary.html */
+    /******************************************************************
+     * Props at: https://www.jedit.org/api/org/gjt/sp/jedit/msg/package-summary.html
+     */
     @Override
     public void handleMessage(EBMessage msg) {
 
@@ -538,7 +546,10 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         if (autoComplete != null) autoComplete.dispose();
     }
 
-    /** Select per-View ErrorSource on ACTIVATE; clean up only when a View is CLOSED. */
+    
+    /******************************************************************
+     * Select per-View ErrorSource on ACTIVATE; clean up only when a View is CLOSED.
+     */
     private void viewUpdate(ViewUpdate vu) {
         if (vu == null) return;
         if (vu.getWhat() == ViewUpdate.ACTIVATED) {
@@ -562,7 +573,6 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         }
     }
 
-
     /******************************************************************
      * Ensure the specified View has a registered ErrorSource and select it without touching others.
      */
@@ -584,6 +594,9 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         return es;
     }
 
+
+    /******************************************************************
+     */
     @Override
     public void setFOF() {
 
@@ -593,6 +606,9 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         SUMOKBtoTPTPKB.setLang("fof");
     }
 
+
+    /******************************************************************
+     */
     @Override
     public void setTFF() {
 
@@ -602,6 +618,9 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         SUMOKBtoTPTPKB.setLang("tff");
     }
 
+
+    /******************************************************************
+     */
     @Override
     public void chooseVamp() {
 
@@ -610,6 +629,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         KBmanager.getMgr().prover = KBmanager.Prover.VAMPIRE;
     }
 
+    /******************************************************************
+     */
     @Override
     public void chooseE() {
 
@@ -618,6 +639,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         KBmanager.getMgr().prover = KBmanager.Prover.EPROVER;
     }
 
+    /******************************************************************
+     */
     @Override
     public void chooseLeo() {
         System.out.println("chooseLeo(): prover set to LEO");
@@ -759,6 +782,9 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         jEdit.setProperty("sumojedit.atp.proofView", vKIF.isSelected() ? "suokif" : (vALG.isSelected() ? "algonl" : (vLLM.isSelected() ? "llm" : "tptp")));
     }
 
+
+    /******************************************************************
+     */
     private static int parseIntSafe(String s, int def) {
         try { return Integer.parseInt(s.trim()); } catch (Throwable t) { return def; }
     }
@@ -785,17 +811,27 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         return result.toString();
     }
 
+    /******************************************************************
+     */
     public ATPQuery createATPQueryFromJEdit(String query) {
-        
-        LoggingUtils.log("jEdit ATP kb=" + kb.name);
-        LoggingUtils.log("jEdit ATP kb terms=" + kb.terms.size());
-        LoggingUtils.log("jEdit ATP constituents=" + kb.constituents);
-        LoggingUtils.log("jEdit ATP engine=" + jEdit.getProperty("sumojedit.atp.engine", "vampire"));
-        LoggingUtils.log("jEdit ATP mode=" + jEdit.getProperty("sumojedit.atp.mode", "fof"));
-        LoggingUtils.log("jEdit ATP vampireMode=" + jEdit.getProperty("sumojedit.atp.vampire.mode", "casc"));
+
         String language = jEdit.getProperty("sumojedit.atp.mode", "fof");
-        if ("tptp".equalsIgnoreCase(language))
-            language = "fof";
+        if ("tptp".equalsIgnoreCase(language)) language = "fof";
+        System.out.println("================ ATP QUERY ARGS ================");
+        System.out.println(kb.name);
+        System.out.println(String.valueOf(new java.util.Random().nextInt(10000)));
+        System.out.println(query);
+        System.out.println("null");
+        System.out.println("CUSTOM");
+        System.out.println(jEdit.getProperty("sumojedit.atp.engine", "vampire"));
+        System.out.println(language);
+        System.out.println(jEdit.getProperty("sumojedit.atp.vampire.mode", "casc"));
+        System.out.println(Boolean.parseBoolean(jEdit.getProperty("sumojedit.atp.closedWorld", "false")));
+        System.out.println(Boolean.parseBoolean(jEdit.getProperty("sumojedit.atp.ModusPonens", "false")));
+        System.out.println(Boolean.parseBoolean(jEdit.getProperty("sumojedit.atp.dropOnePremise", "false")));
+        System.out.println(false);
+        System.out.println(Math.max(1, parseIntSafe( jEdit.getProperty("sumojedit.atp.timeLimitSec", "30"), 30)));
+        System.out.println(Math.max(1, parseIntSafe(jEdit.getProperty("sumojedit.atp.maxAnswers", "1"), 1)));
         return new ATPQuery(
             kb,
             String.valueOf(new java.util.Random().nextInt(10000)),
@@ -827,12 +863,19 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             HTMLformatter.proofParaphraseInEnglish = showEn;
             LanguageFormatter.paraphraseLLM = useLLM;
             String outputText = null;
+            String tmp = "0";
             try {
                 TheoremProverController theoremProverController = new TheoremProverController();
-                ATPResult atpResult = theoremProverController.ask(createATPQueryFromJEdit(query));
+                tmp = "1";
+                ATPQuery q = createATPQueryFromJEdit(query);
+                tmp = "1.5";
+                ATPResult atpResult = theoremProverController.ask(q);
+                tmp = "2";
                 if (atpResult != null) {
                     TPTP3ProofProcessor tpp = atpResult.getParsedProofProcessor(kb, query);
+                    tmp = "3";
                     outputText = queryResultString(tpp);
+                    tmp = "4";
                     if (outputText == null || outputText.isBlank()) {
                         outputText =
                             atpResult.getSummary() + "\n\n" +
@@ -843,7 +886,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 }
             }
             catch (Throwable ex) {
-                outputText = "Query Failure! Check config.xml.";
+                outputText = "Query Failure! Check config.xml: " + tmp;
                 Log.log(Log.ERROR, this, ":queryExp(): exception while running ATP", ex);
             }
             final String finalOutputText = outputText;
@@ -1304,43 +1347,39 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         Log.log(Log.MESSAGE, this, ":showStats(): complete");
     }
 
+    private void clearErrorsForFile(
+            DefaultErrorSource source,
+            String filePath) {
+
+        ThreadUtilities.runInDispatchThreadAndWait(() -> {
+            if (source != null && filePath != null) {
+                source.removeFileErrors(filePath);
+            }
+        });
+    }
+
     @Override
     public void checkErrors() {
 
-        clearWarnAndErr();
         Log.log(Log.MESSAGE, this, ":checkErrors(): starting");
-
-        // Always target the active window (supports multiple jEdit Views)
-        view = jEdit.getActiveView();
-        this.errsrc = ensureErrorSource(view); // select/create for this window (do NOT unregister others)
-
-        // Freeze the file path NOW and keep using it for this run
-        final String filePath = view.getBuffer().getPath();
-
-        // TPTP-like files (thf/tff/fof/cnf/p/tptp): no checking (feature removed)
-        if (isTptpFile(filePath)) {
-            Log.log(Log.MESSAGE, this, ":checkErrors(): TPTP checking disabled; skipping");
+        final View targetView = jEdit.getActiveView();
+        if (targetView == null || targetView.getBuffer() == null) {
             return;
         }
-
-        // KIF path unchanged
-        if (StringUtil.emptyString(kif.filename)) {
-            kif.filename = filePath; // keep for status/logs, but don't use for error entries
-        }
-        final String contents = view.getTextArea().getText();
-
-        Runnable r = () -> {
-            checkErrorsBody(contents, filePath);
-            // Force ErrorList refresh on EDT
-            ThreadUtilities.runInDispatchThread(() -> {
-                if (view != null) {
-                    view.getDockableWindowManager().showDockableWindow("error-list");
-                }
-            });
-            Log.log(Log.MESSAGE, this, ":checkErrors(): complete");
-        };
-        Runnable rs = create(r, () -> "Checking errors");
-        startBackgroundThread(rs);
+        final DefaultErrorSource targetSource = ensureErrorSource(targetView);
+        final String filePath = targetView.getBuffer().getPath();
+        final String contents = targetView.getTextArea().getText();
+        clearErrorsForFile(targetSource, filePath);
+        startBackgroundThread(create(() -> {
+            List<ErrRec> errors = KifFileChecker.check(contents, filePath);
+            addErrorsDirect(errors);
+            Log.log(
+                    Log.MESSAGE,
+                    this,
+                    ":checkErrors(): found "
+                            + errors.size()
+                            + " diagnostics");
+        }, () -> "Checking errors"));
     }
 
     /******************************************************************
@@ -1411,123 +1450,42 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         addErrorsDirect(msgs);
     }
 
-    private void addErrorsDirect(java.util.List<ErrRec> errors) {
-        if (errors == null || errors.isEmpty()) return;
+    private void addErrorsDirect(List<ErrRec> errors) {
 
-        // Normalize order to avoid interleaved or “next-formula” confusion.
-        errors.sort(java.util.Comparator
-            .comparingInt((ErrRec e) -> e.line)
-            .thenComparingInt(e -> e.start));
-
-        errorlist.ErrorSource.unregisterErrorSource(errsrc);
-        try {
-            final org.gjt.sp.jedit.Buffer buf = (view != null ? view.getBuffer() : null);
-
+        if (errors == null || errors.isEmpty()) {
+            return;
+        }
+        errors.sort(Comparator
+                .comparingInt((ErrRec e) -> e.line)
+                .thenComparingInt(e -> e.start));
+        final DefaultErrorSource targetSource = errsrc;
+        final View targetView = view;
+        final Buffer targetBuffer = targetView == null ? null : targetView.getBuffer();
+        ThreadUtilities.runInDispatchThread(() -> {
             for (ErrRec e : errors) {
                 int line = Math.max(0, e.line);
-
-                // If message contains a formula, trust the buffer location over the reported line (DO THIS FIRST).
-                if (buf != null) {
-                    int resolved = resolveLineFromMessage(buf, e.msg);
-                    if (resolved >= 0) {
-                        line = resolved;
-                    }
-                    int maxLine = Math.max(0, buf.getLineCount() - 1);
-                    if (line > maxLine) line = maxLine;
+                int start = Math.max(0, e.start);
+                int end = Math.max(start + 1, e.end);
+                if (targetBuffer != null) {
+                    int maxLine = Math.max(0, targetBuffer.getLineCount() - 1);
+                    line = Math.min(line, maxLine);
+                    int lineLength = targetBuffer.getLineLength(line);
+                    start = Math.min(start, lineLength);
+                    end = Math.min(Math.max(start + 1, end), lineLength);
                 }
-
-                int startCol = Math.max(0, e.start);
-                int endCol = Math.max(startCol + 1, e.end);
-
-                // Clamp + improve highlight using actual line text
-                if (buf != null) {
-                    try {
-                        int lineLen = buf.getLineLength(line);
-                        int lineStart = buf.getLineStartOffset(line);
-                        String lineText = buf.getText(lineStart, lineLen);
-
-                        // A) Term-not-below-Entity: highlight the offender token
-                        if (e.msg != null && e.msg.startsWith("Term not below Entity:")) {
-                            String offender = extractNotBelowEntityOffender(e.msg);
-                            if (offender != null && !offender.isEmpty()) {
-                                int pos = findTermInLine(lineText, offender, 0);
-                                if (pos >= 0) {
-                                    startCol = pos;
-                                    endCol = pos + offender.length();
-                                }
-                            }
-                        }
-
-                        // B) FormulaPreprocessor "no type information..." errors:
-                        //    - anchor to the atom after "in formula:"
-                        //    - highlight the relation name (e.g., customer, catalogItem, offers)
-                        if (e.msg != null && e.msg.contains("in formula:")) {
-                            String atom = extractInFormulaAtom(e.msg);          // "(customer ?X ?Y)"
-                            String rel  = extractRelationNameFP(e.msg);         // "customer"
-
-                            // If we got a clean atom, try to jump to its real line (even if original 'line' is wrong)
-                            if (atom != null && !atom.isEmpty()) {
-                                int hit = findFormulaInBuffer(atom, new String[]{lineText});
-                                if (hit < 0) {
-                                    // search a small window around current line first (fast)
-                                    int from = Math.max(0, line - 25);
-                                    int to   = Math.min(buf.getLineCount() - 1, line + 25);
-                                    for (int i = from; i <= to; i++) {
-                                        if (buf.getLineText(i).contains(atom)) {
-                                            line = i;
-                                            lineText = buf.getLineText(i);
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-
-                            // If start/end are useless, highlight the relation token on that line.
-                            // Many of these arrive as (0,0) or (0,1), which otherwise highlights '('.
-                            if (rel != null && !rel.isEmpty() && (endCol <= startCol + 1)) {
-                                int pos = findTermInLine(lineText, rel, 0);
-                                if (pos >= 0) {
-                                    startCol = pos;
-                                    endCol = pos + rel.length();
-                                } else {
-                                    // fallback: highlight the whole "(relation ...)" atom if present
-                                    if (atom != null && !atom.isEmpty()) {
-                                        int aPos = lineText.indexOf(atom);
-                                        if (aPos >= 0) {
-                                            startCol = aPos;
-                                            endCol = aPos + Math.min(atom.length(), Math.max(1, lineText.length() - aPos));
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // Existing: If span is 1 char, expand to cover a token
-                        if (endCol <= startCol + 1) {
-                            int s = Math.min(startCol, Math.max(0, lineText.length()));
-                            int epos = s;
-                            while (epos < lineText.length()) {
-                                char ch = lineText.charAt(epos);
-                                if (!(Character.isLetterOrDigit(ch) || ch == '_' || ch == '-')) break;
-                                epos++;
-                            }
-                            endCol = Math.max(epos, startCol + 1);
-                        }
-
-                        // Keep within line bounds
-                        if (startCol > lineText.length()) startCol = Math.max(0, lineText.length() - 1);
-                        if (endCol > lineText.length())   endCol   = lineText.length();
-                    } catch (Throwable ignore) {
-                        // fall back
-                    }
-                }
-
-                String msgWithSnippet = appendSnippet(e.msg, e.file, line);
-                errsrc.addError(e.type, e.file, line, startCol, endCol, msgWithSnippet);
+                targetSource.addError(
+                        e.type,
+                        e.file,
+                        line,
+                        start,
+                        end,
+                        appendSnippet(e.msg, e.file, line));
             }
-        } finally {
-            errorlist.ErrorSource.registerErrorSource(errsrc);
-        }
+            if (targetView != null) {
+                targetView.getDockableWindowManager()
+                        .showDockableWindow("error-list");
+            }
+        });
     }
 
     /**
@@ -2051,16 +2009,11 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         } else showHelp();
     }
 
-    // ===== TPTP integration via external tptp4X =====
-    private static final String PROP_TPTP4X_PATH = "sumojedit.tptp4x.path";
-    private static final java.util.regex.Pattern TPTP_LOC_COLON = java.util.regex.Pattern.compile("(?:[^:]+:)?(\\d+):(\\d+):\\s*(.*)");
-    private static final java.util.regex.Pattern TPTP_LOC_LINECHAR = java.util.regex.Pattern.compile("(?i)\\bLine\\s+(\\d+)\\s+(?:Char|Column|Col)\\s+(\\d+)\\s*[:,-]?\\s*(.*)");
-    private static final java.util.regex.Pattern TPTP_LOC_LINE_COMMA_COL = java.util.regex.Pattern.compile("(?i)\\bline\\s+(\\d+)\\s*,\\s*(?:column|col)\\s*(\\d+)\\s*[:,-]?\\s*(.*)");
     private static String stripTailAfterPercentDash(String s) {
         if (s == null) return "";
         return s.replaceFirst("\\s+—\\s+%.*$", "").replaceFirst("\\s+%.*$", "").trim();
     }
-    private static final java.util.Set<String> TPTP_EXTS = java.util.Set.of("tptp","p","fof","cnf","tff","thf");
+
     private String resolveTptp4xPath() {
         String p = jEdit.getProperty(PROP_TPTP4X_PATH);
         return (p != null && !p.isBlank()) ? p : System.getProperty("user.home") + "/bin/tptp4X";
