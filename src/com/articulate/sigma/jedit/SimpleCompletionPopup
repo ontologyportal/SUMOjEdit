@@ -87,9 +87,7 @@ private static final class SimpleCompletionPopup {
 
     /******************************************************************
      */
-    private static void accept(final org.gjt.sp.jedit.textarea.JEditTextArea ta,
-                                final String prefix,
-                                final String chosen) {
+    private static void accept(final org.gjt.sp.jedit.textarea.JEditTextArea ta, final String prefix, final String chosen) {
         try {
             dismiss();
             if (chosen == null || chosen.length() <= prefix.length()) return;

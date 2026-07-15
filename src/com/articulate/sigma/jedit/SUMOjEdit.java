@@ -55,8 +55,7 @@ import org.gjt.sp.util.ThreadUtilities;
 
 import tptp_parser.*;
 
-/**
- * ***************************************************************
+/******************************************************************
  * A SUO-KIF editor and error checker
  */
 public class SUMOjEdit implements EBComponent, SUMOjEditActions {
@@ -70,27 +69,55 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         public int line = -1;
     }
 
-    private AutoCompleteManager autoComplete;
-    public static boolean log = true;
-    protected final KIF kif;
-    protected KB kb;
-    protected FormulaPreprocessor fp;
-    private final Map<org.gjt.sp.jedit.View, DefaultErrorSource> viewErrorSources = new WeakHashMap<>();
-    protected DefaultErrorSource errsrc; 
-    private final java.util.List<ErrRec> _pendingErrs = new java.util.ArrayList<>();
-    private volatile boolean _flushScheduled = false;
-    boolean testKeepPendingErrs = false;
-    private final Set<String> notifiedNotInKB = new HashSet<>();
-    private static final int SNIPPET_MAX = 100;
-    private org.gjt.sp.jedit.View view;
-    private long pluginStart;
-    private boolean isInitialized;
-    private static final String PROP_TPTP4X_PATH = "sumojedit.tptp4x.path";
-    private static final java.util.regex.Pattern TPTP_LOC_COLON = java.util.regex.Pattern.compile("(?:[^:]+:)?(\\d+):(\\d+):\\s*(.*)");
-    private static final java.util.regex.Pattern TPTP_LOC_LINECHAR = java.util.regex.Pattern.compile("(?i)\\bLine\\s+(\\d+)\\s+(?:Char|Column|Col)\\s+(\\d+)\\s*[:,-]?\\s*(.*)");
-    private static final java.util.regex.Pattern TPTP_LOC_LINE_COMMA_COL = java.util.regex.Pattern.compile("(?i)\\bline\\s+(\\d+)\\s*,\\s*(?:column|col)\\s*(\\d+)\\s*[:,-]?\\s*(.*)");
-    private static final java.util.Set<String> TPTP_EXTS = java.util.Set.of("tptp","p","fof","cnf","tff","thf");
+    /******************************************************************
+     */
+    private static final class ProcOut {
+        
+        final String out, err; final int code;
+        ProcOut(String o, String e, int c){ out=o; err=e; code=c; }
+    }
 
+    /**  */
+    private AutoCompleteManager autoComplete;
+    /**  */
+    public static boolean log = true;
+    /**  */
+    protected final KIF kif;
+    /**  */
+    protected KB kb;
+    /**  */
+    protected FormulaPreprocessor fp;
+    /**  */
+    private final Map<org.gjt.sp.jedit.View, DefaultErrorSource> viewErrorSources = new WeakHashMap<>();
+    /**  */
+    protected DefaultErrorSource errsrc; 
+    /**  */
+    private final java.util.List<ErrRec> _pendingErrs = new java.util.ArrayList<>();
+    /**  */
+    private volatile boolean _flushScheduled = false;
+    /**  */
+    boolean testKeepPendingErrs = false;
+    /**  */
+    private final Set<String> notifiedNotInKB = new HashSet<>();
+    /**  */
+    private static final int SNIPPET_MAX = 100;
+    /**  */
+    private org.gjt.sp.jedit.View view;
+    /**  */
+    private long pluginStart;
+    /**  */
+    private boolean isInitialized;
+    /**  */
+    private static final String PROP_TPTP4X_PATH = "sumojedit.tptp4x.path";
+    /**  */
+    private static final java.util.regex.Pattern TPTP_LOC_COLON = java.util.regex.Pattern.compile("(?:[^:]+:)?(\\d+):(\\d+):\\s*(.*)");
+    /**  */
+    private static final java.util.regex.Pattern TPTP_LOC_LINECHAR = java.util.regex.Pattern.compile("(?i)\\bLine\\s+(\\d+)\\s+(?:Char|Column|Col)\\s+(\\d+)\\s*[:,-]?\\s*(.*)");
+    /**  */
+    private static final java.util.regex.Pattern TPTP_LOC_LINE_COMMA_COL = java.util.regex.Pattern.compile("(?i)\\bline\\s+(\\d+)\\s*,\\s*(?:column|col)\\s*(\\d+)\\s*[:,-]?\\s*(.*)");
+    /**  */
+    private static final java.util.Set<String> TPTP_EXTS = java.util.Set.of("tptp","p","fof","cnf","tff","thf");
+    /**  */
     private static volatile java.util.concurrent.ThreadPoolExecutor CHECKER_POOL = new java.util.concurrent.ThreadPoolExecutor(
         getCheckerThreads(),
         getCheckerThreads(),
@@ -119,6 +146,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     /******************************************************************
      */
     private static String truncateWithEllipsis(String s, int max) {
+
         if (s == null) return "";
         s = s.strip();
         if (s.length() <= max) return s;
@@ -129,6 +157,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
      * Read a specific 0-based line from disk safely (non-EDT, no jEdit deps).
      */
     private static String safeSnippetFromFile(String filePath, int zeroBasedLine) {
+
         try {
             java.util.List<String> lines = java.nio.file.Files.readAllLines(java.nio.file.Paths.get(filePath));
             if (zeroBasedLine >= 0 && zeroBasedLine < lines.size()) {
@@ -196,7 +225,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 String offender = extractNotBelowEntityOffender(msg);
                 if (offender != null && !offender.isEmpty()) return "Term not below Entity: " + offender;
             }
-        } catch (Throwable ignore) {}
+        } 
+        catch (Throwable ignore) {}
         return msg;
     }
 
@@ -208,6 +238,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
      *  (subclass CashPayment Payment)    -> Payment
      */
     private static String extractNotBelowEntityOffender(String msg) {
+
         if (msg == null) return "";
         int p = msg.indexOf('(');
         if (p < 0) return "";
@@ -273,6 +304,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     /******************************************************************
      */
     private static int getKeepAliveSeconds() {
+
         try {
             String prop = org.gjt.sp.jedit.jEdit.getProperty("sumojedit.checker.keepAliveSec");
             if (prop == null || prop.isBlank()) prop = System.getProperty("sumojedit.checker.keepAliveSec", "30");
@@ -291,8 +323,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
      * @return a Runnable with an overridden toString
      */
     public static Runnable create(Runnable runnable, Supplier<String> toStringSupplier) {
-        return new Runnable() {
 
+        return new Runnable() {
             @Override
             public void run() {
                 runnable.run();
@@ -540,6 +572,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
      * Select per-View ErrorSource on ACTIVATE; clean up only when a View is CLOSED.
      */
     private void viewUpdate(ViewUpdate vu) {
+
         if (vu == null) return;
         if (vu.getWhat() == ViewUpdate.ACTIVATED) {
             final org.gjt.sp.jedit.View newView = vu.getView();
@@ -573,6 +606,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
      * Get or create an ErrorSource for a View. Never unregister others here. 
      */
     private DefaultErrorSource ensureErrorSource(final org.gjt.sp.jedit.View v) {
+        
         DefaultErrorSource es = viewErrorSources.get(v);
         if (es == null) {
             final String sourceName = getClass().getName() + "@" + Integer.toHexString(System.identityHashCode(v));
@@ -1270,6 +1304,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                             + " diagnostics");
         }, () -> "Checking errors"));
     }
+
     /******************************************************************
      * Utility method to parse KIF
      * @param contents the contents of a KIF file to parse
@@ -1320,6 +1355,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         addErrorsDirect(msgs);
     }
 
+    /******************************************************************
+     */ 
     private void addErrorsDirect(List<ErrRec> errors) {
 
         if (errors == null || errors.isEmpty()) return;
@@ -1356,8 +1393,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         });
     }
 
-    /**
-     * ***************************************************************
+    /******************************************************************
      * Backward-compatible shim: delegate to the 2-arg version.
      */
     protected void checkErrorsBody(String contents) {
@@ -1366,7 +1402,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         checkErrorsBody(contents, fn);
     }
 
-    /**
+    /******************************************************************
      * Find all occurrences of a term in the buffer and report errors for each
      */
         private void reportAllOccurrencesInBuffer(final String filePath, String term, String errorMessage, String[] bufferLines, int errorType) {
@@ -1394,7 +1430,6 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                     return local;
                 });
             }
-
             try {
                 java.util.List<java.util.concurrent.Future<java.util.List<ErrRec>>> futures = CHECKER_POOL.invokeAll(tasks);
                 java.util.List<ErrRec> merged = new java.util.ArrayList<>();
@@ -1419,7 +1454,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             }
         }
 
-    /**
+    /******************************************************************
      * Find a term in a line with word boundary checking
      */
     private int findTermInLine(String line, String term, int startPos) {
@@ -1434,14 +1469,14 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         return -1;
     }
 
-    /**
+    /******************************************************************
      * Check if a character can be part of a term
      */
     private boolean isTermChar(char c) {
         return Character.isLetterOrDigit(c) || c == '-' || c == '_';
     }
 
-    /**
+    /******************************************************************
      * Find where a formula appears in the buffer
      */
     private int findFormulaInBuffer(String formulaStr, String[] bufferLines) {
@@ -1471,7 +1506,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         return -1;
     }
 
-    /**
+    /******************************************************************
      * If an error message contains a formula "(...)", try to locate that formula in the buffer
      * and return the correct 0-based line number. Returns -1 if not resolvable.
      */
@@ -1502,6 +1537,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         return findFormulaInBuffer(candidate, bufferLines);
     }
 
+    /******************************************************************
+     */
     private static String extractInFormulaAtom(String msg) {
         if (msg == null) return "";
         int k = msg.indexOf("in formula:");
@@ -1515,8 +1552,10 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         return tail; 
     }
 
-    // Extract relation name from: "for arg N of relation REL in formula:"
+    /******************************************************************
+     */
     private static String extractRelationNameFP(String msg) {
+
         if (msg == null) return "";
         java.util.regex.Matcher m = java.util.regex.Pattern
             .compile("for\\s+arg\\s+\\d+\\s+of\\s+relation\\s+([^\\s]+)\\s+in\\s+formula\\s*:", java.util.regex.Pattern.CASE_INSENSITIVE)
@@ -1524,6 +1563,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         return m.find() ? m.group(1).trim() : "";
     }
 
+    /******************************************************************
+     */
     @Override
     public void toTPTP() {
 
@@ -1560,6 +1601,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         Log.log(Log.MESSAGE, this, ":toTPTP(): complete");
     }
 
+    /******************************************************************
+     */
     @Override
     public void fromTPTP() {
 
@@ -1615,6 +1658,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     /******************************************************************
      */
     private String resolveTptp4xPath() {
+
         String p = jEdit.getProperty(PROP_TPTP4X_PATH);
         return (p != null && !p.isBlank()) ? p : System.getProperty("user.home") + "/bin/tptp4X";
     }
@@ -1654,13 +1698,6 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         var tmp = java.nio.file.Files.createTempFile("sje-", suffix);
         java.nio.file.Files.writeString(tmp, text);
         return tmp;
-    }
-
-    /******************************************************************
-     */
-    private static final class ProcOut {
-        final String out, err; final int code;
-        ProcOut(String o, String e, int c){ out=o; err=e; code=c; }
     }
 
     /******************************************************************
@@ -1783,7 +1820,6 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             if (commaIndex > 0) formulaName = formulaName.substring(0, commaIndex);
             return formulaName.trim();
         }
-        
         return null;
     }
 
@@ -1800,10 +1836,9 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             java.util.List<String> lines = java.nio.file.Files.readAllLines(path);
             String searchPattern = "\\b(tff|thf|fof|cnf)\\s*\\(\\s*" + java.util.regex.Pattern.quote(formulaName) + "\\s*,";
             java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(searchPattern);
-            for (int i = 0; i < lines.size(); i++) {
-                if (pattern.matcher(lines.get(i)).find()) return i;
-            }
-        } catch (Exception e) {
+            for (int i = 0; i < lines.size(); i++) if (pattern.matcher(lines.get(i)).find()) return i;
+        } 
+        catch (Exception e) {
         }
         return -1;
     }
@@ -1811,6 +1846,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     /******************************************************************
      */
     private static boolean looksLikeRealError(String raw) {
+
         if (raw == null || raw.isBlank()) return false;
         String lowerRaw = raw.toLowerCase();
         return lowerRaw.matches(".*\\b(error|warning|failed|expected|unexpected|invalid|illegal|missing|unknown|syntax|parse|token)\\b.*") &&
@@ -1898,9 +1934,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         final var ta   = view.getTextArea();
         final var buf  = view.getBuffer();
         this.errsrc = ensureErrorSource(view);
-        final String filePath = (buf.getPath() != null && !buf.getPath().isBlank())
-            ? buf.getPath()
-            : buf.getName();
+        final String filePath = (buf.getPath() != null && !buf.getPath().isBlank()) ? buf.getPath() : buf.getName();
         final boolean isTptp = isTptpFile(filePath);
         final String selected = ta.getSelectedText();
         final String text     = (selected != null && !selected.isBlank()) ? selected : ta.getText();
@@ -2065,15 +2099,11 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
             catch (Throwable ignore) { /* keep original */ }
             if (inlineComment != null) {
                 String[] flines = formatted.split("\\R", -1);
-                if (flines.length == 0) {
-                    out.add(inlineComment + "\n");
-                } else {
+                if (flines.length == 0) out.add(inlineComment + "\n");
+                else {
                     int last = flines.length - 1;
-                    if (!flines[last].endsWith(" ") && !inlineComment.startsWith(" ")) {
-                        flines[last] = flines[last] + " " + inlineComment;
-                    } else {
-                        flines[last] = flines[last] + inlineComment;
-                    }
+                    if (!flines[last].endsWith(" ") && !inlineComment.startsWith(" ")) flines[last] = flines[last] + " " + inlineComment;
+                    else flines[last] = flines[last] + inlineComment;
                     formatted = String.join("\n", flines);
                 }
             }
@@ -2094,12 +2124,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 String commentTail = ln.substring(ic);
                 if (!codePart.trim().isEmpty()) {
                     clause.append(codePart).append('\n');
-                    if (codePart.trim().endsWith(".")) {
-                        flushClause.accept(commentTail);
-                    } 
-                    else {
-                        pendingInlineComment[0] = commentTail;
-                    }
+                    if (codePart.trim().endsWith(".")) flushClause.accept(commentTail);
+                    else pendingInlineComment[0] = commentTail;
                 } 
                 else {
                     flushClause.accept(pendingInlineComment[0]);
@@ -2108,9 +2134,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 continue;
             }
             clause.append(ln).append('\n');
-            if (trimmed.endsWith(".")) {
-                flushClause.accept(pendingInlineComment[0]);
-            }
+            if (trimmed.endsWith(".")) flushClause.accept(pendingInlineComment[0]);
         }
         if (clause.length() > 0) {
             String code = clause.toString();
@@ -2118,15 +2142,11 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 String[] fl = code.split("\\R", -1);
                 if (fl.length > 0) {
                     int last = fl.length - 1;
-                    if (!fl[last].endsWith(" ") && !pendingInlineComment[0].startsWith(" ")) {
-                        fl[last] = fl[last] + " " + pendingInlineComment[0];
-                    } else {
-                        fl[last] = fl[last] + pendingInlineComment[0];
-                    }
+                    if (!fl[last].endsWith(" ") && !pendingInlineComment[0].startsWith(" ")) fl[last] = fl[last] + " " + pendingInlineComment[0];
+                    else fl[last] = fl[last] + pendingInlineComment[0];
                     code = String.join("\n", fl);
-                } else {
-                    code = code + pendingInlineComment[0];
-                }
+                } 
+                else code = code + pendingInlineComment[0];
             }
             out.add(code);
             clause.setLength(0);
