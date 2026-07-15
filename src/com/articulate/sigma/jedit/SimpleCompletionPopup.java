@@ -1,15 +1,17 @@
 package com.articulate.sigma.jedit;
 
+import org.gjt.sp.util.ThreadUtilities;
+
 /******************************************************************
  * Minimal, reliable completion popup that reads tokens from the current buffer. 
  */
-private static final class SimpleCompletionPopup {
+public final class SimpleCompletionPopup {
 
     private static javax.swing.JPopupMenu active;
     
     /******************************************************************
      */
-    static void show(final org.gjt.sp.jedit.textarea.JEditTextArea ta) {
+    public static void show(final org.gjt.sp.jedit.textarea.JEditTextArea ta) {
         
         try {
             final int caret = ta.getCaretPosition();
@@ -87,7 +89,8 @@ private static final class SimpleCompletionPopup {
 
     /******************************************************************
      */
-    private static void accept(final org.gjt.sp.jedit.textarea.JEditTextArea ta, final String prefix, final String chosen) {
+    public static void accept(final org.gjt.sp.jedit.textarea.JEditTextArea ta, final String prefix, final String chosen) {
+
         try {
             dismiss();
             if (chosen == null || chosen.length() <= prefix.length()) return;
@@ -103,12 +106,14 @@ private static final class SimpleCompletionPopup {
                 buf.endCompoundEdit();
             }
             ta.setCaretPosition(caret + suffix.length());
-        } catch (Throwable ignore) {}
+        } 
+        catch (Throwable ignore) {}
     }
 
     /******************************************************************
      */
-    private static void dismiss() {
+    public static void dismiss() {
+
         try {
             if (active != null && active.isVisible()) active.setVisible(false);
         } 
@@ -119,7 +124,8 @@ private static final class SimpleCompletionPopup {
 
     /******************************************************************
      */
-    private static String currentPrefix(final org.gjt.sp.jedit.textarea.JEditTextArea ta) {
+    public static String currentPrefix(final org.gjt.sp.jedit.textarea.JEditTextArea ta) {
+
         final org.gjt.sp.jedit.buffer.JEditBuffer buf = ta.getBuffer();
         if (buf == null) return "";
         int caret = ta.getCaretPosition();
@@ -137,7 +143,7 @@ private static final class SimpleCompletionPopup {
 
     /******************************************************************
      */
-    private static void collectTokens(final org.gjt.sp.jedit.buffer.JEditBuffer buf, final java.util.Set<String> out, final int maxChars) {
+    public static void collectTokens(final org.gjt.sp.jedit.buffer.JEditBuffer buf, final java.util.Set<String> out, final int maxChars) {
 
         try {
             int len = Math.min(buf.getLength(), Math.max(64_000, maxChars));
@@ -147,12 +153,8 @@ private static final class SimpleCompletionPopup {
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < n; i++) {
                 char c = text.charAt(i);
-                if (Character.isLetterOrDigit(c) || c == '_' || c == '-') {
-                    sb.append(c);
-                } 
-                else {
-                    if (sb.length() > 0) { out.add(sb.toString()); sb.setLength(0); }
-                }
+                if (Character.isLetterOrDigit(c) || c == '_' || c == '-') sb.append(c);
+                else if (sb.length() > 0) { out.add(sb.toString()); sb.setLength(0); }
             }
             if (sb.length() > 0) out.add(sb.toString());
         } catch (Throwable ignore) {}

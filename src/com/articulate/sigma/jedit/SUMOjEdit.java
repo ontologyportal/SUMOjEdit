@@ -43,6 +43,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.swing.MenuElement;
 
+import org.gjt.sp.jedit.textarea.JEditTextArea;
 import org.gjt.sp.jedit.*;
 import org.gjt.sp.jedit.io.VFSManager;
 import org.gjt.sp.jedit.menu.EnhancedMenu;
@@ -606,7 +607,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
      * Get or create an ErrorSource for a View. Never unregister others here. 
      */
     private DefaultErrorSource ensureErrorSource(final org.gjt.sp.jedit.View v) {
-        
+
         DefaultErrorSource es = viewErrorSources.get(v);
         if (es == null) {
             final String sourceName = getClass().getName() + "@" + Integer.toHexString(System.identityHashCode(v));
@@ -1294,7 +1295,14 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         final String contents = targetView.getTextArea().getText();
         clearErrorsForFile(targetSource, filePath);
         startBackgroundThread(create(() -> {
-            List<ErrRec> errors = KifFileChecker.check(contents, filePath);
+            List<ErrRec> errors =
+                isTptpFile(filePath)
+                    ? TPTPFileChecker.check(
+                        contents,
+                        filePath)
+                    : KifFileChecker.check(
+                        contents,
+                        filePath);
             addErrorsDirect(errors);
             Log.log(
                     Log.MESSAGE,
@@ -1356,6 +1364,15 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     }
 
     /******************************************************************
+     * Backward-compatible shim: delegate to the 2-arg version.
+     */
+    protected void checkErrorsBody(String contents) {
+
+        String fn = (this.kif != null && !StringUtil.emptyString(this.kif.filename)) ? this.kif.filename : "untitled.kif";
+        checkErrorsBody(contents, fn);
+    }
+
+    /******************************************************************
      */ 
     private void addErrorsDirect(List<ErrRec> errors) {
 
@@ -1393,13 +1410,73 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         });
     }
 
-    /******************************************************************
-     * Backward-compatible shim: delegate to the 2-arg version.
-     */
-    protected void checkErrorsBody(String contents) {
+    private void addErrors(
+        List<ErrRec> errors,
+        DefaultErrorSource targetSource,
+        View targetView) {
 
-        String fn = (this.kif != null && !StringUtil.emptyString(this.kif.filename)) ? this.kif.filename : "untitled.kif";
-        checkErrorsBody(contents, fn);
+        if (errors == null || errors.isEmpty()) {
+            return;
+        }
+
+        List<ErrRec> sortedErrors =
+                new ArrayList<>(errors);
+
+        sortedErrors.sort(Comparator
+                .comparingInt((ErrRec error) -> error.line)
+                .thenComparingInt(error -> error.start));
+
+        final Buffer targetBuffer =
+                targetView == null
+                        ? null
+                        : targetView.getBuffer();
+
+        ThreadUtilities.runInDispatchThread(() -> {
+            for (ErrRec error : sortedErrors) {
+                int line = Math.max(0, error.line);
+                int start = Math.max(0, error.start);
+                int end = Math.max(start + 1, error.end);
+
+                if (targetBuffer != null
+                        && targetBuffer.getLineCount() > 0) {
+                    int lastLine =
+                            targetBuffer.getLineCount() - 1;
+
+                    line = Math.min(line, lastLine);
+
+                    int lineLength =
+                            targetBuffer.getLineLength(line);
+
+                    start = Math.min(start, lineLength);
+
+                    /*
+                    * ErrorList expects the range to be within the line.
+                    * Empty lines cannot have a nonzero end column.
+                    */
+                    end = lineLength == 0
+                            ? 0
+                            : Math.min(
+                                    Math.max(start + 1, end),
+                                    lineLength);
+                }
+
+                targetSource.addError(
+                        error.type,
+                        error.file,
+                        line,
+                        start,
+                        end,
+                        appendSnippet(
+                                error.msg,
+                                error.file,
+                                line));
+            }
+
+            if (targetView != null) {
+                targetView.getDockableWindowManager()
+                        .showDockableWindow("error-list");
+            }
+        });
     }
 
     /******************************************************************
@@ -1657,33 +1734,6 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
     /******************************************************************
      */
-    private String resolveTptp4xPath() {
-
-        String p = jEdit.getProperty(PROP_TPTP4X_PATH);
-        return (p != null && !p.isBlank()) ? p : System.getProperty("user.home") + "/bin/tptp4X";
-    }
-    
-    /******************************************************************
-     */
-    private boolean ensureTptp4x(String filePath) {
-        String p = resolveTptp4xPath();
-        File f = new File(p);
-        if (!f.exists() || !f.canExecute()) {
-            addErrorsDirect(java.util.List.of(
-                new ErrRec(ErrorSource.ERROR,
-                           (filePath != null ? filePath : "untitled"),
-                           0, 0, 1,
-                           "tptp4X not found or not executable at: " + p +
-                           " (set jEdit property 'sumojedit.tptp4x.path')")));
-            ThreadUtilities.runInDispatchThread(() ->
-                view.getDockableWindowManager().showDockableWindow("error-list"));
-            return false;
-        }
-        return true;
-    }
-
-    /******************************************************************
-     */
     private static boolean isTptpFile(String path) {
         if (path == null) return false;
         int i = path.lastIndexOf('.');
@@ -1694,570 +1744,155 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
     /******************************************************************
      */
-    private static java.nio.file.Path writeTemp(String text, String suffix) throws java.io.IOException {
-        var tmp = java.nio.file.Files.createTempFile("sje-", suffix);
-        java.nio.file.Files.writeString(tmp, text);
-        return tmp;
-    }
-
-    /******************************************************************
-     */
-    private ProcOut runTptp4x(java.nio.file.Path file, String... args) throws java.io.IOException, InterruptedException {
-
-        java.util.List<String> cmd = new java.util.ArrayList<>();
-        cmd.add(resolveTptp4xPath());
-        java.util.Collections.addAll(cmd, args);
-        cmd.add(file.toString());
-        ProcessBuilder pb = new ProcessBuilder(cmd);
-        Process pr = pb.start();
-        String out = new String(pr.getInputStream().readAllBytes());
-        String err = new String(pr.getErrorStream().readAllBytes());
-        int code = pr.waitFor();
-        return new ProcOut(out, err, code);
-    }
-
-    /******************************************************************
-     */
-    private java.util.List<ErrRec> parseTptpOutput(String filePath, String text, int errType) {
-
-        java.util.List<ErrRec> list = new java.util.ArrayList<>();
-        if (text == null || text.isBlank()) return list;
-        for (String ln : text.split("\\R")) {
-            if (ln == null) continue;
-            final String raw = ln.trim();
-            if (raw.isEmpty() || raw.startsWith("%")) continue;
-            java.util.regex.Matcher m;
-            m = TPTP_LOC_COLON.matcher(raw);
-            if (m.find()) {
-                int line = Math.max(0, Integer.parseInt(m.group(1)) - 1);
-                int col  = Math.max(0, Integer.parseInt(m.group(2)) - 1);
-                String msg = stripTailAfterPercentDash(m.group(3));
-                String formulaName = extractContinuingWithFormula(msg);
-                if (formulaName != null) {
-                    int correctLine = findFormulaLine(filePath, formulaName);
-                    if (correctLine >= 0) line = correctLine; 
-                }
-                msg = cleanErrorMessage(msg);
-                if (msg.isEmpty()) msg = "tptp4X";
-                list.add(new ErrRec(errType, filePath, line, col, col + 1, msg));
-                continue;
-            }
-            m = TPTP_LOC_LINECHAR.matcher(raw);
-            if (m.find()) {
-                int line = Math.max(0, Integer.parseInt(m.group(1)) - 1);
-                int col  = Math.max(0, Integer.parseInt(m.group(2)) - 1);
-                String msg = stripTailAfterPercentDash(m.group(3));
-                String formulaName = extractContinuingWithFormula(msg);
-                if (formulaName != null) {
-                    int correctLine = findFormulaLine(filePath, formulaName);
-                    if (correctLine >= 0) line = correctLine;
-                }
-                msg = cleanErrorMessage(msg);
-                if (msg.isEmpty()) msg = raw;
-                list.add(new ErrRec(errType, filePath, line, col, col + 1, msg));
-                continue;
-            }
-            m = TPTP_LOC_LINE_COMMA_COL.matcher(raw);
-            if (m.find()) {
-                int line = Math.max(0, Integer.parseInt(m.group(1)) - 1);
-                int col  = Math.max(0, Integer.parseInt(m.group(2)) - 1);
-                String msg = stripTailAfterPercentDash(m.group(3));
-                String formulaName = extractContinuingWithFormula(msg);
-                if (formulaName != null) {
-                    int correctLine = findFormulaLine(filePath, formulaName);
-                    if (correctLine >= 0) {
-                        line = correctLine;
-                    }
-                }
-                msg = cleanErrorMessage(msg);
-                if (msg.isEmpty()) msg = raw;
-                list.add(new ErrRec(errType, filePath, line, col, col + 1, msg));
-                continue;
-            }
-            if (looksLikeRealError(raw)) list.add(new ErrRec(errType, filePath, 0, 0, 1, stripTailAfterPercentDash(raw)));
-        }
-        list.sort(java.util.Comparator
-            .comparingInt((ErrRec e) -> e.line)
-            .thenComparingInt(e -> e.start)
-            .thenComparing(e -> e.msg));
-        return list;
-    }
-
-    /******************************************************************
-     * Clean up error messages by removing concatenated formula information
-     */
-    private static String cleanErrorMessage(String msg) {
-
-        if (msg == null) return "";
-        int dashIndex = msg.indexOf(" — ");
-        if (dashIndex > 0) msg = msg.substring(0, dashIndex).trim();
-        if (dashIndex < 0) {
-            int regularDashIndex = msg.indexOf(" - tff(");
-            if (regularDashIndex < 0) regularDashIndex = msg.indexOf(" - thf(");
-            if (regularDashIndex < 0) regularDashIndex = msg.indexOf(" - fof(");
-            if (regularDashIndex < 0) regularDashIndex = msg.indexOf(" - cnf(");
-            if (regularDashIndex > 0) msg = msg.substring(0, regularDashIndex).trim();
-        }
-        msg = msg.replaceFirst("\\s+tff\\s*\\([^)]*\\)?\\.?\\s*$", "");
-        msg = msg.replaceFirst("\\s+thf\\s*\\([^)]*\\)?\\.?\\s*$", "");
-        msg = msg.replaceFirst("\\s+fof\\s*\\([^)]*\\)?\\.?\\s*$", "");
-        msg = msg.replaceFirst("\\s+cnf\\s*\\([^)]*\\)?\\.?\\s*$", "");
-        return msg.trim();
-    }
-
-    /******************************************************************
-     * Extract the formula name from "continuing with 'formula_name'" pattern
-     * Returns null if pattern not found
-     */
-    private static String extractContinuingWithFormula(String msg) {
-
-        if (msg == null) return null;
-        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("continuing\\s+with\\s+['\"]([^'\"]+)['\"]");
-        java.util.regex.Matcher matcher = pattern.matcher(msg);
-        if (matcher.find()) {
-            String formulaName = matcher.group(1);
-            int commaIndex = formulaName.indexOf(',');
-            if (commaIndex > 0) formulaName = formulaName.substring(0, commaIndex);
-            return formulaName.trim();
-        }
-        return null;
-    }
-
-    /******************************************************************
-     * Find the line number where a formula with the given name is declared
-     * Returns -1 if not found
-     */
-    private int findFormulaLine(String filePath, String formulaName) {
-
-        if (formulaName == null || formulaName.isEmpty()) return -1;
-        try {
-            java.nio.file.Path path = java.nio.file.Paths.get(filePath);
-            if (!java.nio.file.Files.exists(path)) return -1;
-            java.util.List<String> lines = java.nio.file.Files.readAllLines(path);
-            String searchPattern = "\\b(tff|thf|fof|cnf)\\s*\\(\\s*" + java.util.regex.Pattern.quote(formulaName) + "\\s*,";
-            java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(searchPattern);
-            for (int i = 0; i < lines.size(); i++) if (pattern.matcher(lines.get(i)).find()) return i;
-        } 
-        catch (Exception e) {
-        }
-        return -1;
-    }
-
-    /******************************************************************
-     */
-    private static boolean looksLikeRealError(String raw) {
-
-        if (raw == null || raw.isBlank()) return false;
-        String lowerRaw = raw.toLowerCase();
-        return lowerRaw.matches(".*\\b(error|warning|failed|expected|unexpected|invalid|illegal|missing|unknown|syntax|parse|token)\\b.*") &&
-            !lowerRaw.matches(".*\\b(agent).*\\.kif$"); // Exclude pattern like "agent...TQM8.kif"
-    }
-    
-    /******************************************************************
-     */
-    private int adjustErrorLine(String filePath, int reportedLine, String msg, String fullError) {
-
-        try {
-            int adjustedForComments = adjustForCommentLines(filePath, reportedLine);
-            if (adjustedForComments != reportedLine) {
-                reportedLine = adjustedForComments;
-            }
-            org.gjt.sp.jedit.Buffer buf = null;
-            for (org.gjt.sp.jedit.Buffer b : jEdit.getBuffers()) {
-                if (b.getPath() != null && b.getPath().equals(filePath)) {
-                    buf = b;
-                    break;
-                }
-            }
-            if (buf == null) return reportedLine;
-            java.util.regex.Pattern tokenPattern = java.util.regex.Pattern.compile(
-                "Token\\s+'([^']+)'\\s+continuing\\s+with\\s+'([^']+)'");
-            java.util.regex.Matcher tokenMatcher = tokenPattern.matcher(fullError);
-            if (tokenMatcher.find()) {
-                String unexpectedToken = tokenMatcher.group(1);
-                String continuingWith = tokenMatcher.group(2);
-                for (int i = reportedLine; i >= Math.max(0, reportedLine - 10); i--) {
-                    String lineText = buf.getLineText(i);
-                    if (lineText == null) continue;
-                    if (lineText.trim().startsWith("%")) continue;
-                    int openCount = 0;
-                    int closeCount = 0;
-                    boolean inString = false;
-                    for (char c : lineText.toCharArray()) {
-                        if (c == '\'' && !inString) inString = true;
-                        else if (c == '\'' && inString) inString = false;
-                        else if (!inString) {
-                            if (c == '(' || c == '[') openCount++;
-                            if (c == ')' || c == ']') closeCount++;
-                        }
-                    }
-                    if (openCount > closeCount) return i;
-                }
-            }
-            if (fullError.contains("expected punctuation with value ')'") || 
-                fullError.contains("expected punctuation with value ']'") ||
-                fullError.contains("expected ')'") || 
-                fullError.contains("expected ']'")) {
-                int searchStart = Math.min(reportedLine, buf.getLineCount() - 1);
-                for (int i = searchStart; i >= Math.max(0, searchStart - 15); i--) {
-                    String lineText = buf.getLineText(i);
-                    if (lineText == null) continue;
-                    if (lineText.trim().startsWith("%")) continue;
-                    int depth = 0;
-                    boolean inString = false;
-                    for (char c : lineText.toCharArray()) {
-                        if (c == '\'' && !inString) inString = true;
-                        else if (c == '\'' && inString) inString = false;
-                        else if (!inString) {
-                            if (c == '(' || c == '[') depth++;
-                            if (c == ')' || c == ']') depth--;
-                        }
-                    }
-                    if (depth > 0) return i;        
-                    if (lineText.trim().endsWith(".") && i < searchStart) break;
-                }
-            }    
-        } 
-        catch (Exception e) {
-            Log.log(Log.DEBUG, this.getClass(), "Error adjusting line number: " + e.getMessage());
-        }
-        return reportedLine;
-    }
-
-    /******************************************************************
-     */
     @Override
     public void tptpFormatBuffer() {
 
-        clearWarnAndErr();
-        final var view = jEdit.getActiveView();
-        final var ta   = view.getTextArea();
-        final var buf  = view.getBuffer();
-        this.errsrc = ensureErrorSource(view);
-        final String filePath = (buf.getPath() != null && !buf.getPath().isBlank()) ? buf.getPath() : buf.getName();
-        final boolean isTptp = isTptpFile(filePath);
-        final String selected = ta.getSelectedText();
-        final String text     = (selected != null && !selected.isBlank()) ? selected : ta.getText();
-        final String fullText = ta.getText();
-        final boolean replaceWhole = (selected == null || selected.isBlank()) && isTptp;
-        final boolean hasSelection = (selected != null && !selected.isBlank());
-        if (isTptp && !ensureTptp4x(filePath)) {
+        final View targetView = jEdit.getActiveView();
+
+        if (targetView == null || targetView.getBuffer() == null) {
             return;
         }
+
+        final Buffer targetBuffer = targetView.getBuffer();
+        final DefaultErrorSource targetSource =
+                ensureErrorSource(targetView);
+
+        final String bufferPath = targetBuffer.getPath();
+        final String filePath =
+                bufferPath != null && !bufferPath.isBlank()
+                        ? bufferPath
+                        : targetBuffer.getName();
+
         if (!isTptpFile(filePath)) {
-            addErrorsDirect(java.util.List.of(
-                new ErrRec(
-                    ErrorSource.WARNING,
-                    filePath,
-                    0, 0, 1,
-                    "TPTP formatting/checking is only for .tptp/.p/.fof/.cnf/.tff/.thf files. " +
-                    "Current buffer is not TPTP: " + filePath
-                )
-            ));
-            ThreadUtilities.runInDispatchThread(() ->
-                view.getDockableWindowManager().showDockableWindow("error-list")
-            );
+            addErrors(
+                    List.of(new ErrRec(
+                            ErrorSource.WARNING,
+                            filePath,
+                            0,
+                            0,
+                            1,
+                            "TPTP formatting is only available for "
+                                    + ".tptp, .p, .fof, .cnf, .tff, "
+                                    + "and .thf files.")),
+                    targetSource,
+                    targetView);
             return;
         }
-        final String ext;
-        {
-            int dot = filePath.lastIndexOf('.');
-            ext = (dot >= 0 && dot < filePath.length() - 1) ? filePath.substring(dot + 1).toLowerCase(java.util.Locale.ROOT) : "tptp";
+        final JEditTextArea textArea = targetView.getTextArea();
+        final Selection selection = textArea.getSelectionCount() > 0 ? textArea.getSelection(0) : null;
+        final int selectionStart = selection == null ? textArea.getCaretPosition() : selection.getStart();
+        final int selectionEnd = selection == null ? selectionStart : selection.getEnd();
+        final boolean hasSelection = selection != null;
+        final String textToFormat = hasSelection ? targetView.getTextArea().getSelectedText() : targetView.getTextArea().getText();
+        if (textToFormat == null || textToFormat.isBlank()) {
+            addErrors(List.of(new ErrRec(
+                ErrorSource.WARNING,
+                filePath,
+                0,
+                0,
+                1,
+                "There is no TPTP text to format.")),
+                targetSource,
+                targetView);
+            return;
         }
+        clearErrorsForFile(targetSource, filePath);
         startBackgroundThread(create(() -> {
             try {
-                var tmp = writeTemp(text, "." + ext);
-                var po  = runTptp4x(tmp, "-f","tptp", "-u","human"); // pretty, human-indented
-                var tmpFull = writeTemp(fullText, "." + ext);
-                ProcOut poFull = runTptp4x(tmpFull, "-f","tptp", "-u","human"); // full-buffer for diagnostics
-                final String original = text.replace("\r\n","\n").replace("\r","\n");
-                final boolean hasOut  = (po.out != null && !po.out.isBlank());
-                final String diag     = (po.err == null || po.err.isBlank()) ? po.out : po.err;
-                final String outNormalized = (po.out == null ? "" : po.out.replace("\r\n","\n").replace("\r","\n"));
-                final boolean hasOutNorm = !outNormalized.isBlank();
-                final boolean toolErrored = (po.code != 0);
-                final String stderrText = (po.err == null ? "" : po.err);
-                final int origLines = (int) java.util.Arrays.stream(original.split("\\R",-1)).filter(s -> !s.trim().isEmpty()).count();
-                final int fmtLines  = (int) java.util.Arrays.stream(outNormalized.split("\\R",-1)).filter(s -> !s.trim().isEmpty()).count();
-                final boolean looksTruncated = hasOutNorm && ((fmtLines + 1 < origLines) || (outNormalized.length() < (original.length() * 0.60)));
-                String toApply;
-                if (!toolErrored && !looksTruncated && hasOutNorm) toApply = outNormalized;
-                else {
-                    int errLine = parseTptpFirstErrorLine(stderrText);
-                    if (errLine <= 0 && hasOutNorm) errLine = deriveErrorLineFromStdout(outNormalized);
-                    if (errLine > 0) {
-                        final String[] lines = original.split("\\R", -1); // keep empty trailing segments
-                        final int idxErr = Math.max(0, Math.min(errLine - 1, lines.length - 1));
-                        final String head = (idxErr > 0)
-                                ? String.join("\n", java.util.Arrays.copyOfRange(lines, 0, idxErr))
-                                : "";
-                        final String errOnly = lines[idxErr];
-                        final String tail = (idxErr + 1 < lines.length)
-                                ? String.join("\n", java.util.Arrays.copyOfRange(lines, idxErr + 1, lines.length))
-                                : "";
-                        String headFmt = head;
-                        String tailFmt = tail;
-                        try { if (!head.isBlank()) headFmt = formatTptpPreserveCommentsClauseSafe(head, ext); } catch (Throwable ignore) {}
-                        try { if (!tail.isBlank()) tailFmt = formatTptpPreserveCommentsClauseSafe(tail, ext); } catch (Throwable ignore) {}
-                        if (!headFmt.isBlank() && !tailFmt.isBlank()) toApply = headFmt + "\n" + errOnly + "\n" + tailFmt;
-                        else if (!headFmt.isBlank()) toApply = headFmt + "\n" + errOnly + (tail.isBlank() ? "" : "\n" + tailFmt);
-                        else if (!tailFmt.isBlank()) toApply = (head.isBlank() ? "" : headFmt + "\n") + errOnly + "\n" + tailFmt;
-                        else toApply = original;
-                    } 
-                    else {
-                        String safe = original;
-                        try { safe = formatTptpPreserveCommentsClauseSafe(original, ext); } catch (Throwable ignore) {}
-                        toApply = safe;
-                    }
+                String formatted =
+                    TPTPFileChecker.formatTptpText(textToFormat, filePath);
+                if (formatted == null) {
+                    addErrors(List.of(new ErrRec(ErrorSource.ERROR, filePath, 0, 0, 1, "TPTP formatting returned no output.")), targetSource, targetView);
+                    return;
                 }
-                final String finalFormatted = toApply;
                 ThreadUtilities.runInDispatchThread(() -> {
-                    if (replaceWhole) ta.setText(finalFormatted);
-                    else if (selected != null && !selected.isBlank()) ta.setSelectedText(finalFormatted);
-                    else { jEdit.newFile(view); view.getTextArea().setText(finalFormatted); }
-                });
-                final String stderrTextDiag = (poFull.err == null ? "" : poFull.err);
-                final String stdoutTextDiag = (poFull.out == null ? "" : poFull.out);
-                final boolean toolErroredDiag = (poFull.code != 0);
-                final int sev = toolErroredDiag ? ErrorSource.ERROR : ErrorSource.WARNING;
-                java.util.List<ErrRec> diags = new java.util.ArrayList<>();
-                diags.addAll(parseTptpOutput(filePath, stderrTextDiag, sev));
-                diags.addAll(parseTptpOutput(filePath, stdoutTextDiag, ErrorSource.WARNING));
-                if (diags.isEmpty()) {
-                    final String outNormDiag = (stdoutTextDiag == null ? "" : stdoutTextDiag.replace("\r\n","\n").replace("\r","\n"));
-                    final boolean hasOutNormDiag = !outNormDiag.isBlank();
-                    int syntheticErrLine = 0;
-                    int errLineFromStdErr = parseTptpFirstErrorLine(stderrTextDiag); // 1-based; 0 if unknown
-                    if (errLineFromStdErr > 0) syntheticErrLine = errLineFromStdErr;
-                    else if (hasOutNormDiag) syntheticErrLine = deriveErrorLineFromStdout(outNormDiag);
-                    if (syntheticErrLine > 0) {
-                        int line0 = Math.max(0, syntheticErrLine - 1); // FULL-buffer 0-based line
-                        diags.add(new ErrRec(
-                            toolErroredDiag ? ErrorSource.ERROR : ErrorSource.WARNING,
-                            filePath,
-                            line0, 0, 1,
-                            "tptp4X: clause could not be parsed; formatter skipped this clause"
-                        ));
+                    if (hasSelection) {
+                        targetBuffer.remove(selectionStart, selectionEnd - selectionStart);
+                        targetBuffer.insert(selectionStart, formatted);
                     }
+                    else targetView.getTextArea().setText(formatted);
+                });
+                final String textToCheck;
+                if (hasSelection) {
+                    String original = targetView.getTextArea().getText();
+                    textToCheck = original.substring(0, selectionStart) + formatted + original.substring(selectionEnd);
                 }
-                if (!diags.isEmpty()) {
-                    addErrorsDirect(diags);
-                    ThreadUtilities.runInDispatchThread(() -> view.getDockableWindowManager().showDockableWindow("error-list"));
-                }
-            } catch (Throwable t) {
-                addErrorsDirect(java.util.List.of(new ErrRec(ErrorSource.ERROR, filePath, 0, 0, 1, "Format failed: " + t.getMessage())));
-                ThreadUtilities.runInDispatchThread(() ->
-                    view.getDockableWindowManager().showDockableWindow("error-list"));
+                else textToCheck = formatted;
+                List<ErrRec> diagnostics = TPTPFileChecker.check(textToCheck, filePath);
+                addErrors(diagnostics, targetSource, targetView);
+                Log.log(Log.MESSAGE, this, ":tptpFormatBuffer(): found " + diagnostics.size() + " diagnostics");
             }
-        }, () -> "Format TPTP"));
+            catch (Throwable throwable) {
+                Log.log(Log.ERROR, this, ":tptpFormatBuffer()", throwable);
+                addErrors(List.of(new ErrRec(ErrorSource.ERROR, filePath, 0, 0, 1, "TPTP formatting failed: " + errorMessage(throwable))), targetSource, targetView);
+            }
+        }, () -> "Formatting TPTP"));
     }
 
-    /******************************************************************
-     * Robust formatting that preserves all '%' comments exactly:
-     *  - Lines starting with '%' are copied verbatim.
-     *  - Inline comments (code ... '%' comment) are detected (outside quotes),
-     *    the code part is formatted, and the original '%' tail is reattached
-     *    to the LAST line of that formatted clause.
-     *  - Only complete clauses (ending with '.') are sent to tptp4X.
-     */
-    private String formatTptpPreserveCommentsClauseSafe(String text, String ext) {
+    private static String errorMessage(Throwable throwable) {
 
-        final String[] lines = text.split("\\R", -1);
-        final java.util.List<String> out = new java.util.ArrayList<>();
-        final StringBuilder clause = new StringBuilder();
-        final String[] pendingInlineComment = new String[1]; // null or original "% ..."
-        java.util.function.IntUnaryOperator firstCommentPos = (/*unused*/ignored) -> { throw new UnsupportedOperationException(); };
-        firstCommentPos = (ignored) -> -1; 
-        java.util.function.Function<String,Integer> firstPctOutsideQuotes = (line) -> {
-            boolean inStr = false;
-            for (int i = 0; i < line.length(); i++) {
-                char c = line.charAt(i);
-                if (c == '\'') {
-                    if (inStr) {
-                        if (i + 1 < line.length() && line.charAt(i + 1) == '\'')  i++; 
-                        else inStr= false;
-                    } 
-                    else inStr = true;
-                } 
-                else if (c == '%' && !inStr) return i;
-            }
-            return -1;
-        };
-        java.util.function.Consumer<String> flushClause = (inlineComment) -> {
-            if (clause.length() == 0) {
-                if (inlineComment != null) out.add(inlineComment + "\n");
-                pendingInlineComment[0] = null;
-                return;
-            }
-            final String code = clause.toString();
-            String formatted = code;
-            try {
-                var tmp = writeTemp(code, "." + ext);
-                var po  = runTptp4x(tmp, "-f","tptp", "-u","human");
-                if (po.code == 0 && !po.out.isBlank()) formatted = po.out.replace("\r\n","\n").replace("\r","\n");
-            } 
-            catch (Throwable ignore) { /* keep original */ }
-            if (inlineComment != null) {
-                String[] flines = formatted.split("\\R", -1);
-                if (flines.length == 0) out.add(inlineComment + "\n");
-                else {
-                    int last = flines.length - 1;
-                    if (!flines[last].endsWith(" ") && !inlineComment.startsWith(" ")) flines[last] = flines[last] + " " + inlineComment;
-                    else flines[last] = flines[last] + inlineComment;
-                    formatted = String.join("\n", flines);
-                }
-            }
-            out.add(formatted);
-            clause.setLength(0);
-            pendingInlineComment[0] = null;
-        };
-        for (String ln : lines) {
-            final String trimmed = ln.trim();
-            if (trimmed.isEmpty() || trimmed.startsWith("%")) {
-                flushClause.accept(pendingInlineComment[0]); 
-                out.add(ln + (ln.endsWith("\n") ? "" : "\n"));
-                continue;
-            }
-            final int ic = firstPctOutsideQuotes.apply(ln);
-            if (ic >= 0) {
-                String codePart = ln.substring(0, ic);
-                String commentTail = ln.substring(ic);
-                if (!codePart.trim().isEmpty()) {
-                    clause.append(codePart).append('\n');
-                    if (codePart.trim().endsWith(".")) flushClause.accept(commentTail);
-                    else pendingInlineComment[0] = commentTail;
-                } 
-                else {
-                    flushClause.accept(pendingInlineComment[0]);
-                    out.add(ln + (ln.endsWith("\n") ? "" : "\n"));
-                }
-                continue;
-            }
-            clause.append(ln).append('\n');
-            if (trimmed.endsWith(".")) flushClause.accept(pendingInlineComment[0]);
-        }
-        if (clause.length() > 0) {
-            String code = clause.toString();
-            if (pendingInlineComment[0] != null) {
-                String[] fl = code.split("\\R", -1);
-                if (fl.length > 0) {
-                    int last = fl.length - 1;
-                    if (!fl[last].endsWith(" ") && !pendingInlineComment[0].startsWith(" ")) fl[last] = fl[last] + " " + pendingInlineComment[0];
-                    else fl[last] = fl[last] + pendingInlineComment[0];
-                    code = String.join("\n", fl);
-                } 
-                else code = code + pendingInlineComment[0];
-            }
-            out.add(code);
-            clause.setLength(0);
-            pendingInlineComment[0] = null;
-        } 
-        else if (pendingInlineComment[0] != null) {
-            out.add(pendingInlineComment[0] + "\n");
-            pendingInlineComment[0] = null;
-        }
-        return String.join("", out);
+        if (throwable == null) return "Unknown error";
+        String message = throwable.getMessage();
+        return message == null || message.isBlank() ? throwable.getClass().getSimpleName() : message;
     }
 
     /******************************************************************
      */
     public void tptpCheckBuffer() {
 
-        clearWarnAndErr();
-        final var view = jEdit.getActiveView();
-        final var ta   = view.getTextArea();
-        final var buf  = view.getBuffer();
-        final String filePath = (buf.getPath() != null && !buf.getPath().isBlank()) ? buf.getPath() : buf.getName();
-        final String text = ta.getText();
-        final String ext;
-        {
-            int dot = filePath.lastIndexOf('.');
-            ext = (dot >= 0 && dot < filePath.length() - 1) ? filePath.substring(dot + 1).toLowerCase(java.util.Locale.ROOT) : "tptp";
-        }
+        final View targetView = jEdit.getActiveView();
+        if (targetView == null || targetView.getBuffer() == null) return;
+        final Buffer targetBuffer = targetView.getBuffer();
+        final DefaultErrorSource targetSource = ensureErrorSource(targetView);
+        final String bufferPath = targetBuffer.getPath();
+        final String filePath = bufferPath != null && !bufferPath.isBlank() ? bufferPath : targetBuffer.getName();
         if (!isTptpFile(filePath)) {
-            addErrorsDirect(java.util.List.of(
-                new ErrRec(
+            addErrors(
+                List.of(new ErrRec(
                     ErrorSource.WARNING,
                     filePath,
-                    0, 0, 1,
-                    "TPTP formatting/checking is only for .tptp/.p/.fof/.cnf/.tff/.thf files. " +
-                    "Current buffer is not TPTP: " + filePath
-                )
-            ));
-            ThreadUtilities.runInDispatchThread(() -> view.getDockableWindowManager().showDockableWindow("error-list"));
+                    0,
+                    0,
+                    1,
+                    "TPTP checking is only available for "
+                        + ".tptp, .p, .fof, .cnf, .tff, "
+                        + "and .thf files.")),
+                    targetSource,
+                    targetView);
             return;
         }
+
+        final String contents = targetView.getTextArea().getText();
+        clearErrorsForFile(targetSource, filePath);
         startBackgroundThread(create(() -> {
             try {
-                List<ErrRec> recs = TPTPFileChecker.check(text, filePath);
-                if (recs.isEmpty()) recs.add(new ErrRec(ErrorSource.WARNING, filePath, 0, 0, 1, "tptp4X: no issues reported"));
-                addErrorsDirect(recs);
-                ThreadUtilities.runInDispatchThread(() -> view.getDockableWindowManager().showDockableWindow("error-list"));
-            } 
-            catch (Throwable t) {
-                addErrorsDirect(java.util.List.of(new ErrRec(ErrorSource.ERROR, filePath, 0, 0, 1, "Check failed: " + t.getMessage())));
-                ThreadUtilities.runInDispatchThread(() -> view.getDockableWindowManager().showDockableWindow("error-list"));
+                List<ErrRec> diagnostics = TPTPFileChecker.check(contents, filePath);
+                addErrors(diagnostics, targetSource, targetView);
+                Log.log(
+                    Log.MESSAGE,
+                    this, ":tptpCheckBuffer(): found "
+                        + diagnostics.size()
+                        + " diagnostics");
             }
-        }, () -> "Check TPTP"));
-    }
-
-    /******************************************************************
-     */
-    private int adjustForCommentLines(String filePath, int tptpLine) {
-        try {
-            org.gjt.sp.jedit.Buffer buf = null;
-            for (org.gjt.sp.jedit.Buffer b : jEdit.getBuffers()) {
-                if (b.getPath() != null && b.getPath().equals(filePath)) {
-                    buf = b;
-                    break;
-                }
+            catch (Throwable throwable) {
+                Log.log(
+                    Log.ERROR,
+                    this,
+                    ":tptpCheckBuffer()",
+                    throwable);
+                addErrors(
+                        List.of(new ErrRec(
+                            ErrorSource.ERROR,
+                            filePath,
+                            0,
+                            0,
+                            1,
+                            "TPTP checking failed: "
+                                + errorMessage(throwable))),
+                        targetSource,
+                        targetView);
             }
-            if (buf == null) return tptpLine;
-            int nonCommentCount = 0;
-            int actualLine = 0;
-            for (int i = 0; i <= Math.min(tptpLine + 20, buf.getLineCount() - 1); i++) {
-                String lineText = buf.getLineText(i);
-                if (lineText == null) continue;
-                String trimmed = lineText.trim();
-                if (!trimmed.isEmpty() && !trimmed.startsWith("%")) {
-                    nonCommentCount++;
-                    if (nonCommentCount == tptpLine + 1) {
-                        actualLine = i;
-                        break;
-                    }
-                }
-            }
-            if (actualLine > 0 && actualLine != tptpLine) return actualLine;
-        } 
-        catch (Exception e) {
-            Log.log(Log.DEBUG, this.getClass(), "Error adjusting for comments: " + e.getMessage());
-        }
-        return tptpLine;
-    }
-    
-    /******************************************************************
-     */
-    private static int parseTptpFirstErrorLine(final String stderr) {
-
-        if (stderr == null || stderr.isBlank()) return 0;
-        final java.util.regex.Pattern p = java.util.regex.Pattern.compile(
-                "(?:^|\\b)(?:at\\s+line|on\\s+line|line|Line)\\s+(\\d+)(?:\\b|\\D)",
-                java.util.regex.Pattern.MULTILINE);
-        final java.util.regex.Matcher m = p.matcher(stderr);
-        if (m.find()) try { return Integer.parseInt(m.group(1)); } catch (NumberFormatException ignore) {}
-        return 0;
-    }
-
-    /******************************************************************
-     */
-    private static int deriveErrorLineFromStdout(final String stdoutNormalized) {
-
-        if (stdoutNormalized == null || stdoutNormalized.isBlank()) return 0;
-        final String[] lines = stdoutNormalized.split("\\R", -1);
-        int count = lines.length;
-        if (count > 0 && lines[count - 1].isEmpty()) count--;
-        if (count <= 0) return 0;
-        return count + 1;
+        }, () -> "Checking TPTP"));
     }
 
     /******************************************************************
