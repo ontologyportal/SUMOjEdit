@@ -22,55 +22,51 @@ import com.articulate.sigma.KB;
 /**
  * AutoCompleteManager provides prefix-based suggestions and a caret-anchored
  * popup for SUMOjEdit. Suggestions are non-committal until TAB (or Enter if enabled) is pressed.
- *
- * Important jEdit notes:
- * - JEditTextArea is NOT a Swing JTextComponent; use Buffer for text access.
- * - Use Selection.Range + setSelectedText(...) to replace text.
- * - Arrow/Tab handling can be swallowed by the editor; we use a KeyEventDispatcher
- *   to ensure navigation and acceptance work reliably.
  */
 public class AutoCompleteManager {
 
+    /**  */
     private final View view;
+    /**  */
     private final JEditTextArea textArea;
-    private final KB kb; // used to seed SUMO/SUO-KIF symbols
-
+    /**  */
+    private final KB kb;
+    /**  */
     private final SuggestionIndex index = new SuggestionIndex();
-
+    /**  */
     private final JPopupMenu popup = new JPopupMenu();
+    /**  */
     private final JList<String> list = new JList<>();
+    /**  */
     private final JScrollPane scroller = new JScrollPane(list);
+    /**  */
     private final DefaultListModel<String> listModel = new DefaultListModel<>();
-
-    // configuration
-    private int minPrefix = 2;               // show only after this many chars
-    private int maxSuggestions = 20;         // cap UI list size
-    private boolean acceptOnEnter = false;   // set true if you want Enter to commit as well
-    private boolean caseSensitive = false;   // case-insensitive by default
-
-    // Safe regex (no escaping issues). '-' placed at end; '.' literal within class
+    /**  */
+    private int minPrefix = 2;
+    /**  */
+    private int maxSuggestions = 20;
+    /**  */
+    private boolean acceptOnEnter = false;
+    /**  */
+    private boolean caseSensitive = false;
+    /**  */
     private final Pattern tokenPattern = Pattern.compile("[A-Za-z0-9_.-]+");
 
-    // Global dispatcher reliably handles UP/DOWN/TAB/ESC even if editor consumes them
+    /******************************************************************
+     */
     private final KeyEventDispatcher dispatcher = new KeyEventDispatcher() {
+
         @Override public boolean dispatchKeyEvent(KeyEvent e) {
-            // FIXED: Only handle keys when popup is actually visible
             if (!popup.isVisible()) return false;
             if (e.getID() != KeyEvent.KEY_PRESSED) return false;
             switch (e.getKeyCode()) {
                 case KeyEvent.VK_TAB:
-                    // Do not hijack Ctrl+Tab – reserved for Ghost Text accept
-                    if (e.isControlDown()) {
-                        // Let this event pass through so Ghost Text can handle it
-                        return false;
-                    }
-                    // Only consume Tab if popup is showing suggestions
+                    if (e.isControlDown()) return false;
                     if (popup.isVisible() && listModel.size() > 0) {
                         e.consume();
                         acceptSelection();
                         return true;
                     }
-                    // Let Tab pass through for indentation
                     return false;
                 case KeyEvent.VK_ESCAPE:
                     e.consume();
@@ -89,16 +85,25 @@ public class AutoCompleteManager {
         }
     };
 
-    // returns true if the current mode includes a popup dropdown
+    /******************************************************************
+     * returns true if the current mode includes a popup dropdown
+     */
     private static boolean popupEnabled() {
+
         String mode = jEdit.getProperty("sumo.autocomplete.mode", "both");
         return "popup".equalsIgnoreCase(mode) || "both".equalsIgnoreCase(mode);
     }
 
-    // Key handler to recompute suggestions after typing
+    /******************************************************************
+     * Key handler to recompute suggestions after typing
+     */
     private final KeyAdapter keyHandler = new KeyAdapter() {
+
+        /******************************************************************
+         */    
         @Override
         public void keyReleased(KeyEvent e) {
+
             switch (e.getKeyCode()) {
                 case KeyEvent.VK_TAB:
                     if (!popup.isVisible()) return;
@@ -123,30 +128,21 @@ public class AutoCompleteManager {
             }
         }
         
-        @Override public void keyPressed(KeyEvent e) {
-            // FIXED: Only block Tab if popup is actually showing with suggestions
-            if (e.getKeyCode() == KeyEvent.VK_TAB) {
-                if (!popup.isVisible() || listModel.size() == 0) {
-                    // No suggestions - let Tab do indentation
-                    return;
-                }
-                // Otherwise the dispatcher will handle it
-            }
-        }
+        /******************************************************************
+         */
+        @Override public void keyPressed(KeyEvent e) {if (e.getKeyCode() == KeyEvent.VK_TAB && (!popup.isVisible() || listModel.size() == 0)) return;}
     };
 
+    /******************************************************************
+     */
     public AutoCompleteManager(View view, KB kb) {
+
         this.view = view;
         this.textArea = view.getEditPane().getTextArea();
         this.kb = kb;
-
-        // ⛔ disable this dropdown manager entirely if popup is not enabled
-        // if (!popupEnabled()) return;
-
         list.setModel(listModel);
         list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         list.setVisibleRowCount(Math.min(maxSuggestions, 12));
-        // Single-click to accept
         list.addMouseListener(new MouseAdapter() {
             @Override public void mousePressed(MouseEvent e) {
                 int idx = list.locationToIndex(e.getPoint());
@@ -161,26 +157,26 @@ public class AutoCompleteManager {
         });
         popup.setFocusable(false);
         popup.add(scroller);
-
-        // hook listeners
         textArea.addKeyListener(keyHandler);
         KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(dispatcher);
-
-        // prime index from KB and current buffer
         rebuildIndexFromKB();
         rebuildIndexFromBuffer();
     }
 
-    /** Rebuild suggestions from the loaded KB (classes, relations, constants). */
+    /******************************************************************
+     * Rebuild suggestions from the loaded KB (classes, relations, constants).
+     */
     public void rebuildIndexFromKB() {
+
         if (kb == null) return;
-        for (String t : kb.terms) {
-            if (t != null && !t.isBlank()) index.addKB(t);
-        }
+        for (String t : kb.terms) if (t != null && !t.isBlank()) index.addKB(t);
     }
 
-    /** Scan current buffer and add tokens to the index. */
+    /******************************************************************
+     * Scan current buffer and add tokens to the index. 
+     */
     public void rebuildIndexFromBuffer() {
+    
         Buffer buffer = view.getBuffer();
         if (buffer == null) return;
         String text = buffer.getText(0, buffer.getLength());
@@ -191,8 +187,11 @@ public class AutoCompleteManager {
         }
     }
 
-    /** Optional: add a user dictionary file, one token per line. */
+    /******************************************************************
+     * Optional: add a user dictionary file, one token per line. 
+     */
     public void loadUserDictionary(File f) {
+    
         if (f == null || !f.exists()) return;
         try (BufferedReader br = new BufferedReader(new FileReader(f))) {
             String line;
@@ -200,46 +199,56 @@ public class AutoCompleteManager {
                 line = line.trim();
                 if (!line.isEmpty()) index.add(line);
             }
-        } catch (Exception ignored) {}
+        } 
+        catch (Exception ignored) {}
     }
 
-    /** Call when switching buffers to quickly refresh the buffer words. */
+    /******************************************************************
+     * Call when switching buffers to quickly refresh the buffer words. 
+     */
     public void refreshIndexOnBufferChange() {
+    
         index.clearBufferLayer();
         rebuildIndexFromBuffer();
         hidePopup();
     }
 
-    /** Dispose listeners when the plugin unloads. */
+
+    /******************************************************************
+     *  Dispose listeners when the plugin unloads. 
+     */
     public void dispose() {
+    
         try { textArea.removeKeyListener(keyHandler); } catch (Exception ignored) {}
         try { KeyboardFocusManager.getCurrentKeyboardFocusManager().removeKeyEventDispatcher(dispatcher); } catch (Exception ignored) {}
         hidePopup();
     }
-
-    // === Core UI logic ===
-
+    
+    /******************************************************************
+     */
     private void maybeShow() {
-        // return immediately if popup is not enabled
-        if (!popupEnabled()) return;
 
+        if (!popupEnabled()) return;
         String prefix = currentWordPrefix();
         if (prefix.length() < minPrefix) { hidePopup(); return; }
         List<String> sugg = index.startsWith(prefix, maxSuggestions, caseSensitive);
         if (sugg.isEmpty()) { hidePopup(); return; }
-
         listModel.clear();
         for (String s : sugg) listModel.addElement(s);
         list.setSelectedIndex(0);
-
         Point p = caretAnchorPoint();
         if (p == null) { hidePopup(); return; }
         popup.show(textArea, p.x, p.y + textArea.getPainter().getFontMetrics().getHeight());
     }
 
+    /******************************************************************
+     */
     private void hidePopup() { popup.setVisible(false); }
 
+    /******************************************************************
+     */
     private void moveSelection(int delta) {
+
         int i = list.getSelectedIndex();
         int n = listModel.size();
         if (n == 0) return;
@@ -248,7 +257,10 @@ public class AutoCompleteManager {
         list.ensureIndexIsVisible(j);
     }
 
+    /******************************************************************
+     */
     private void acceptSelection() {
+    
         if (!popup.isVisible()) return;
         String pick = list.getSelectedValue();
         if (pick == null) return;
@@ -256,7 +268,10 @@ public class AutoCompleteManager {
         hidePopup();
     }
 
+    /******************************************************************
+     */
     private String currentWordPrefix() {
+    
         Buffer buffer = view.getBuffer();
         if (buffer == null) return "";
         int caret = textArea.getCaretPosition();
@@ -274,7 +289,10 @@ public class AutoCompleteManager {
         return buffer.getText(prefixStart, caret - prefixStart);
     }
 
+    /******************************************************************
+     */
     private void replaceCurrentPrefixWith(String fullToken) {
+    
         Buffer buffer = view.getBuffer();
         if (buffer == null) return;
         int caret = textArea.getCaretPosition();
@@ -292,19 +310,26 @@ public class AutoCompleteManager {
         textArea.setSelectedText(fullToken);
     }
 
+    /******************************************************************
+     */
     private char charAt(Buffer buffer, int offset) {
+    
         if (offset < 0 || offset >= buffer.getLength()) return '\0';
         String s = buffer.getText(offset, 1);
         return s.isEmpty() ? '\0' : s.charAt(0);
     }
 
+    /******************************************************************
+     */
     private Point caretAnchorPoint() {
+    
         try {
             int caret = textArea.getCaretPosition();
             Point p = textArea.offsetToXY(caret);
             if (p == null) return new Point(0, textArea.getPainter().getFontMetrics().getHeight());
             return p;
-        } catch (Exception e) {
+        } 
+        catch (Exception e) {
             return new Point(0, textArea.getPainter().getFontMetrics().getHeight());
         }
     }
