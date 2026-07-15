@@ -97,18 +97,21 @@ public class AutoCompleteManager {
 
     // Key handler to recompute suggestions after typing
     private final KeyAdapter keyHandler = new KeyAdapter() {
-        @Override public void keyReleased(KeyEvent e) {
+        @Override
+        public void keyReleased(KeyEvent e) {
             switch (e.getKeyCode()) {
                 case KeyEvent.VK_TAB:
-                    // FIXED: Don't interfere with Tab when no popup is showing
-                    if (!popup.isVisible()) {
-                        // Let Tab do its normal indentation
-                        return;
-                    }
+                    if (!popup.isVisible()) return;
                     break;
                 case KeyEvent.VK_ESCAPE:
                 case KeyEvent.VK_UP:
                 case KeyEvent.VK_DOWN:
+                case KeyEvent.VK_LEFT:
+                case KeyEvent.VK_RIGHT:
+                case KeyEvent.VK_HOME:
+                case KeyEvent.VK_END:
+                case KeyEvent.VK_PAGE_UP:
+                case KeyEvent.VK_PAGE_DOWN:
                 case KeyEvent.VK_ENTER:
                 case KeyEvent.VK_SHIFT:
                 case KeyEvent.VK_CONTROL:

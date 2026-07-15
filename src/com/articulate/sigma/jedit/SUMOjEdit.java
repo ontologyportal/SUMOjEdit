@@ -412,7 +412,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                 if (kb != null) {
                     autoComplete = new AutoCompleteManager(view, kb);
                     Log.log(Log.MESSAGE, this, ":AutoComplete initialized with KB");
-                } else {
+                } 
+                else {
                     KB fallbackKB = KBmanager.getMgr().getKB("SUMO");
                     if (fallbackKB != null) {
                         kb = fallbackKB;
@@ -422,13 +423,17 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                     else Log.log(Log.ERROR, this, ":No KB available for AutoComplete");
                 }
             }
+            if (view != null && kb == null) {
+                kb = KBmanager.getMgr().getKB("SUMO");
+                if (kb != null) Log.log(Log.WARNING, this, ":Using fallback SUMO KB for autocomplete");
+            }
             if (view != null && kb != null) {
+                if (autoComplete != null) autoComplete.dispose();
                 autoComplete = new AutoCompleteManager(view, kb);
-                Log.log(Log.MESSAGE, this, ":AutoComplete initialized successfully with " + kb.terms.size() + " terms");
-            } 
+                Log.log(Log.MESSAGE, this, ":Autocomplete initialized with " + kb.terms.size() + " terms");
+            }
             else {
-                Log.log(Log.ERROR, this, ":AutoComplete NOT initialized - view=" + view + ", kb=" + kb);
-                if (kb == null) Log.log(Log.ERROR, this, ":KB is null! AutoComplete will not work.");
+                Log.log(Log.ERROR, this, ":Autocomplete not initialized; view=" + view + ", kb=" + kb);
             }
             isInitialized = true;
             errsrc = ensureErrorSource(view); 
@@ -550,12 +555,14 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
 
     /******************************************************************
      */
-    private void editPaneUpdate(EditPaneUpdate eu) {
-
+    private void editPaneUpdate(EditPaneUpdate update) {
+        
         if (view == null) return;
-        if (eu.getWhat() == EditPaneUpdate.BUFFER_CHANGED) processLoadedKifOrTptp();
-        if (autoComplete != null) autoComplete.refreshIndexOnBufferChange();
-        if (eu.getWhat() == EditPaneUpdate.DESTROYED) unload();
+        if (update.getWhat() == EditPaneUpdate.BUFFER_CHANGED) {
+            processLoadedKifOrTptp();
+            if (autoComplete != null) autoComplete.refreshIndexOnBufferChange();
+        }
+        if (update.getWhat() == EditPaneUpdate.DESTROYED) unload();
     }
 
     /******************************************************************
@@ -1295,14 +1302,9 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         final String contents = targetView.getTextArea().getText();
         clearErrorsForFile(targetSource, filePath);
         startBackgroundThread(create(() -> {
-            List<ErrRec> errors =
-                isTptpFile(filePath)
-                    ? TPTPFileChecker.check(
-                        contents,
-                        filePath)
-                    : KifFileChecker.check(
-                        contents,
-                        filePath);
+            List<ErrRec> errors;
+            if (isTptpFile(filePath)) errors = normalizeTptpErrorsForJEdit(TPTPFileChecker.check(contents, filePath));
+            else errors = KifFileChecker.check(contents, filePath);
             addErrorsDirect(errors);
             Log.log(
                     Log.MESSAGE,
@@ -1377,9 +1379,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     private void addErrorsDirect(List<ErrRec> errors) {
 
         if (errors == null || errors.isEmpty()) return;
-        errors.sort(Comparator
-                .comparingInt((ErrRec e) -> e.line)
-                .thenComparingInt(e -> e.start));
+        errors.sort(Comparator.comparingInt((ErrRec e) -> e.line).thenComparingInt(e -> e.start));
         final DefaultErrorSource targetSource = errsrc;
         final View targetView = view;
         final Buffer targetBuffer = targetView == null ? null : targetView.getBuffer();
@@ -1395,88 +1395,55 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                     start = Math.min(start, lineLength);
                     end = Math.min(Math.max(start + 1, end), lineLength);
                 }
-                targetSource.addError(
-                        e.type,
-                        e.file,
-                        line,
-                        start,
-                        end,
-                        appendSnippet(e.msg, e.file, line));
+                targetSource.addError(e.type, e.file, line, start, end, appendSnippet(e.msg, e.file, line));
             }
-            if (targetView != null) {
-                targetView.getDockableWindowManager()
-                        .showDockableWindow("error-list");
-            }
+            if (targetView != null) targetView.getDockableWindowManager().showDockableWindow("error-list");
         });
     }
 
-    private void addErrors(
-        List<ErrRec> errors,
-        DefaultErrorSource targetSource,
-        View targetView) {
+    /******************************************************************
+     */
+    private void addErrors(List<ErrRec> errors, DefaultErrorSource targetSource, View targetView) {
 
-        if (errors == null || errors.isEmpty()) {
-            return;
-        }
-
-        List<ErrRec> sortedErrors =
-                new ArrayList<>(errors);
-
+        if (errors == null || errors.isEmpty()) return;
+        List<ErrRec> sortedErrors = new ArrayList<>(errors);
         sortedErrors.sort(Comparator
-                .comparingInt((ErrRec error) -> error.line)
-                .thenComparingInt(error -> error.start));
-
-        final Buffer targetBuffer =
-                targetView == null
-                        ? null
-                        : targetView.getBuffer();
-
+            .comparingInt((ErrRec error) -> error.line)
+            .thenComparingInt(error -> error.start));
+        final Buffer targetBuffer = targetView == null ? null : targetView.getBuffer();
         ThreadUtilities.runInDispatchThread(() -> {
             for (ErrRec error : sortedErrors) {
                 int line = Math.max(0, error.line);
                 int start = Math.max(0, error.start);
                 int end = Math.max(start + 1, error.end);
-
-                if (targetBuffer != null
-                        && targetBuffer.getLineCount() > 0) {
-                    int lastLine =
-                            targetBuffer.getLineCount() - 1;
-
+                if (targetBuffer != null && targetBuffer.getLineCount() > 0) {
+                    int lastLine = targetBuffer.getLineCount() - 1;
                     line = Math.min(line, lastLine);
-
-                    int lineLength =
-                            targetBuffer.getLineLength(line);
-
+                    int lineLength = targetBuffer.getLineLength(line);
                     start = Math.min(start, lineLength);
-
-                    /*
-                    * ErrorList expects the range to be within the line.
-                    * Empty lines cannot have a nonzero end column.
-                    */
-                    end = lineLength == 0
-                            ? 0
-                            : Math.min(
-                                    Math.max(start + 1, end),
-                                    lineLength);
+                    if (end <= start + 1 && lineLength > 0) end = tokenEnd(targetBuffer, line, start);
+                    else end = Math.min(end, lineLength);
+                    end = lineLength == 0 ? 0 : Math.min(Math.max(start + 1, end), lineLength);
                 }
-
-                targetSource.addError(
-                        error.type,
-                        error.file,
-                        line,
-                        start,
-                        end,
-                        appendSnippet(
-                                error.msg,
-                                error.file,
-                                line));
+                targetSource.addError(error.type, error.file, line, start, end, appendSnippet(error.msg, error.file, line));
             }
-
-            if (targetView != null) {
-                targetView.getDockableWindowManager()
-                        .showDockableWindow("error-list");
-            }
+            if (targetView != null) targetView.getDockableWindowManager().showDockableWindow("error-list");
         });
+    }
+
+    /******************************************************************
+     */
+    private static int tokenEnd(Buffer buffer, int line, int start) {
+        
+        int length = buffer.getLineLength(line);
+        String text = buffer.getLineText(line);
+        int end = Math.min(start + 1, length);
+        while (end < length) {
+            char c = text.charAt(end);
+            if (!(Character.isLetterOrDigit(c) || c == '_' || c == '-')) break;
+            end++;
+        }
+        return end;
     }
 
     /******************************************************************
@@ -1687,10 +1654,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         Log.log(Log.MESSAGE, this, ":fromTPTP(): starting");
         String contents = view.getTextArea().getText();
         String selected = view.getTextArea().getSelectedText();
-        if (!StringUtil.emptyString(selected))
-            contents = selected;
-        if (StringUtil.emptyString(kif.filename))
-            kif.filename = view.getBuffer().getPath();
+        if (!StringUtil.emptyString(selected)) contents = selected;
+        if (StringUtil.emptyString(kif.filename)) kif.filename = view.getBuffer().getPath();
         try {
             TPTPVisitor sv = new TPTPVisitor();
             if (new File(kif.filename).exists()) sv.parseFile(kif.filename);
@@ -1714,7 +1679,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     /** Menu action entrypoint. Called by actions.xml via SUMOjEditPlugin.sje.autoComplete() */
     @Override
     public void autoComplete() {
-        // Respect AC mode: only show drop-down in DROPDOWN_ONLY or BOTH
+        
         String mode = jEdit.getProperty("sumojedit.ac.mode", "BOTH");
         boolean dropdownEnabled = "DROPDOWN_ONLY".equals(mode) || "BOTH".equals(mode);
         if (!dropdownEnabled) return;
@@ -1728,6 +1693,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     /******************************************************************
      */
     private static String stripTailAfterPercentDash(String s) {
+
         if (s == null) return "";
         return s.replaceFirst("\\s+—\\s+%.*$", "").replaceFirst("\\s+%.*$", "").trim();
     }
@@ -1735,6 +1701,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     /******************************************************************
      */
     private static boolean isTptpFile(String path) {
+
         if (path == null) return false;
         int i = path.lastIndexOf('.');
         if (i < 0) return false;
@@ -1748,34 +1715,16 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
     public void tptpFormatBuffer() {
 
         final View targetView = jEdit.getActiveView();
-
-        if (targetView == null || targetView.getBuffer() == null) {
-            return;
-        }
-
+        if (targetView == null || targetView.getBuffer() == null) return;
         final Buffer targetBuffer = targetView.getBuffer();
-        final DefaultErrorSource targetSource =
-                ensureErrorSource(targetView);
-
+        final DefaultErrorSource targetSource = ensureErrorSource(targetView);
         final String bufferPath = targetBuffer.getPath();
-        final String filePath =
-                bufferPath != null && !bufferPath.isBlank()
-                        ? bufferPath
-                        : targetBuffer.getName();
-
+        final String filePath = bufferPath != null && !bufferPath.isBlank() ? bufferPath : targetBuffer.getName();
         if (!isTptpFile(filePath)) {
             addErrors(
-                    List.of(new ErrRec(
-                            ErrorSource.WARNING,
-                            filePath,
-                            0,
-                            0,
-                            1,
-                            "TPTP formatting is only available for "
-                                    + ".tptp, .p, .fof, .cnf, .tff, "
-                                    + "and .thf files.")),
-                    targetSource,
-                    targetView);
+                List.of(new ErrRec(ErrorSource.WARNING, filePath, 0, 0, 1, "TPTP formatting is only available for " + ".tptp, .p, .fof, .cnf, .tff, " + "and .thf files.")),
+                targetSource,
+                targetView);
             return;
         }
         final JEditTextArea textArea = targetView.getTextArea();
@@ -1785,15 +1734,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         final boolean hasSelection = selection != null;
         final String textToFormat = hasSelection ? targetView.getTextArea().getSelectedText() : targetView.getTextArea().getText();
         if (textToFormat == null || textToFormat.isBlank()) {
-            addErrors(List.of(new ErrRec(
-                ErrorSource.WARNING,
-                filePath,
-                0,
-                0,
-                1,
-                "There is no TPTP text to format.")),
-                targetSource,
-                targetView);
+            addErrors(List.of(new ErrRec(ErrorSource.WARNING, filePath, 0, 0, 1, "There is no TPTP text to format.")), targetSource, targetView);
             return;
         }
         clearErrorsForFile(targetSource, filePath);
@@ -1818,7 +1759,7 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
                     textToCheck = original.substring(0, selectionStart) + formatted + original.substring(selectionEnd);
                 }
                 else textToCheck = formatted;
-                List<ErrRec> diagnostics = TPTPFileChecker.check(textToCheck, filePath);
+                List<ErrRec> diagnostics = normalizeTptpErrorsForJEdit(TPTPFileChecker.check(textToCheck, filePath));
                 addErrors(diagnostics, targetSource, targetView);
                 Log.log(Log.MESSAGE, this, ":tptpFormatBuffer(): found " + diagnostics.size() + " diagnostics");
             }
@@ -1829,6 +1770,8 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         }, () -> "Formatting TPTP"));
     }
 
+    /******************************************************************
+     */
     private static String errorMessage(Throwable throwable) {
 
         if (throwable == null) return "Unknown error";
@@ -1866,33 +1809,31 @@ public class SUMOjEdit implements EBComponent, SUMOjEditActions {
         clearErrorsForFile(targetSource, filePath);
         startBackgroundThread(create(() -> {
             try {
-                List<ErrRec> diagnostics = TPTPFileChecker.check(contents, filePath);
+                List<ErrRec> diagnostics = normalizeTptpErrorsForJEdit(TPTPFileChecker.check(contents, filePath));
                 addErrors(diagnostics, targetSource, targetView);
-                Log.log(
-                    Log.MESSAGE,
-                    this, ":tptpCheckBuffer(): found "
-                        + diagnostics.size()
-                        + " diagnostics");
+                Log.log(Log.MESSAGE, this, ":tptpCheckBuffer(): found " + diagnostics.size() + " diagnostics");
             }
             catch (Throwable throwable) {
-                Log.log(
-                    Log.ERROR,
-                    this,
-                    ":tptpCheckBuffer()",
-                    throwable);
+                Log.log(Log.ERROR, this, ":tptpCheckBuffer()", throwable);
                 addErrors(
-                        List.of(new ErrRec(
-                            ErrorSource.ERROR,
-                            filePath,
-                            0,
-                            0,
-                            1,
-                            "TPTP checking failed: "
-                                + errorMessage(throwable))),
-                        targetSource,
-                        targetView);
+                    List.of(new ErrRec(ErrorSource.ERROR, filePath, 0, 0, 1, "TPTP checking failed: " + errorMessage(throwable))),
+                    targetSource,
+                    targetView);
             }
         }, () -> "Checking TPTP"));
+    }
+
+    /******************************************************************
+     */
+    private static List<ErrRec> normalizeTptpErrorsForJEdit(List<ErrRec> errors) {
+
+        if (errors == null || errors.isEmpty()) return Collections.emptyList();
+        List<ErrRec> normalized = new ArrayList<>(errors.size());
+        for (ErrRec error : errors) {
+            int line = error.line > 0 ? error.line - 1 : 0;
+            normalized.add(new ErrRec(error.type, error.file, line, error.start, error.end, error.msg));
+        }
+        return normalized;
     }
 
     /******************************************************************
