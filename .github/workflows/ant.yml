@@ -87,7 +87,7 @@ jobs:
           mkdir -p $SIGMA_HOME/KBs/WordNetMappings
           cp -R $ONTOLOGYPORTAL_GIT/sumo/* $SIGMA_HOME/KBs
           cp /opt/WordNet-3.0/dict/* $SIGMA_HOME/KBs/WordNetMappings/
-          cp $SIGMA_SRC/config.xml $SIGMA_HOME/KBs
+          cp $SIGMA_SRC/scripts/installation/config.xml $SIGMA_HOME/KBs
           sed -i "s|/home/theuser/workspace/sumo|$SIGMA_HOME/KBs|g" $SIGMA_HOME/KBs/config.xml
           sed -i "s|/home/theuser/.sigmakee|$SIGMA_HOME|g" $SIGMA_HOME/KBs/config.xml
           sed -i "s|/home/theuser/E/bin/e_ltb_runner|/usr/local/bin/e_ltb_runner|g" $SIGMA_HOME/KBs/config.xml
